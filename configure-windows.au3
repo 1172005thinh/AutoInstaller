@@ -30,24 +30,6 @@ If $iExitCode <> 0 Then
     Exit $iExitCode
 EndIf
 
-_Log("INFO: Triggering desktop sort via UI automation...")
-Send("#d")
-Sleep(1500)
-ControlClick("[CLASS:Progman]", "", "")
-Sleep(500)
-Send("{APPSKEY}")
-Sleep(1500)
-Send("{DOWN 2}")
-Sleep(1000)
-Send("{RIGHT}")
-Sleep(1000)
-Send("{DOWN 2}")
-Sleep(1000)
-Send("{ENTER}")
-Sleep(1000)
-Send("#d") ; Restore from desktop
-_Log("INFO: Desktop sort triggered.")
-
 _Log("INFO: Windows configuration completed successfully.")
 Exit 0
 

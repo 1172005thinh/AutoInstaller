@@ -306,19 +306,83 @@ try {
     Write-Log "WARN: Could not restart Explorer: $($_.Exception.Message)"
 }
 
+Write-Log 'INFO: [3] Sorting desktop icons silently via WM_COMMAND...'
+try {
+    $code = @"
+using System;
+using System.Runtime.InteropServices;
+
+public class DesktopManager
+{
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern IntPtr FindWindow(string lpClassName, string lpWindowName);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern IntPtr FindWindowEx(IntPtr hwndParent, IntPtr hwndChildAfter, string lpszClass, string lpszWindow);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern IntPtr SendMessage(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
+
+    private delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool EnumWindows(EnumWindowsProc lpEnumFunc, IntPtr lParam);
+
+    private const uint WM_COMMAND = 0x0111;
+    private const int SORT_BY_ITEM_TYPE = 31494;
+
+    public static void SortByType()
+    {
+        IntPtr hShellView = IntPtr.Zero;
+        
+        IntPtr hProgman = FindWindow("Progman", null);
+        if (hProgman != IntPtr.Zero)
+        {
+            hShellView = FindWindowEx(hProgman, IntPtr.Zero, "SHELLDLL_DefView", null);
+        }
+
+        if (hShellView == IntPtr.Zero)
+        {
+            EnumWindows((hwnd, lParam) =>
+            {
+                IntPtr child = FindWindowEx(hwnd, IntPtr.Zero, "SHELLDLL_DefView", null);
+                if (child != IntPtr.Zero)
+                {
+                    hShellView = child;
+                    return false;
+                }
+                return true;
+            }, IntPtr.Zero);
+        }
+
+        if (hShellView != IntPtr.Zero)
+        {
+            SendMessage(hShellView, WM_COMMAND, new IntPtr(SORT_BY_ITEM_TYPE), IntPtr.Zero);
+        }
+    }
+}
+"@
+    Add-Type -TypeDefinition $code -ErrorAction Stop
+    [DesktopManager]::SortByType()
+    Write-Log 'INFO: [3] Desktop icons sorted by Type.'
+} catch {
+    Write-Log "WARN: [3] Failed to sort desktop via C# API: $($_.Exception.Message)"
+}
+
 Write-Log 'INFO: --- VALIDATION ---'
 $valFails = 0
 
-function Check-Reg {
+function Test-RegValue {
     param($Path, $Name, $Expected)
     $val = (Get-ItemProperty -Path $Path -Name $Name -ErrorAction SilentlyContinue).$Name
     if ($val -eq $Expected) { Write-Log "INFO: [VALIDATION] PASS: $Name = $val"; return $true }
     Write-Log "ERROR: [VALIDATION] FAIL: $Name = $val (Expected: $Expected)"; return $false
 }
 
-if (-not (Check-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Dsh' 'AllowNewsAndInterests' 0)) { $valFails++ }
-if (-not (Check-Reg 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Search' 'SearchboxTaskbarMode' 0)) { $valFails++ }
-if (-not (Check-Reg 'HKCU:\SOFTWARE\Microsoft\Clipboard' 'EnableClipboardHistory' 1)) { $valFails++ }
+if (-not (Test-RegValue 'HKLM:\SOFTWARE\Policies\Microsoft\Dsh' 'AllowNewsAndInterests' 0)) { $valFails++ }
+if (-not (Test-RegValue 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Search' 'SearchboxTaskbarMode' 0)) { $valFails++ }
+if (-not (Test-RegValue 'HKCU:\SOFTWARE\Microsoft\Clipboard' 'EnableClipboardHistory' 1)) { $valFails++ }
 
 $pcfg = powercfg /q SCHEME_CURRENT SUB_VIDEO VIDEOIDLE
 if ($pcfg -match 'Current AC Power Setting Index: 0x00000e10') { Write-Log 'INFO: [VALIDATION] PASS: Monitor Timeout AC' }
