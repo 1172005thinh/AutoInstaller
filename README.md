@@ -10,4 +10,4 @@ The deployment suite handles four major phases:
 
 The entire process is heavily logged and concludes by generating a final Markdown report summarizing the status of the drivers, installed applications, and system configurations.
 
-For detailed technical architecture and usage instructions, refer to `AUTOINSTALLER.md` and `AGENTS.md`.
+For detailed technical architecture and usage instructions, refer to `AUTOINSTALLER.md`.
