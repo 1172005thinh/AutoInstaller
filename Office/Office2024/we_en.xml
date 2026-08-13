@@ -1,0 +1,17 @@
+<Configuration>
+	<Add OfficeClientEdition="64" Channel="PerpetualVL2024">
+		<Product ID="ProPlus2024Volume">
+			<Language ID="en-us" />
+			<ExcludeApp ID="Access" />
+			<ExcludeApp ID="Lync" />
+			<ExcludeApp ID="OneDrive" />
+			<ExcludeApp ID="OneNote" />
+			<ExcludeApp ID="Outlook" />
+			<ExcludeApp ID="Publisher" />
+			<ExcludeApp ID="PowerPoint" />
+			<ExcludeApp ID="Teams" />
+		</Product>
+	</Add>
+	<Display Level="None" AcceptEULA="TRUE" />
+	<RemoveMSI />
+</Configuration>

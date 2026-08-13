@@ -1,0 +1,7 @@
+*.exe
+*.msi
+*.md5
+/Office/Office2024/Office
+/source
+/temp
+AGENTS.md
