@@ -3,6 +3,9 @@
 *.md5
 /System Volume Information
 /Office/Office2024/Office
+/windows
 /source
 /temp
+/ventoy/ventoy.json
+/ventoy/script
 AGENTS.md

@@ -1,0 +1,41 @@
+{
+    "control":[
+        { "VTOY_DEFAULT_SEARCH_ROOT": "/" }
+    ],
+    "theme":{
+        "file": "/ventoy/theme/1172005thinh/light43/theme.txt",
+        "resolution_fit": 1
+    },
+    "menu_alias":[
+        {
+            "image": "/Windows/Windows11/w11_24h2.iso",
+            "alias": "Windows 11 24H2"
+        }
+    ],
+    "menu_tip":{
+        "tips":[
+            {
+                "image": "/Windows/Windows11/w11_24h2.iso",
+                "tip": "Auto-pilot Windows 11 Installation"
+            }
+        ]
+    },
+    "menu_class":[
+        {
+            "key": "w11",
+            "class": "windows"
+        },
+    ],
+    "auto_install":[
+        {
+            "image": "/Windows/Windows11/w11_24h2.iso",
+            "template":[
+                "/ventoy/script/Auto-pilot Windows Setup.xml",
+                "/ventoy/script/Windows Setup with Drivers.xml",
+                "/ventoy/script/Windows Setup without Drivers.xml"
+            ],
+            "timeout": 5,
+            "autosel": 1
+        }
+    ]
+}
