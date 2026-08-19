@@ -51,15 +51,13 @@ _WriteLog("INFO", "Console opened. Mode=" & $sMode & "; Root=" & $g_sRoot)
 Switch $sMode
     Case "--full"
         _WriteLog("INFO", "Master launcher started in full mode.")
-        _RunDrivers(True)
+        _InstallApplications()
+        _RunWindowsConfig()
+        _RunDrivers(False)
+        _RunReport()
     Case "--drivers-only"
         _WriteLog("INFO", "Master launcher started in drivers-only mode.")
         _RunDrivers(False)
-    Case "--resume-apps"
-        _WriteLog("INFO", "Resuming application installation after driver processing.")
-        _InstallApplications()
-        _RunWindowsConfig()
-        _RunReport()
     Case "--report"
         _WriteLog("INFO", "Generating installation report only.")
         _RunReport()
@@ -100,8 +98,8 @@ Func _RunDrivers($bResumeApps)
 
     If $iExitCode <> 0 Then
         _WriteLog("ERROR", "Driver launcher returned exit code " & $iExitCode & ".")
-        _ConsolePrint("ERROR", "Driver installer returned exit code " & $iExitCode & ".")
-        Exit $iExitCode
+        _ConsolePrint("ERROR", "Driver installer returned exit code " & $iExitCode & " -- continuing to report.")
+        Return  ; Don't Exit — fall through so _RunReport still generates the report
     EndIf
 
     _WriteLog("INFO", "Driver launcher completed or handed off to its continuation.")
@@ -385,7 +383,7 @@ Func _ConsolePrintSummary($aStatus, $aTargets)
     _CW("  Installation Summary" & @CRLF)
     _CW("============================================" & $g_cRst & @CRLF)
 
-    ; Drivers: we reach _InstallApplications only in --resume-apps (drivers already done)
+    ; Drivers run after apps+config; by the time the report runs, drivers are complete.
     _CW($g_cGrn  & "  [OK]   Windows Update (Drivers) : Done" & $g_cRst & @CRLF)
     _CW($g_cGrn  & "  [OK]   Installed       : " & $iInstalled & $g_cRst & @CRLF)
     _CW($g_cDim  & "  [---]  Already present : " & $iAlready   & $g_cRst & @CRLF)

@@ -67,7 +67,7 @@ In summary, the script does:
 
 ## DRIVERS INSTALLATION
 
-This installation process after the [Windows installation process](#windows-installation).
+This installation process runs **after** [Software Installation](#software-installation) and [Windows Configuration](#windows-configuration), as the final automated step before report generation. Running drivers last allows the reboot loop to complete without interrupting app installation.
 
 ```text
 # Written in PowerShell and compiled as an exe file
@@ -78,24 +78,25 @@ install-drivers.log <-- log file in the USB at C:/Auto-installer/install-drivers
 
 Requirements:
 
-1. The Windows installation process has terminated succesfully. **IMPORTANT! Does not start the drivers installation if the Windows installation process is not terminated succesfully.**
+1. The Windows installation, software installation, and Windows configuration processes have terminated successfully. **IMPORTANT! Does not start the drivers installation if any preceding process has not terminated successfully.**
 2. Windows login to the created user has been completed. **IMPORTANT! Does not start the drivers installation if the Windows login to the created user is not completed.**
-3. The computer has access to the Internet. **OPTIONAL as it needs to download and install drivers from Windows Update, else the installation terminated without installing any drivers.**
+3. The computer has access to the Internet. **OPTIONAL -- if no connection is available, the installation is skipped and logged as `skipped-no-internet`.**
 
 In summary, the script acts:
 
 1. Check if the `install-drivers.exe` run as Administrator, `max_iteration >= 1`? Init `iteration = 1`, go to step 2 : Terminate and log into the configure log-file (by default: `C:/Auto-installer/install-drivers.log`).
-2. Check if the Internet connection is available? Go to step 3 : Terminate and log into `C:/Auto-installer/install-drivers.log`, go to step 8.
-3. Start the Windows Update to find drivers? Go to step 4 : Terminate and log into `C:/Auto-installer/install-drivers.log`, go to step 8.
-4. Installation finished now requires restarting? Go to step 5 : Terminate and log into `C:/Auto-installer/install-drivers.log`, go to step 8.
-5. Auto restart? Go to step 6 : Terminate and log into `C:/Auto-installer/install-drivers.log`, go to step 8.
-6. Restart done? Increment `iteration`, go to step 7 : Terminate and log into `C:/Auto-installer/install-drivers.log`, go to step 8.
-7. Is `iteration < max_iteration`? Go to step 2 : Terminate and log into `C:/Auto-installer/install-drivers.log`, go to step 8.
-8. Installation finished.
+2. Configure Windows Update policy via registry to: include driver updates, include security patches, and block feature/version upgrades. Restart `wuauserv` and `UsoSvc` to apply the new policy.
+3. Check if the Internet connection is available? Go to step 4 : Log `skipped-no-internet` and terminate (go to step 9).
+4. Search Windows Update for all available drivers (`Type='Driver'`) and security/software updates (`Type='Software'`), excluding hidden items. Retry up to 3 times with 60-second waits if the WU agent is not yet ready.
+5. Are there updates found? Go to step 6 : If `iteration > 1`, log `completed-clean` (all updates applied in prior iterations); else log `no-updates`. Go to step 9.
+6. List all queued updates to the terminal and log, then install all of them.
+7. Installation finished -- does it require a restart? Go to step 8 : Go to step 9.
+8. Is `iteration < max_iteration`? Register a scheduled task to resume at startup, increment `iteration`, restart the computer, and go to step 2 on next boot : Log `reboot-required` (manual reboot needed), go to step 9.
+9. Installation finished. If `-ReportAfterCompletion` was set, hand off to `report.exe`.
 
 ## SOFTWARE INSTALLATION
 
-This installation process runs after the [Windows installation process](#windows-installation) and the [drivers installation process](#drivers-installation).
+This installation process runs after the [Windows installation process](#windows-installation). It now runs **before** the [drivers installation process](#drivers-installation) so that the driver reboot loop does not interrupt app or configuration phases.
 
 ```text
 # Written in AutoIt v3 and compiled as an exe file

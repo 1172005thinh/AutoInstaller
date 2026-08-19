@@ -1,4 +1,4 @@
-﻿#RequireAdmin
+#RequireAdmin
 #AutoIt3Wrapper_UseX64=y
 #NoTrayIcon
 #include <AutoItConstants.au3>
@@ -28,8 +28,10 @@ EndIf
 
 ; UltraViewer uses Inno Setup
 _Log("INFO: Starting installation...")
-Local $iExitCode = RunWait('"' & $g_sSetupPath & '" /VERYSILENT /NORESTART /SUPPRESSMSGBOXES', @ScriptDir, @SW_HIDE)
+Local $sInnoLog = "C:\Auto-installer\install_ultraviewer_inno.log"
+Local $iExitCode = RunWait('"' & $g_sSetupPath & '" /VERYSILENT /NORESTART /SUPPRESSMSGBOXES /LOG="' & $sInnoLog & '"', @ScriptDir, @SW_HIDE)
 _Log("INFO: Installer finished with exit code: " & $iExitCode)
+_LogInnoFile($sInnoLog, "[UltraViewer]")
 If @error Then
     _Log("ERROR: RunWait failed with AutoIt error: " & @error)
     Exit 21
@@ -83,6 +85,25 @@ Func _CreateDesktopShortcut()
 EndFunc
 
 
+Func _LogInnoFile($sInnoPath, $sTag)
+    If Not FileExists($sInnoPath) Then Return
+    Local $hInno = FileOpen($sInnoPath, 0)
+    If $hInno = -1 Then Return
+    Local $sLogPath = "C:\Auto-installer\install-apps.log"
+    Local $hLog = FileOpen($sLogPath, 1 + 256)
+    If $hLog <> -1 Then
+        While True
+            Local $sLine = FileReadLine($hInno)
+            If @error Then ExitLoop
+            If $sLine <> "" Then
+                FileWriteLine($hLog, "[" & @YEAR & "-" & StringFormat("%02d", @MON) & "-" & StringFormat("%02d", @MDAY) & " " & @HOUR & ":" & @MIN & ":" & @SEC & "] " & $sTag & " [INNO] " & $sLine)
+            EndIf
+        WEnd
+        FileClose($hLog)
+    EndIf
+    FileClose($hInno)
+    FileDelete($sInnoPath)
+EndFunc
 Func _Log($sMsg)
     Local $sLogPath = "C:\Auto-installer\install-apps.log"
     Local $hLog = FileOpen($sLogPath, 1 + 256) ; FO_APPEND (1) + FO_UTF8_NOBOM (256)

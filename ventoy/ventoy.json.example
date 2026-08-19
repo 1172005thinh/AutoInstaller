@@ -3,8 +3,20 @@
         { "VTOY_DEFAULT_SEARCH_ROOT": "/" }
     ],
     "theme":{
-        "file": "/ventoy/theme/1172005thinh/light43/theme.txt",
-        "resolution_fit": 1
+        "file":[
+            "/ventoy/theme/1172005thinh/light169/theme.txt",
+            "/ventoy/theme/1172005thinh/dark169/theme.txt"
+        ],
+        "gfxmode": "1920x1080",
+        "ventoy_left": "76%",
+        "ventoy_top": "95%",
+        "ventoy_color": "#3B3B39",
+        "fonts":[
+            "/ventoy/font/cascadia-code/cascadia-code_16.pf2",
+            "/ventoy/font/cascadia-code/cascadia-code_20.pf2",
+            "/ventoy/font/cascadia-code/cascaida-code_24.pf2",
+            "/ventoy/font/cascadia-code/cascadia-code_28.pf2"
+        ]
     },
     "menu_alias":[
         {
@@ -13,6 +25,9 @@
         }
     ],
     "menu_tip":{
+        "left": "28%",
+        "top": "11%",
+        "color": "#CDCDCD",
         "tips":[
             {
                 "image": "/Windows/Windows11/w11_24h2.iso",
@@ -24,17 +39,26 @@
         {
             "key": "w11",
             "class": "windows"
-        },
+        }
     ],
     "auto_install":[
         {
             "image": "/Windows/Windows11/w11_24h2.iso",
             "template":[
-                "/ventoy/script/Auto-pilot Windows Setup.xml",
-                "/ventoy/script/Windows Setup with Drivers.xml",
-                "/ventoy/script/Windows Setup without Drivers.xml"
+                "/full_dyn_C_D.xml",
+                "/full_C_D.xml",
+                "/full_C.xml",
+                "/full_mandisk.xml",
+                "/noapps_dyn_C_D.xml",
+                "/noapps_C_D.xml",
+                "/noapps_C.xml",
+                "/noapps_mandisk",
+                "/nodrivers_dyn_C_D.xml",
+                "/nodrivers_C_D.xml",
+                "/nodrivers_C.xml",
+                "/nodrivers_mandisk.xml"
             ],
-            "timeout": 5,
+            "timeout": 10,
             "autosel": 1
         }
     ]

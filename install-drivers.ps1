@@ -6,8 +6,6 @@ param(
     [ValidateRange(1, 10)]
     [int] $Iteration = 1,
 
-    [switch] $ResumeApps,
-
     [switch] $ReportAfterCompletion
 )
 
@@ -48,19 +46,50 @@ function Get-SoftwareRoot {
     throw "Could not locate the software partition marker '$markerFile'."
 }
 
-function Register-DriverResumeTask {
-    param([string] $ScriptPath, [string] $RootPath)
+function Set-WindowsUpdatePolicy {
+    # Configure WU to include drivers and security patches, exclude feature upgrades.
+    # Wrapped in try/catch so that registry access errors (e.g. restricted policy paths
+    # in some VM environments) are logged as warnings rather than crashing the script.
+    try {
+        $wuPolicyPath     = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate'
+        $auPolicyPath     = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU'
+        $targetPolicyPath = 'HKLM:\SOFTWARE\Policies\Microsoft\WindowsUpdate'
 
-    $arguments = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', ('"{0}"' -f $ScriptPath), '-MaxIteration', $MaxIteration, '-Iteration', ($Iteration + 1))
-    if ($ResumeApps) { $arguments += '-ResumeApps' }
+        New-Item -Path $wuPolicyPath     -Force -ErrorAction SilentlyContinue | Out-Null
+        New-Item -Path $auPolicyPath     -Force -ErrorAction SilentlyContinue | Out-Null
+        New-Item -Path $targetPolicyPath -Force -ErrorAction SilentlyContinue | Out-Null
+
+        # Include driver updates in quality/Windows Update scans (overrides OEM suppression)
+        Set-ItemProperty -Path $wuPolicyPath -Name 'ExcludeWUDriversInQualityUpdate' -Value 0 -Type DWord -Force -ErrorAction SilentlyContinue
+        # Keep auto-update enabled (WU will be triggered manually by the script)
+        Set-ItemProperty -Path $auPolicyPath -Name 'NoAutoUpdate' -Value 0 -Type DWord -Force -ErrorAction SilentlyContinue
+        # Block Windows version upgrade offers entirely
+        Set-ItemProperty -Path $targetPolicyPath -Name 'DisableOSUpgrade'     -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue
+        Set-ItemProperty -Path $targetPolicyPath -Name 'TargetReleaseVersion' -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue
+
+        Write-DriverLog INFO '[DRIVER] status=policy-set; detail=WU configured to include drivers+security, exclude feature upgrades'
+    }
+    catch {
+        Write-DriverLog WARN "[DRIVER] status=policy-warn; detail=could not fully apply WU policy (non-fatal): $($_.Exception.Message)"
+    }
+}
+
+function Register-DriverResumeTask {
+    param([string] $ScriptPath)
+
+    $arguments = @(
+        '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', ('"{0}"' -f $ScriptPath),
+        '-MaxIteration', $MaxIteration,
+        '-Iteration', ($Iteration + 1)
+    )
     if ($ReportAfterCompletion) { $arguments += '-ReportAfterCompletion' }
 
-    $action = New-ScheduledTaskAction -Execute "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe" -Argument ($arguments -join ' ')
-    $trigger = New-ScheduledTaskTrigger -AtStartup
+    $action    = New-ScheduledTaskAction -Execute "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe" -Argument ($arguments -join ' ')
+    $trigger   = New-ScheduledTaskTrigger -AtStartup
     $principal = New-ScheduledTaskPrincipal -UserId 'SYSTEM' -LogonType ServiceAccount -RunLevel Highest
-    $settings = New-ScheduledTaskSettingsSet -StartWhenAvailable -ExecutionTimeLimit (New-TimeSpan -Hours 2)
+    $settings  = New-ScheduledTaskSettingsSet -StartWhenAvailable -ExecutionTimeLimit (New-TimeSpan -Hours 2)
     Register-ScheduledTask -TaskName $taskName -Action $action -Trigger $trigger -Principal $principal -Settings $settings -Force | Out-Null
-    Write-DriverLog INFO "[DRIVER] status=restart-pending; detail=scheduled iteration $($Iteration + 1) of $MaxIteration from $RootPath"
+    Write-DriverLog INFO "[DRIVER] status=restart-pending; detail=scheduled iteration $($Iteration + 1) of $MaxIteration"
 }
 
 function Test-InternetConnection {
@@ -83,13 +112,7 @@ function Complete-DriverInstallation {
     Unregister-ScheduledTask -TaskName $taskName -Confirm:$false -ErrorAction SilentlyContinue
     Write-DriverLog INFO ("[DRIVER] status={0}; detail={1}" -f $Status, $Detail)
 
-    if ($ResumeApps) {
-        $launcher = Join-Path $RootPath 'Auto-installer.exe'
-        if (-not (Test-Path -LiteralPath $launcher)) { throw "Continuation launcher not found: $launcher" }
-        Write-DriverLog INFO '[DRIVER] status=handoff-apps; detail=starting application installation continuation'
-        Start-Process -FilePath $launcher -ArgumentList '--resume-apps' -WorkingDirectory $RootPath
-    }
-    elseif ($ReportAfterCompletion) {
+    if ($ReportAfterCompletion) {
         $reportLauncher = Join-Path $RootPath 'report.exe'
         if (Test-Path -LiteralPath $reportLauncher) {
             Write-DriverLog INFO '[DRIVER] status=handoff-report; detail=starting report generation'
@@ -110,38 +133,40 @@ try {
     $softwareRoot = Get-SoftwareRoot
     Write-DriverLog INFO "[DRIVER] status=started; detail=iteration $Iteration of $MaxIteration; source=$softwareRoot"
 
-    # Log WU service state to aid post-hoc diagnosis
-    $wuService = Get-Service -Name wuauserv -ErrorAction SilentlyContinue
-    Write-DriverLog INFO "[DRIVER] status=wu-service; detail=Windows Update service status=$($wuService.Status)"
+    # Configure Windows Update policy before anything else (idempotent — safe to re-apply on each resume)
+    Set-WindowsUpdatePolicy
 
-    # Force-restart the Windows Update service to prevent search hangs
-    Write-DriverLog INFO "[DRIVER] status=wu-service-restart; detail=restarting wuauserv to ensure a clean state"
+    # Force-restart WU services to pick up the new policy and ensure a clean scan state
+    Write-DriverLog INFO '[DRIVER] status=wu-service-restart; detail=restarting wuauserv and UsoSvc'
+    Stop-Service -Name UsoSvc   -Force -ErrorAction SilentlyContinue
     Restart-Service -Name wuauserv -Force -ErrorAction SilentlyContinue
+    Start-Service  -Name UsoSvc          -ErrorAction SilentlyContinue
 
+    # Check internet connectivity; skip driver installation gracefully if offline
     if (-not (Test-InternetConnection)) {
-        Complete-DriverInstallation -RootPath $softwareRoot -Status 'skipped-no-internet' -Detail 'no Internet connection was available for Windows Update'
+        Complete-DriverInstallation -RootPath $softwareRoot -Status 'skipped-no-internet' -Detail 'no Internet connection available for Windows Update'
         exit 0
     }
 
-    # The Windows Update Agent COM API is used to select only driver-class updates.
-    # The search is retried up to 3 times with a 60-second wait between attempts
-    # because WU may still be initializing on a freshly installed system.
-    $updateSession = New-Object -ComObject Microsoft.Update.Session
+    # Use the Windows Update Agent COM API.
+    # Search includes drivers (Type='Driver') and software/security updates (Type='Software')
+    # but excludes hidden items (user-dismissed updates) to avoid re-installing unwanted items.
+    $updateSession  = New-Object -ComObject Microsoft.Update.Session
     $updateSearcher = $updateSession.CreateUpdateSearcher()
 
-    $searchResult = $null
-    $maxSearchAttempts = 3
+    $searchResult       = $null
+    $maxSearchAttempts  = 3
     for ($searchAttempt = 1; $searchAttempt -le $maxSearchAttempts; $searchAttempt++) {
         try {
             Write-DriverLog INFO "[DRIVER] status=searching; detail=attempt $searchAttempt of $maxSearchAttempts"
-            $searchResult = $updateSearcher.Search("IsInstalled=0 and Type='Driver'")
-            Write-DriverLog INFO "[DRIVER] status=search-complete; detail=$($searchResult.Updates.Count) driver update(s) found"
+            $searchResult = $updateSearcher.Search("IsInstalled=0 and IsHidden=0 and (Type='Driver' or Type='Software')")
+            Write-DriverLog INFO "[DRIVER] status=search-complete; detail=$($searchResult.Updates.Count) update(s) found"
             break
         }
         catch {
             Write-DriverLog WARN "[DRIVER] status=search-error; detail=attempt $searchAttempt failed: $($_.Exception.Message)"
             if ($searchAttempt -lt $maxSearchAttempts) {
-                Write-DriverLog INFO "[DRIVER] status=search-retry; detail=waiting 60 seconds before next attempt"
+                Write-DriverLog INFO '[DRIVER] status=search-retry; detail=waiting 60 seconds before next attempt'
                 Start-Sleep -Seconds 60
             }
             else {
@@ -150,31 +175,44 @@ try {
         }
     }
 
+    # On iteration > 1 (post-reboot resume), 0 results means all updates were applied — this is success.
     if ($searchResult.Updates.Count -eq 0) {
-        Complete-DriverInstallation -RootPath $softwareRoot -Status 'no-updates' -Detail 'Windows Update did not offer any driver updates'
+        $status = if ($Iteration -gt 1) { 'completed-clean' } else { 'no-updates' }
+        $detail = if ($Iteration -gt 1) { 'all updates applied in previous iterations' } else { 'Windows Update did not offer any driver or security updates' }
+        Complete-DriverInstallation -RootPath $softwareRoot -Status $status -Detail $detail
         exit 0
     }
 
+    # List all queued updates to the log before installing
+    Write-DriverLog INFO "[DRIVER] status=update-list; detail=$($searchResult.Updates.Count) update(s) queued for installation:"
+    Write-Host "`n[DRIVER] Queued $($searchResult.Updates.Count) update(s):" -ForegroundColor Cyan
     $updatesToInstall = New-Object -ComObject Microsoft.Update.UpdateColl
+    $idx = 1
     foreach ($update in $searchResult.Updates) {
         if (-not $update.EulaAccepted) { $update.AcceptEula() }
         [void] $updatesToInstall.Add($update)
-        Write-DriverLog INFO ("[DRIVER] status=selected; detail={0}" -f $update.Title)
+        $line = "  [$idx] $($update.Title)  (Type=$($update.Type))"
+        Write-DriverLog INFO "[DRIVER] status=queued; detail=$line"
+        Write-Host $line -ForegroundColor White
+        $idx++
     }
+    Write-Host ''
 
-    $installer = $updateSession.CreateUpdateInstaller()
-    $installer.Updates = $updatesToInstall
-    $installationResult = $installer.Install()
+    # Install all queued updates
+    $installer             = $updateSession.CreateUpdateInstaller()
+    $installer.Updates     = $updatesToInstall
+    $installationResult    = $installer.Install()
     Write-DriverLog INFO ("[DRIVER] status=install-result; detail=result_code={0}; reboot_required={1}" -f $installationResult.ResultCode, $installationResult.RebootRequired)
 
     if ($installationResult.RebootRequired) {
         if ($Iteration -ge $MaxIteration) {
-            Write-DriverLog WARN '[DRIVER] status=reboot-required; detail=iteration limit reached; reboot manually to complete driver installation'
+            Write-DriverLog WARN '[DRIVER] status=reboot-required; detail=iteration limit reached; reboot manually to complete'
             Complete-DriverInstallation -RootPath $softwareRoot -Status 'reboot-required' -Detail 'iteration limit reached; a manual reboot is required to complete driver installation'
             exit 0
         }
 
-        Register-DriverResumeTask -ScriptPath $PSCommandPath -RootPath $softwareRoot
+        Register-DriverResumeTask -ScriptPath $PSCommandPath
+        Write-Host '[DRIVER] Restarting computer to complete driver installation...' -ForegroundColor Yellow
         Restart-Computer -Force
         exit 0
     }

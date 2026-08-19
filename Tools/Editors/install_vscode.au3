@@ -30,8 +30,10 @@ EndIf
 
 _Log("INFO: Starting installation of VS Code: " & $g_sSetupPath)
 ; Inno Setup flags; MERGETASKS skips "Launch VS Code" post-install checkbox
-Local $iExitCode = RunWait('"' & $g_sSetupPath & '" /VERYSILENT /NORESTART /MERGETASKS="!runcode,addcontextmenufiles,addcontextmenufolders,associatewithfiles,addtopath" /LOG="C:\Auto-installer\install_vscode_inno.log"', @ScriptDir, @SW_HIDE)
+Local $sInnoLog = "C:\Auto-installer\install_vscode_inno.log"
+Local $iExitCode = RunWait('"' & $g_sSetupPath & '" /VERYSILENT /NORESTART /MERGETASKS="!runcode,addcontextmenufiles,addcontextmenufolders,associatewithfiles,addtopath" /LOG="' & $sInnoLog & '"', @ScriptDir, @SW_HIDE)
 _Log("INFO: Installer finished with exit code: " & $iExitCode)
+_LogInnoFile($sInnoLog, "[VSCode]")
 If @error Then 
     _Log("ERROR: RunWait failed with AutoIt error: " & @error)
     Exit 21
@@ -80,6 +82,25 @@ Func _CreateDesktopShortcut()
     FileCreateShortcut($sTarget, $sLink, $sDir, "", "Visual Studio Code", $sTarget, "", 0, @SW_SHOW)
 EndFunc
 
+Func _LogInnoFile($sInnoPath, $sTag)
+    If Not FileExists($sInnoPath) Then Return
+    Local $hInno = FileOpen($sInnoPath, 0)
+    If $hInno = -1 Then Return
+    Local $sLogPath = "C:\Auto-installer\install-apps.log"
+    Local $hLog = FileOpen($sLogPath, 1 + 256)
+    If $hLog <> -1 Then
+        While True
+            Local $sLine = FileReadLine($hInno)
+            If @error Then ExitLoop
+            If $sLine <> "" Then
+                FileWriteLine($hLog, "[" & @YEAR & "-" & StringFormat("%02d", @MON) & "-" & StringFormat("%02d", @MDAY) & " " & @HOUR & ":" & @MIN & ":" & @SEC & "] " & $sTag & " [INNO] " & $sLine)
+            EndIf
+        WEnd
+        FileClose($hLog)
+    EndIf
+    FileClose($hInno)
+    FileDelete($sInnoPath)
+EndFunc
 Func _Log($sMsg)
     Local $sLogPath = "C:\Auto-installer\install-apps.log"
     Local $hLog = FileOpen($sLogPath, 1 + 256) ; FO_APPEND (1) + FO_UTF8_NOBOM (256)
