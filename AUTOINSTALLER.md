@@ -1,4 +1,4 @@
-# AUTOINSTALLER PROJECT
+﻿# AUTOINSTALLER PROJECT
 
 Automating Windows Installation, drivers and third-party apps.
 
@@ -187,3 +187,37 @@ The script manages post-installation customizations:
 - **Desktop**: Reorders desktop icons via UI Automation (Win+D, ControlClick focus, Context Menu sorting).
 - **Power**: Configures monitor AC/DC timeout via `powercfg`.
 - **Validation**: At the conclusion of the script, validates that all GPOs, Registry values, and power settings actually applied, appending a `[VALIDATION]` block to the log.
+
+
+## VENTOY GRUB TERMINAL & DYNAMIC SCRIPTS (`*dyn*.xml`)
+
+For dynamic disk partitioning and on-the-fly customization, the installation media uses Ventoy's integrated GRUB terminal script (`ventoy/ventoy_grub.cfg`) alongside dynamic unattended templates (`ventoy/script/*dyn_C_D.xml`).
+
+### Interactive GRUB Flow (`ventoy_grub.cfg`)
+
+When booting from the Ventoy USB:
+
+1. **Safety Warning (30-second countdown)**:
+   - Prints a prominent multi-line warning alerting that target disk data will be erased.
+   - 30-second countdown before auto-booting. Pressing any key pauses the countdown.
+   - Once paused, pressing `ESC` halts/exits the installation.
+
+2. **C:D Partition Ratio Prompt**:
+   - `y` / `yes`: Defaults to **50:50** C and D drive split.
+   - `n` / `no` / `empty`: Prompts for custom ratio in `CC:DD` format (e.g. `60:40`, where $CC + DD = 100$).
+   - Calculates C drive size in MB: `DYN_C_SIZE_MB = (UsableDiskMB * CC) / 100` (deducting 100MB EFI + 16MB MSR).
+   - `esc`: Exits terminal (`halt`).
+
+3. **Account & PC Name Prompt**:
+   - `y` / `yes`: Uses default `OEM` account/display name and `PC` computer name.
+   - `n` / `no`: Prompts user for custom Account Name and Computer Name (alphanumeric, no spaces, max 128 chars).
+   - `esc`: Exits terminal (`halt`).
+
+### Variable Injection into `*dyn*.xml`
+
+GRUB exports the following environment variables:
+- `DYN_C_SIZE_MB` -> Injected into Windows Setup `<DiskConfiguration>` Partition 3 `<Size>$$DYN_C_SIZE_MB$$</Size>`.
+- `DYN_PC_NAME` -> Injected into `<ComputerName>$$DYN_PC_NAME$$</ComputerName>`.
+- `DYN_ACCOUNT_NAME` & `DYN_DISPLAY_NAME` -> Injected into `<LocalAccount>`.
+
+Windows Setup natively allocates `DYN_C_SIZE_MB` to C: drive and sets D: drive with `<Extend>true</Extend>` to take all remaining disk space without using fragile `diskpart` scripts in WinPE, eliminating error `0x80070001 - 0x40030`.

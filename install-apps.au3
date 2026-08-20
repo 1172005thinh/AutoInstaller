@@ -1,4 +1,4 @@
-#RequireAdmin
+﻿#RequireAdmin
 #AutoIt3Wrapper_UseX64=y
 #include <AutoItConstants.au3>
 #include <FileConstants.au3>
@@ -216,7 +216,7 @@ Func _InstallApplications()
             Local $iSetupSlash = StringInStr($sSetupBasename, "/", 0, -1)
             If $iSetupSlash > 0 Then $sSetupBasename = StringMid($sSetupBasename, $iSetupSlash + 1)
             ; Pass setup name, shortcut flag, and (for special installers) the clean flag as CLI args
-            Local $sInstallArgs = '"' & $sSetupBasename & '" "' & $sShortcutFlag & '" "' & $g_sCleanFonts & '"'
+            Local $sInstallArgs = '"' & $sSetupBasename & '" "' & $sShortcutFlag & '" "' & $g_sCleanFonts & '" "' & $g_sLogPath & '"'
             Local $iExitCode = ShellExecuteWait($sInstallPath, $sInstallArgs, $g_sRoot, "open", @SW_HIDE)
             If @error Then
                 $aStatus[$i] = 0

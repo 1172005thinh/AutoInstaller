@@ -13,6 +13,8 @@
 Global Const $g_sProductCode = "{3025C475-D665-4288-99A8-3382654F7E11}"
 
 Global $g_sSetupFilename = "shell.msi"
+Global $g_sLogPath = "C:\Auto-installer\install-apps.log"
+If $CmdLine[0] >= 4 Then $g_sLogPath = $CmdLine[4]
 If $CmdLine[0] >= 1 Then $g_sSetupFilename = $CmdLine[1]
 Global Const $g_sSetupPath = @ScriptDir & "\" & $g_sSetupFilename
 
@@ -65,7 +67,7 @@ EndFunc
 
 
 Func _Log($sMsg)
-    Local $sLogPath = "C:\Auto-installer\install-apps.log"
+    Local $sLogPath = $g_sLogPath
     Local $hLog = FileOpen($sLogPath, 1 + 256) ; FO_APPEND (1) + FO_UTF8_NOBOM (256)
     If $hLog <> -1 Then
         FileWriteLine($hLog, "[" & @YEAR & "-" & StringFormat("%02d", @MON) & "-" & StringFormat("%02d", @MDAY) & " " & @HOUR & ":" & @MIN & ":" & @SEC & "] [" & StringReplace($g_sSetupFilename, ".exe", "") & "] " & $sMsg)

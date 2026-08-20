@@ -19,7 +19,7 @@ terminal-border: "0"
   top = 18%
   width = 65%
   height = 64%
-  item_font = "Cascadia Code Regular 28"
+  item_font = "Cascadia Code Regular 20"
   item_color = "#6C6E70"
   selected_item_color = "#CDCDCD"
   icon_width = 56

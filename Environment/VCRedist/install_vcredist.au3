@@ -1,4 +1,4 @@
-#RequireAdmin
+﻿#RequireAdmin
 #AutoIt3Wrapper_UseX64=y
 #NoTrayIcon
 #include <AutoItConstants.au3>
@@ -11,6 +11,8 @@
 ; which the AIO always installs last and which cover 2015-2022 inclusive.
 
 Global $g_sSetupFilename = "vcredist-AIO-2005-2022.exe"
+Global $g_sLogPath = "C:\Auto-installer\install-apps.log"
+If $CmdLine[0] >= 4 Then $g_sLogPath = $CmdLine[4]
 If $CmdLine[0] >= 1 Then $g_sSetupFilename = $CmdLine[1]
 Global Const $g_sSetupPath = @ScriptDir & "\" & $g_sSetupFilename
 
@@ -58,7 +60,7 @@ Func _IsVCRedistInstalled()
 EndFunc
 
 Func _Log($sMsg)
-    Local $sLogPath = "C:\Auto-installer\install-apps.log"
+    Local $sLogPath = $g_sLogPath
     Local $hLog = FileOpen($sLogPath, 1 + 256) ; FO_APPEND (1) + FO_UTF8_NOBOM (256)
     If $hLog <> -1 Then
         FileWriteLine($hLog, "[" & @YEAR & "-" & StringFormat("%02d", @MON) & "-" & StringFormat("%02d", @MDAY) & " " & @HOUR & ":" & @MIN & ":" & @SEC & "] [VCRedist] " & $sMsg)

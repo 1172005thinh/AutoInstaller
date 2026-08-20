@@ -1,4 +1,4 @@
-#RequireAdmin
+﻿#RequireAdmin
 #AutoIt3Wrapper_UseX64=y
 #NoTrayIcon
 #include <AutoItConstants.au3>
@@ -11,6 +11,8 @@
 ; $CmdLine[3] = clean_after_installing ("true"/"false") - delete broken font files after install
 
 Global $g_sSetupFilename = "Fonts"
+Global $g_sLogPath = "C:\Auto-installer\install-apps.log"
+If $CmdLine[0] >= 4 Then $g_sLogPath = $CmdLine[4]
 If $CmdLine[0] >= 1 Then $g_sSetupFilename = $CmdLine[1]
 
 Global $g_bClean = False
@@ -67,7 +69,7 @@ _Log("INFO: Done. installed=" & $sInstalled & " skipped=" & $sSkipped & " failed
 Exit 0
 
 Func _Log($sMsg)
-    Local $sLogPath = "C:\Auto-installer\install-apps.log"
+    Local $sLogPath = $g_sLogPath
     DirCreate("C:\Auto-installer")
     Local $hLog = FileOpen($sLogPath, 1 + 256) ; FO_APPEND + FO_UTF8_NOBOM
     If $hLog <> -1 Then

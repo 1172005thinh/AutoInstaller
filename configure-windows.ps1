@@ -1,5 +1,13 @@
-param(
-    [string]$LogFile = 'C:\Auto-installer\configure-windows.log'
+﻿param(
+    [string]$LogFile = 'C:\Auto-installer\configure-windows.log',
+    [switch]$Disableexplorer,
+    [switch]$Disabletaskbar,
+    [switch]$Disabledesktop,
+    [switch]$Disablesystem,
+    [switch]$Disablestart_menu,
+    [switch]$Disablecontrol_panel,
+    [switch]$Disableregion,
+    [switch]$Disablewallpaper
 )
 
 Set-StrictMode -Version Latest
@@ -21,13 +29,16 @@ function Set-RegValue {
 }
 
 # 1. Explorer defaults
+if (-not $Disableexplorer) {
 Write-Log 'INFO: [1] Configuring Windows Explorer...'
 $explorerAdv = 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
 Set-RegValue $explorerAdv 'LaunchTo'    1 'DWord'
 Set-RegValue $explorerAdv 'HideFileExt' 0 'DWord'
 Write-Log 'INFO: [1] Explorer: LaunchTo=1 (This PC), HideFileExt=0 (show extensions).'
+} # end explorer
 
 # 2. Taskbar
+if (-not $Disabletaskbar) {
 Write-Log 'INFO: [2] Configuring taskbar...'
 $searchKey = 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Search'
 Set-RegValue $searchKey 'SearchboxTaskbarMode' 0 'DWord'
@@ -84,8 +95,10 @@ foreach ($target in $pinTargets) {
     }
 }
 Write-Log "INFO: [2] Taskbar pinning complete. Pinned $pinnedCount app(s)."
+} # end taskbar
 
 # 3. Desktop icons
+if (-not $Disabledesktop) {
 Write-Log 'INFO: [3] Adding standard desktop icons...'
 $desktopIconsKey = 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\HideDesktopIcons\NewStartPanel'
 if (-not (Test-Path $desktopIconsKey)) { $null = New-Item -Path $desktopIconsKey -Force }
@@ -95,6 +108,7 @@ Set-ItemProperty -Path $desktopIconsKey -Name '{645FF040-5081-101B-9F08-00AA002F
 Set-ItemProperty -Path $desktopIconsKey -Name '{5399E694-6CE5-4D6C-8FCE-1D8870FDCBA0}' -Value 0 -Type DWord
 Set-ItemProperty -Path $desktopIconsKey -Name '{F02C1A0D-BE21-4350-88B0-7367FC96EF3C}' -Value 0 -Type DWord
 Write-Log 'INFO: [3] Desktop icons: This PC, User Files, Recycle Bin, Control Panel, Network.'
+} # end desktop
 
 # Sort desktop by Type via Bags registry
 try {
@@ -113,6 +127,7 @@ try {
 }
 
 # 4. System settings
+if (-not $Disablesystem) {
 Write-Log 'INFO: [4] Configuring system settings...'
 
 $devKey = 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced\TaskbarDeveloperSettings'
@@ -196,8 +211,10 @@ foreach ($folder in $startupFolders) {
     }
 }
 
+} # end system
 
 # 5. Start menu
+if (-not $Disablestart_menu) {
 Write-Log 'INFO: [5] Configuring Start menu...'
 Set-RegValue $explorerAdv 'Start_IrisRecommendations' 0 'DWord'
 Set-RegValue $explorerAdv 'Start_ShowRecentList'       0 'DWord'
@@ -248,15 +265,19 @@ if (-not $alreadyAdded) {
     Write-Log 'INFO: [5] Settings folder already pinned in Start.'
 }
 Write-Log 'INFO: [5] Start menu recommendations disabled.'
+} # end start_menu
 
 # 6. Control Panel large icons
+if (-not $Disablecontrol_panel) {
 Write-Log 'INFO: [6] Setting Control Panel to large icons view...'
 $cpKey = 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\ControlPanel'
 Set-RegValue $cpKey 'AllItemsIconView' 1 'DWord'
 Set-RegValue $cpKey 'StartupPage'      1 'DWord'
 Write-Log 'INFO: [6] Control Panel: large icons, all items view.'
+} # end control_panel
 
 # 7. Region: Vietnamese format
+if (-not $Disableregion) {
 Write-Log 'INFO: [7] Setting region format to Vietnamese (vi-VN)...'
 $intlKey = 'HKCU:\Control Panel\International'
 Set-RegValue $intlKey 'Locale'          '0000042A' 'String'
@@ -277,8 +298,10 @@ Set-RegValue $intlKey 'sThousand'       '.'                  'String'
 Set-RegValue $intlKey 'iDigits'         '2'                  'String'
 Set-RegValue 'HKCU:\Control Panel\International\Geo' 'Nation' '251' 'String'
 Write-Log 'INFO: [7] Region format set to Vietnamese (vi-VN).'
+} # end region
 
 # 8. Wallpaper
+if (-not $Disablewallpaper) {
 Write-Log 'INFO: [8] Setting Light theme wallpaper...'
 Set-RegValue 'HKCU:\Control Panel\Desktop' 'Wallpaper' 'C:\Windows\Web\Wallpaper\Windows\img0.jpg' 'String'
 try {
@@ -295,6 +318,8 @@ public class WP {
     Write-Log 'INFO: [8] Wallpaper applied.'
 } catch {}
 
+
+} # end wallpaper
 # Restart Explorer to apply shell settings
 Write-Log 'INFO: Restarting Explorer to apply shell settings...'
 try {

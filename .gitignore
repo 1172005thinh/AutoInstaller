@@ -1,6 +1,7 @@
 *.exe
 *.msi
 *.md5
+*.cfg
 /System Volume Information
 /Office/Office2024/Office
 /windows

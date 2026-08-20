@@ -26,6 +26,8 @@ Global Const $g_sSetupPath  = @ScriptDir & "\" & $g_sSetupFilename
 Global Const $g_sConfigPath = @ScriptDir & "\full_en.xml"
 
 Global $g_bShortcut = False
+Global $g_sLogPath = "C:\Auto-installer\install-apps.log"
+If $CmdLine[0] >= 4 Then $g_sLogPath = $CmdLine[4]
 If $CmdLine[0] >= 2 And StringLower($CmdLine[2]) = "true" Then $g_bShortcut = True
 
 If Not FileExists($g_sSetupPath)  Then Exit 20
@@ -123,7 +125,7 @@ EndFunc
 
 
 Func _Log($sMsg)
-    Local $sLogPath = "C:\Auto-installer\install-apps.log"
+    Local $sLogPath = $g_sLogPath
     Local $hLog = FileOpen($sLogPath, 1 + 256) ; FO_APPEND (1) + FO_UTF8_NOBOM (256)
     If $hLog <> -1 Then
         FileWriteLine($hLog, "[" & @YEAR & "-" & StringFormat("%02d", @MON) & "-" & StringFormat("%02d", @MDAY) & " " & @HOUR & ":" & @MIN & ":" & @SEC & "] [" & StringReplace($g_sSetupFilename, ".exe", "") & "] " & $sMsg)

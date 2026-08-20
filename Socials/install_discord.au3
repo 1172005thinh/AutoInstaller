@@ -1,4 +1,4 @@
-#RequireAdmin
+﻿#RequireAdmin
 #AutoIt3Wrapper_UseX64=y
 #NoTrayIcon
 #include <AutoItConstants.au3>
@@ -16,6 +16,8 @@ If $CmdLine[0] >= 1 Then $g_sSetupFilename = $CmdLine[1]
 Global Const $g_sSetupPath = @ScriptDir & "\" & $g_sSetupFilename
 
 Global $g_bShortcut = False
+Global $g_sLogPath = "C:\Auto-installer\install-apps.log"
+If $CmdLine[0] >= 4 Then $g_sLogPath = $CmdLine[4]
 If $CmdLine[0] >= 2 And StringLower($CmdLine[2]) = "true" Then $g_bShortcut = True
 
 If Not FileExists($g_sSetupPath) Then 
@@ -103,7 +105,7 @@ Func _CreateDesktopShortcut()
 EndFunc
 
 Func _Log($sMsg)
-    Local $sLogPath = "C:\Auto-installer\install-apps.log"
+    Local $sLogPath = $g_sLogPath
     Local $hLog = FileOpen($sLogPath, 1 + 256) ; FO_APPEND (1) + FO_UTF8_NOBOM (256)
     If $hLog <> -1 Then
         FileWriteLine($hLog, "[" & @YEAR & "-" & StringFormat("%02d", @MON) & "-" & StringFormat("%02d", @MDAY) & " " & @HOUR & ":" & @MIN & ":" & @SEC & "] [Discord] " & $sMsg)
