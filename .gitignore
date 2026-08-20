@@ -12,5 +12,10 @@
 /ventoy/ventoy.169.json.example
 /ventoy/ventoy.1610.json.example
 /ventoy/script
+.claude/
+.agents/
+.github/
+.vscode/
 AGENTS.md
 PLANS.md
+PROMPT.md

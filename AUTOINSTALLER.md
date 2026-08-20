@@ -181,12 +181,16 @@ configure-windows.au3 <-- compiled as configure-windows.exe wrapper
 configure-windows.log <-- log file in the USB at C:/Auto-installer/configure-windows.log
 ```
 
-The script manages post-installation customizations:
-- **Taskbar**: Uses Group Policy to disable Widgets (`AllowNewsAndInterests`), and uses the Shell COM `taskbarunpin`/`taskbarpin` verbs to explicitly set the taskbar app layout without disrupting other elements.
-- **Start Menu**: Injects custom JSON objects to pin the Settings app layout into `LayoutModification.json`.
-- **Desktop**: Reorders desktop icons via UI Automation (Win+D, ControlClick focus, Context Menu sorting).
-- **Power**: Configures monitor AC/DC timeout via `powercfg`.
-- **Validation**: At the conclusion of the script, validates that all GPOs, Registry values, and power settings actually applied, appending a `[VALIDATION]` block to the log.
+The script manages 29 comprehensive post-installation customizations configured via `configure-windows.ini`:
+- **Explorer (1..3)**: Hidden items (`HideAll` / `HideHidden` / `Show`), show file extensions (`HideFileExt=0`), launch to (`ThisPC` / `QuickAccess` / `Downloads`).
+- **Taskbar (4..10)**: End Task context menu, Search box mode (`Hide` / `Icon` / `Full` / `IconAndLabel`), unpin defaults, pin configured applications, disable Widgets via GPO, alignment (`Left` / `Center`), Task View button.
+- **Start Menu (11..13, 22)**: Disable Bing search results in Start, remove default pins (`ConfigureStartPins`), pin custom apps (`LayoutModification.json` / MDM JSON), and configure folder shortcuts beside the power button (`Settings`, `File Explorer`, `Downloads`, etc.).
+- **System (14..19, 23, 26, 27)**: Disable Smart App Control, enable Win32 long paths (>260 chars), enable Remote Desktop (RDP) + firewall, allow PowerShell script execution (`RemoteSigned`), hide Edge First Run, delete empty `C:\Windows.old`, disable Sticky Keys popup (5x Shift), Sudo mode (`Inline`), Clipboard history (`Win+V`), power timeouts, and startup apps cleanup.
+- **Desktop (20..21)**: Select individual desktop icons (`This PC`, `Recycle Bin`, `User's Files`, `Network`, `Control Panel`) and sort desktop icons silently via `WM_COMMAND` C# interop (`ItemType`, `Name`, `Size`, `DateModified`, `None`).
+- **Control Panel (28)**: Icon view mode (`Large`, `Small`, `Category`, `Skip`).
+- **Wallpapers (24..25)**: Desktop and Lock Screen wallpapers from default, local path, or URL.
+- **Region (29)**: Granular locale, date, time, currency, and GeoNation settings with automatic Windows Time NTP synchronization (`w32tm /resync /nowait`).
+- **Validation**: Validates that all critical GPOs, Registry values, and settings applied successfully, appending a `[VALIDATION]` block to the log.
 
 
 ## VENTOY GRUB TERMINAL & DYNAMIC SCRIPTS (`*dyn*.xml`)

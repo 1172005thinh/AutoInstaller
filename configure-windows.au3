@@ -1,10 +1,10 @@
-﻿#RequireAdmin
+#RequireAdmin
 #AutoIt3Wrapper_UseX64=y
 #NoTrayIcon
 #include <AutoItConstants.au3>
 
 ; configure-windows.exe - thin admin wrapper for configure-windows.ps1
-; Reads configure-windows.ini from @ScriptDir to pass section toggles and log path to the PS1.
+; Passes @ScriptDir & "\configure-windows.ini" and log path to the PS1 engine.
 
 Global $g_sPsScript = @ScriptDir & "\configure-windows.ps1"
 Global $g_sIniFile  = @ScriptDir & "\configure-windows.ini"
@@ -21,13 +21,10 @@ If Not FileExists($g_sPsScript) Then
     Exit 20
 EndIf
 
-; Build -Disable<Section> flags for any section set to false in the INI
-Local $sSectionFlags = _BuildSectionFlags($g_sIniFile)
-
 Local $sPsArgs = "-NonInteractive -NoProfile -ExecutionPolicy Bypass" & _
     " -File """ & $g_sPsScript & """" & _
-    " -LogFile """ & $g_sLogFile & """" & _
-    $sSectionFlags
+    " -IniFile """ & $g_sIniFile & """" & _
+    " -LogFile """ & $g_sLogFile & """"
 
 Local $iExitCode = RunWait("powershell.exe " & $sPsArgs, @ScriptDir, @SW_HIDE)
 If @error Then
@@ -45,7 +42,6 @@ Exit 0
 ; --- Helpers ---
 
 Func _ReadIniValue($sPath, $sKey)
-    ; Reads a bare key=value; line from the project INI format
     If Not FileExists($sPath) Then Return ""
     Local $hFile = FileOpen($sPath, 0)
     If $hFile = -1 Then Return ""
@@ -54,7 +50,7 @@ Func _ReadIniValue($sPath, $sKey)
         Local $sLine = FileReadLine($hFile)
         If @error Then ExitLoop
         $sLine = StringStripWS($sLine, 3)
-        If StringLeft($sLine, 1) = "#" Then ContinueLoop
+        If StringLeft($sLine, 1) = "#" Or StringLeft($sLine, 1) = ";" Then ContinueLoop
         If StringLeft($sLine, StringLen($sKey) + 1) = $sKey & "=" Then
             $sResult = StringMid($sLine, StringLen($sKey) + 2)
             $sResult = StringReplace($sResult, ";", "")
@@ -64,32 +60,6 @@ Func _ReadIniValue($sPath, $sKey)
     WEnd
     FileClose($hFile)
     Return $sResult
-EndFunc
-
-Func _BuildSectionFlags($sPath)
-    ; Parses config=[ ... ]; block and returns -Disable<Section> flags for false entries
-    If Not FileExists($sPath) Then Return ""
-    Local $hFile = FileOpen($sPath, 0)
-    If $hFile = -1 Then Return ""
-    Local $sFlags = ""
-    Local $bInBlock = False
-    While True
-        Local $sLine = FileReadLine($hFile)
-        If @error Then ExitLoop
-        $sLine = StringStripWS($sLine, 3)
-        If StringLeft($sLine, 1) = "#" Then ContinueLoop
-        If StringInStr($sLine, "config=[") Then $bInBlock = True
-        If Not $bInBlock Then ContinueLoop
-        If StringInStr($sLine, "];") Then ExitLoop
-        Local $aMatch = StringRegExp($sLine, '"([^"]+)"\s*,\s*(true|false)', 3)
-        If Not @error And UBound($aMatch) >= 2 Then
-            If StringLower($aMatch[1]) = "false" Then
-                $sFlags = $sFlags & " -Disable" & $aMatch[0]
-            EndIf
-        EndIf
-    WEnd
-    FileClose($hFile)
-    Return $sFlags
 EndFunc
 
 Func _Log($sMsg)
