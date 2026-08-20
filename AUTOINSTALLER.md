@@ -1,4 +1,4 @@
-﻿# AUTOINSTALLER PROJECT
+# AUTOINSTALLER PROJECT
 
 Automating Windows Installation, drivers and third-party apps.
 
@@ -221,3 +221,9 @@ GRUB exports the following environment variables:
 - `DYN_ACCOUNT_NAME` & `DYN_DISPLAY_NAME` -> Injected into `<LocalAccount>`.
 
 Windows Setup natively allocates `DYN_C_SIZE_MB` to C: drive and sets D: drive with `<Extend>true</Extend>` to take all remaining disk space without using fragile `diskpart` scripts in WinPE, eliminating error `0x80070001 - 0x40030`.
+
+### Unattended Script Extraction & Time Synchronization
+
+- **Script Extraction**: During the `specialize` pass, `<RunSynchronousCommand>` Order 1 executes the canonical Schneegans `ExtractScript` to deserialize all embedded scripts into `C:\Windows\Setup\Scripts\`, and Order 2 runs `Specialize.ps1`.
+- **BOM-Free UTF-8 Encoding**: All XML templates are stored as UTF-8 without BOM to prevent Ventoy's variable replacement engine from corrupting the initial bytes into `?`.
+- **Time & Region**: `configure-windows.ps1` explicitly starts `w32time` and triggers NTP time synchronization (`w32tm /resync /nowait`) so that the system clock is immediately accurate upon reaching the desktop.

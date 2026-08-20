@@ -1,4 +1,4 @@
-﻿param(
+param(
     [string]$LogFile = 'C:\Auto-installer\configure-windows.log',
     [switch]$Disableexplorer,
     [switch]$Disabletaskbar,
@@ -298,6 +298,15 @@ Set-RegValue $intlKey 'sThousand'       '.'                  'String'
 Set-RegValue $intlKey 'iDigits'         '2'                  'String'
 Set-RegValue 'HKCU:\Control Panel\International\Geo' 'Nation' '251' 'String'
 Write-Log 'INFO: [7] Region format set to Vietnamese (vi-VN).'
+
+# Trigger Windows Time (w32time) sync
+try {
+    Start-Service w32time -ErrorAction SilentlyContinue
+    w32tm /resync /nowait | Out-Null
+    Write-Log 'INFO: [7] Triggered Windows Time synchronization (w32tm).'
+} catch {
+    Write-Log "WARN: [7] Could not trigger time sync: $($_.Exception.Message)"
+}
 } # end region
 
 # 8. Wallpaper
