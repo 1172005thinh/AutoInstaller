@@ -5,10 +5,11 @@
 .DESCRIPTION
     Compiles AutoIt (.au3) source files into standalone Windows executables (.exe)
     using the official AutoIt Aut2Exe compiler. Supports batch compilation, custom
-    input/output file mappings, exclusion filters, live compiler logging, and help info.
+    input/output file mappings, exclusion filters, live compiler logging, and dry-run preview.
 
 .PARAMETER All
-    (-a, --a) Recompile all .au3 scripts in the workspace, including the master installer.
+    (-a, --a) Recompile all .au3 scripts in the workspace, including the master installer
+    (which generates both install-apps.exe and Auto-installer.exe).
 
 .PARAMETER InputPaths
     (-i, --input) One or more specific .au3 script paths to compile.
@@ -20,6 +21,9 @@
 .PARAMETER Exclude
     (-ex, --exclude) One or more script paths or file names to exclude from compilation.
 
+.PARAMETER DryRun
+    (-d, --dry-run) Preview compilation targets without invoking the compiler.
+
 .PARAMETER Log
     (-l, --log) Stream detailed compiler stdout/stderr output to the console.
 
@@ -30,12 +34,12 @@
     (-h, --help) Display help documentation and usage examples.
 
 .EXAMPLE
-    .\compile-au2exe.ps1
-    # Compiles all .au3 files except master installer
+    .\compile-au2exe.ps1 -a
+    # Compiles all .au3 files including master installer (producing both install-apps.exe and Auto-installer.exe)
 
 .EXAMPLE
-    .\compile-au2exe.ps1 -a
-    # Compiles all .au3 files including master installer
+    .\compile-au2exe.ps1 -a --dry-run
+    # Previews all compilation targets without compiling
 
 .EXAMPLE
     .\compile-au2exe.ps1 -i Tools\Editors\install_notepadpp.au3 Browsers\install_chrome-standalone.au3
@@ -64,6 +68,9 @@ param(
     [Alias('ex')]
     [string[]]$Exclude = @(),
 
+    [Alias('d', 'dry-run')]
+    [switch]$DryRun,
+
     [Alias('l')]
     [switch]$Log,
 
@@ -75,7 +82,6 @@ param(
 
     [string]$CompilerPath = '',
     [string]$RootDir = '',
-    [switch]$DryRun = $false,
 
     [Parameter(ValueFromRemainingArguments = $true)]
     [string[]]$RemainingArgs
@@ -103,7 +109,7 @@ if ($RemainingArgs -and $RemainingArgs.Count -gt 0) {
         } elseif ($lower -in @('-h', '--h', '-help', '--help', '-?')) {
             $Help = $true
             $currentFlag = $null
-        } elseif ($lower -in @('-dryrun', '--dryrun')) {
+        } elseif ($lower -in @('-d', '--d', '-dry-run', '--dry-run', '-dryrun', '--dryrun')) {
             $DryRun = $true
             $currentFlag = $null
         } elseif ($lower -in @('-i', '--i', '-input', '--input')) {
@@ -127,8 +133,14 @@ if ($RemainingArgs -and $RemainingArgs.Count -gt 0) {
 }
 
 $TOOL_NAME    = 'compile-au2exe'
-$TOOL_VERSION = '1.0.0'
+$TOOL_VERSION = '1.1.0'
 $TOOL_AUTHOR  = 'AutoInstaller Team'
+
+# If no flags/parameters were parsed, display the help screen by default
+$hasExplicitTarget = ($All) -or ($InputPaths -and $InputPaths.Count -gt 0) -or ($Exclude -and $Exclude.Count -gt 0) -or ($Version)
+if (-not $hasExplicitTarget) {
+    $Help = $true
+}
 
 # ------------------------------------------------------------------------------
 # 1. Version Screen
@@ -158,35 +170,39 @@ OPTIONS:
     -i,  --input <files>    Specify one or more AU3 script paths to compile.
     -o,  --output <files>   Specify output EXE path(s) respectively for each input.
     -ex, --exclude <files>  Exclude specified script path(s) or file name(s).
+    -d,  --dry-run          Preview compilation targets without invoking compiler.
     -l,  --log              Stream live verbose output from Au2exe compiler.
     -v,  --version          Display tool version and author info.
     -h,  --help             Show this help screen.
 
-DEFAULT BEHAVIOR:
-    When invoked without arguments, recursively discovers and compiles all .au3
-    scripts in the workspace into .exe files with matching source file names,
-    automatically skipping the master installer (install-apps.au3).
+MASTER INSTALLER NOTE:
+    install-apps.au3 is the single source for both 'install-apps.exe' and
+    'Auto-installer.exe'. When compiling install-apps.au3, the tool compiles
+    and mirrors both executable binaries in the root directory.
 
 EXAMPLES:
-    # 1. Compile all child scripts (skipping master installer)
+    # 1. Show help (default when invoked without parameters)
     .\compile-au2exe.ps1
 
-    # 2. Recompile everything including master installer
+    # 2. Recompile everything (all child installers + master installer)
     .\compile-au2exe.ps1 -a
 
-    # 3. Compile specific scripts
+    # 3. Dry-run preview of all targets
+    .\compile-au2exe.ps1 -a --dry-run
+
+    # 4. Compile specific scripts
     .\compile-au2exe.ps1 -i Tools\Editors\install_notepadpp.au3 Socials\install_zalo.au3
 
-    # 4. Compile with custom output executable name
+    # 5. Compile with custom output executable name
     .\compile-au2exe.ps1 -i install-apps.au3 -o Auto-installer.exe
 
-    # 5. Compile with multiple custom outputs
+    # 6. Compile with multiple custom outputs
     .\compile-au2exe.ps1 -i app1.au3 app2.au3 -o out1.exe out2.exe
 
-    # 6. Compile all except specific scripts
-    .\compile-au2exe.ps1 -ex install_discord.au3 Utilities\Fonts\install_fonts.au3
+    # 7. Compile all except specific scripts
+    .\compile-au2exe.ps1 -a -ex install_discord.au3 Utilities\Fonts\install_fonts.au3
 
-    # 7. Compile with live compiler logs
+    # 8. Compile with live compiler logs
     .\compile-au2exe.ps1 -i configure-windows.au3 -l
 
 "@ -ForegroundColor White
@@ -322,7 +338,7 @@ if ($InputPaths -and $InputPaths.Count -gt 0) {
             continue
         }
 
-        # Check default master installer skip
+        # Check default master installer skip if not -All
         $isMaster = $leafName -in $masterPatterns
         if ($isMaster -and -not $All) {
             Write-Host "  [SKIP MASTER] $($file.FullName)" -ForegroundColor DarkGray
@@ -425,6 +441,18 @@ foreach ($task in $compilationTasks) {
 
     if ($exitCode -eq 0 -and (Test-Path -LiteralPath $out)) {
         Write-Host ("  [SUCCESS] {0} -> {1} ({2} ms)" -f $relSrc, $relOut, $sw.ElapsedMilliseconds) -ForegroundColor Green
+        
+        # Mirror master installer if install-apps.au3 is compiled
+        if ($src.EndsWith('install-apps.au3', [System.StringComparison]::OrdinalIgnoreCase)) {
+            $autoInstallerExe = Join-Path (Split-Path -Path $out -Parent) 'Auto-installer.exe'
+            $installAppsExe   = Join-Path (Split-Path -Path $out -Parent) 'install-apps.exe'
+            try {
+                Copy-Item -LiteralPath $out -Destination $autoInstallerExe -Force -ErrorAction SilentlyContinue
+                Copy-Item -LiteralPath $out -Destination $installAppsExe -Force -ErrorAction SilentlyContinue
+                Write-Host "    [MIRROR] Synchronized both install-apps.exe and Auto-installer.exe" -ForegroundColor DarkCyan
+            } catch {}
+        }
+
         $results += [PSCustomObject]@{
             Source  = $relSrc
             Output  = $relOut
