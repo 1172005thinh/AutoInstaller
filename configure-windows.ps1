@@ -3,8 +3,12 @@ param(
     [string]$LogFile = 'C:\Auto-installer\configure-windows.log'
 )
 
-Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+
+# Ensure HKU registry drive is available in PowerShell
+if (-not (Get-PSDrive -Name HKU -ErrorAction SilentlyContinue)) {
+    $null = New-PSDrive -Name HKU -PSProvider Registry -Root HKEY_USERS -ErrorAction SilentlyContinue
+}
 
 # ==============================================================================
 # Helper Functions
@@ -67,14 +71,14 @@ function Parse-IniFile {
         if ($eqIdx -gt 0) {
             $key = $trimmed.Substring(0, $eqIdx).Trim().ToLowerInvariant()
             $val = $trimmed.Substring($eqIdx + 1).Trim()
-            # Strip trailing inline comments and semicolons
-            $semiIdx = $val.IndexOf(';')
-            if ($semiIdx -ge 0) {
-                $val = $val.Substring(0, $semiIdx).Trim()
+            # Strip trailing inline comments beginning with '#'
+            $hashIdx = $val.IndexOf('#')
+            if ($hashIdx -gt 0) {
+                $val = $val.Substring(0, $hashIdx).Trim()
             }
             # Strip outer quotes if present
-            if (($val.StartsWith('"') -and $val.EndsWith('"')) -or ($val.StartsWith("'") -and $val.EndsWith("'"))) {
-                $val = $val.Substring(1, $val.Length - 2)
+            if (($val.StartsWith([char]34) -and $val.EndsWith([char]34)) -or ($val.StartsWith([char]39) -and $val.EndsWith([char]39))) {
+                $val = $val.Substring(1, $val.Length - 2).Trim()
             }
             $ini[$currentSection][$key] = $val
         }
@@ -118,46 +122,67 @@ function Resolve-AppPath {
             $c = "$env:ProgramFiles\Google\Chrome\Application\chrome.exe"
             if (-not (Test-Path -LiteralPath $c)) { $c = "${env:ProgramFiles(x86)}\Google\Chrome\Application\chrome.exe" }
             if (Test-Path -LiteralPath $c) { return $c }
+            $clnk = "$env:ProgramData\Microsoft\Windows\Start Menu\Programs\Google Chrome.lnk"
+            if (Test-Path -LiteralPath $clnk) { return $clnk }
         }
         'edge' {
             $e = "${env:ProgramFiles(x86)}\Microsoft\Edge\Application\msedge.exe"
             if (-not (Test-Path -LiteralPath $e)) { $e = "$env:ProgramFiles\Microsoft\Edge\Application\msedge.exe" }
             if (Test-Path -LiteralPath $e) { return $e }
+            $elnk = "$env:ProgramData\Microsoft\Windows\Start Menu\Programs\Microsoft Edge.lnk"
+            if (Test-Path -LiteralPath $elnk) { return $elnk }
         }
         'word' {
             $w = Get-ChildItem 'C:\Program Files\Microsoft Office\root\Office16\WINWORD.EXE' -ErrorAction SilentlyContinue | Select-Object -First 1
             if ($w) { return $w.FullName }
+            $wlnk = "$env:ProgramData\Microsoft\Windows\Start Menu\Programs\Word.lnk"
+            if (Test-Path -LiteralPath $wlnk) { return $wlnk }
         }
         'excel' {
             $x = Get-ChildItem 'C:\Program Files\Microsoft Office\root\Office16\EXCEL.EXE' -ErrorAction SilentlyContinue | Select-Object -First 1
             if ($x) { return $x.FullName }
+            $xlnk = "$env:ProgramData\Microsoft\Windows\Start Menu\Programs\Excel.lnk"
+            if (Test-Path -LiteralPath $xlnk) { return $xlnk }
         }
         'powerpoint' {
             $p = Get-ChildItem 'C:\Program Files\Microsoft Office\root\Office16\POWERPNT.EXE' -ErrorAction SilentlyContinue | Select-Object -First 1
             if ($p) { return $p.FullName }
+            $plnk = "$env:ProgramData\Microsoft\Windows\Start Menu\Programs\PowerPoint.lnk"
+            if (Test-Path -LiteralPath $plnk) { return $plnk }
         }
         'outlook' {
             $o = Get-ChildItem 'C:\Program Files\Microsoft Office\root\Office16\OUTLOOK.EXE' -ErrorAction SilentlyContinue | Select-Object -First 1
             if ($o) { return $o.FullName }
+            $olnk = "$env:ProgramData\Microsoft\Windows\Start Menu\Programs\Outlook.lnk"
+            if (Test-Path -LiteralPath $olnk) { return $olnk }
         }
         'onenote' {
             $n = Get-ChildItem 'C:\Program Files\Microsoft Office\root\Office16\ONENOTE.EXE' -ErrorAction SilentlyContinue | Select-Object -First 1
             if ($n) { return $n.FullName }
+            $nlnk = "$env:ProgramData\Microsoft\Windows\Start Menu\Programs\OneNote.lnk"
+            if (Test-Path -LiteralPath $nlnk) { return $nlnk }
         }
         'notepadpp' {
             $npp = "$env:ProgramFiles\Notepad++\notepad++.exe"
             if (-not (Test-Path -LiteralPath $npp)) { $npp = "${env:ProgramFiles(x86)}\Notepad++\notepad++.exe" }
             if (Test-Path -LiteralPath $npp) { return $npp }
+            $npplnk = "$env:ProgramData\Microsoft\Windows\Start Menu\Programs\Notepad++.lnk"
+            if (Test-Path -LiteralPath $npplnk) { return $npplnk }
         }
         'vscode' {
             $vsc = "$env:LOCALAPPDATA\Programs\Microsoft VS Code\Code.exe"
             if (-not (Test-Path -LiteralPath $vsc)) { $vsc = "$env:ProgramFiles\Microsoft VS Code\Code.exe" }
             if (Test-Path -LiteralPath $vsc) { return $vsc }
+            $vsclnk = "$env:ProgramData\Microsoft\Windows\Start Menu\Programs\Visual Studio Code\Visual Studio Code.lnk"
+            if (Test-Path -LiteralPath $vsclnk) { return $vsclnk }
         }
         'zalo' {
             $z = "$env:LOCALAPPDATA\Zalo\Zalo.exe"
             if (-not (Test-Path -LiteralPath $z)) { $z = "$env:LOCALAPPDATA\Programs\Zalo\Zalo.exe" }
             if (Test-Path -LiteralPath $z) { return $z }
+            $zlnk = "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\Zalo\Zalo.lnk"
+            if (-not (Test-Path -LiteralPath $zlnk)) { $zlnk = "$env:ProgramData\Microsoft\Windows\Start Menu\Programs\Zalo.lnk" }
+            if (Test-Path -LiteralPath $zlnk) { return $zlnk }
         }
         'powershell' {
             return "$env:WinDir\System32\WindowsPowerShell\v1.0\powershell.exe"
@@ -169,6 +194,10 @@ function Resolve-AppPath {
             if (Test-Path -LiteralPath $AppKey) {
                 return (Resolve-Path -LiteralPath $AppKey).Path
             }
+            $startLnk = Join-Path "$env:ProgramData\Microsoft\Windows\Start Menu\Programs" "$AppKey.lnk"
+            if (Test-Path -LiteralPath $startLnk) { return $startLnk }
+            $userLnk = Join-Path "$env:APPDATA\Microsoft\Windows\Start Menu\Programs" "$AppKey.lnk"
+            if (Test-Path -LiteralPath $userLnk) { return $userLnk }
         }
     }
     return $null
@@ -404,9 +433,9 @@ if ($buildNumber -ge 20000) {
 
         switch ($spKey) {
             'edge' {
-                $lnkPath = "$env:ALLUSERSPROFILE\Microsoft\Windows\Start Menu\Programs\Microsoft Edge.lnk"
+                $lnkPath = "$env:ProgramData\Microsoft\Windows\Start Menu\Programs\Microsoft Edge.lnk"
                 if (-not (Test-Path -LiteralPath $lnkPath)) {
-                    $lnkPath = "$env:ProgramData\Microsoft\Windows\Start Menu\Programs\Microsoft Edge.lnk"
+                    $lnkPath = "${env:ProgramFiles(x86)}\Microsoft\Edge\Application\msedge.exe"
                 }
             }
             'explorer' {
@@ -421,15 +450,15 @@ if ($buildNumber -ge 20000) {
                 Write-Log "INFO: [13] Start Menu pin registered: Settings"
             }
             'chrome' {
-                $lnkPath = "$env:ALLUSERSPROFILE\Microsoft\Windows\Start Menu\Programs\Google Chrome.lnk"
+                $lnkPath = "$env:ProgramData\Microsoft\Windows\Start Menu\Programs\Google Chrome.lnk"
                 if (-not (Test-Path -LiteralPath $lnkPath)) {
-                    $lnkPath = "$env:ProgramData\Microsoft\Windows\Start Menu\Programs\Google Chrome.lnk"
+                    $lnkPath = "$env:ProgramFiles\Google\Chrome\Application\chrome.exe"
                 }
             }
             'notepadpp' {
-                $lnkPath = "$env:ALLUSERSPROFILE\Microsoft\Windows\Start Menu\Programs\Notepad++.lnk"
+                $lnkPath = "$env:ProgramData\Microsoft\Windows\Start Menu\Programs\Notepad++.lnk"
                 if (-not (Test-Path -LiteralPath $lnkPath)) {
-                    $lnkPath = "$env:ProgramData\Microsoft\Windows\Start Menu\Programs\Notepad++.lnk"
+                    $lnkPath = "$env:ProgramFiles\Notepad++\notepad++.exe"
                 }
             }
             default {
@@ -442,8 +471,7 @@ if ($buildNumber -ge 20000) {
 
         if (-not $isPackaged) {
             if ($lnkPath -and (Test-Path -LiteralPath $lnkPath)) {
-                # Convert physical path back to environment variable template if applicable
-                $envLnk = $lnkPath.Replace($env:ALLUSERSPROFILE, '%ALLUSERSPROFILE%').Replace($env:APPDATA, '%APPDATA%')
+                $envLnk = $lnkPath.Replace($env:ProgramData, '%ALLUSERSPROFILE%').Replace($env:APPDATA, '%APPDATA%')
                 $pinList += @{ desktopAppLink = $envLnk }
                 Write-Log "INFO: [13] Start Menu pin added: $sp ($lnkPath)"
             } else {
@@ -455,11 +483,14 @@ if ($buildNumber -ge 20000) {
     $jsonObj = @{ pinnedList = $pinList }
     $jsonStr = $jsonObj | ConvertTo-Json -Depth 3 -Compress
     
-    $polKey = 'HKLM:\SOFTWARE\Microsoft\PolicyManager\current\device\Start'
-    if (-not (Test-Path -LiteralPath $polKey)) {
-        $null = New-Item -Path $polKey -Force -ErrorAction SilentlyContinue
-    }
-    Set-ItemProperty -LiteralPath $polKey -Name 'ConfigureStartPins' -Value $jsonStr -Type 'String' -Force -ErrorAction SilentlyContinue
+    # Write to PolicyManager and Group Policy locations
+    $polKey1 = 'HKLM:\SOFTWARE\Microsoft\PolicyManager\current\device\Start'
+    $polKey2 = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Explorer'
+    $polKey3 = 'HKCU:\Software\Policies\Microsoft\Windows\Explorer'
+    
+    Set-RegValue $polKey1 'ConfigureStartPins' $jsonStr 'String'
+    Set-RegValue $polKey2 'ConfigureStartPins' $jsonStr 'String'
+    Set-RegValue $polKey3 'ConfigureStartPins' $jsonStr 'String'
     Write-Log "INFO: [12..13] Start Menu: ConfigureStartPins applied with $($pinList.Count) app(s)."
 }
 
@@ -470,6 +501,7 @@ $folderList = $startFoldersStr.Split(';', [System.StringSplitOptions]::RemoveEmp
 $folderMappings = @{
     'settings'        = 'Start_ShowSettings'
     'file explorer'   = 'Start_ShowFileExplorer'
+    'explorer'        = 'Start_ShowFileExplorer'
     'documents'       = 'Start_ShowDocuments'
     'downloads'       = 'Start_ShowDownloads'
     'music'           = 'Start_ShowMusic'
@@ -477,12 +509,22 @@ $folderMappings = @{
     'videos'          = 'Start_ShowVideos'
     'network'         = 'Start_ShowNetwork'
     'personal folder' = 'Start_ShowUser'
+    'user'            = 'Start_ShowUser'
 }
 
+# Set each mapped folder registry key
+$distinctKeys = @{}
 foreach ($fName in $folderMappings.Keys) {
     $regName = $folderMappings[$fName]
-    $enableFolder = ($fName -in $folderList)
-    Set-RegValue $explorerAdv $regName ($(if ($enableFolder) { 1 } else { 0 })) 'DWord'
+    if (-not $distinctKeys.ContainsKey($regName)) {
+        $distinctKeys[$regName] = $false
+    }
+    if ($fName -in $folderList) {
+        $distinctKeys[$regName] = $true
+    }
+}
+foreach ($regName in $distinctKeys.Keys) {
+    Set-RegValue $explorerAdv $regName ($(if ($distinctKeys[$regName]) { 1 } else { 0 })) 'DWord'
 }
 Write-Log "INFO: [22] Start Menu: Folder shortcuts configured ($startFoldersStr)."
 
@@ -522,12 +564,13 @@ if ($enableRDP) {
 $allowPS = Get-IniBool -Ini $iniConfig -Section 'system' -Key 'allow_powershell_scripts' -Default $true
 if ($allowPS) {
     try {
-        Set-ExecutionPolicy -Scope LocalMachine -ExecutionPolicy RemoteSigned -Force
-        Set-RegValue 'HKLM:\SOFTWARE\Microsoft\PowerShell\1\ShellIds\Microsoft.PowerShell' 'ExecutionPolicy' 'RemoteSigned' 'String'
-        Write-Log "INFO: [17] PowerShell ExecutionPolicy set to RemoteSigned."
-    } catch {
-        Write-Log "WARN: [17] Could not set PowerShell ExecutionPolicy: $($_.Exception.Message)"
-    }
+        Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force -ErrorAction SilentlyContinue
+        Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned -Force -ErrorAction SilentlyContinue
+        Set-ExecutionPolicy -Scope LocalMachine -ExecutionPolicy RemoteSigned -Force -ErrorAction SilentlyContinue
+    } catch {}
+    Set-RegValue 'HKLM:\SOFTWARE\Microsoft\PowerShell\1\ShellIds\Microsoft.PowerShell' 'ExecutionPolicy' 'RemoteSigned' 'String'
+    Set-RegValue 'HKCU:\SOFTWARE\Microsoft\PowerShell\1\ShellIds\Microsoft.PowerShell' 'ExecutionPolicy' 'RemoteSigned' 'String'
+    Write-Log "INFO: [17] PowerShell ExecutionPolicy set to RemoteSigned."
 }
 
 # 18. Hide Microsoft Edge First Run Experience
@@ -641,10 +684,17 @@ $chosenIcons = $desktopIconsStr.Split(';', [System.StringSplitOptions]::RemoveEm
 
 $desktopGuids = @{
     'this pc'        = '{20D04FE0-3AEA-1069-A2D8-08002B30309D}'
+    'thispc'         = '{20D04FE0-3AEA-1069-A2D8-08002B30309D}'
+    'computer'       = '{20D04FE0-3AEA-1069-A2D8-08002B30309D}'
     "user's files"   = '{59031A47-3F72-44A7-89C5-5595FE6B30EE}'
+    'users files'     = '{59031A47-3F72-44A7-89C5-5595FE6B30EE}'
     'user files'     = '{59031A47-3F72-44A7-89C5-5595FE6B30EE}'
+    'user'           = '{59031A47-3F72-44A7-89C5-5595FE6B30EE}'
+    'users'          = '{59031A47-3F72-44A7-89C5-5595FE6B30EE}'
     'recycle bin'    = '{645FF040-5081-101B-9F08-00AA002F954E}'
+    'recyclebin'     = '{645FF040-5081-101B-9F08-00AA002F954E}'
     'control panel'  = '{5399E694-6CE5-4D6C-8FCE-1D8870FDCBA0}'
+    'controlpanel'   = '{5399E694-6CE5-4D6C-8FCE-1D8870FDCBA0}'
     'network'        = '{F02C1A0D-BE21-4350-88B0-7367FC96EF3C}'
 }
 
@@ -653,13 +703,27 @@ $desktopKeys = @(
     'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\HideDesktopIcons\ClassicStartMenu'
 )
 
+# Build map of unique GUIDs to show state
+$guidShowMap = @{
+    '{20D04FE0-3AEA-1069-A2D8-08002B30309D}' = $false
+    '{59031A47-3F72-44A7-89C5-5595FE6B30EE}' = $false
+    '{645FF040-5081-101B-9F08-00AA002F954E}' = $false
+    '{5399E694-6CE5-4D6C-8FCE-1D8870FDCBA0}' = $false
+    '{F02C1A0D-BE21-4350-88B0-7367FC96EF3C}' = $false
+}
+
+foreach ($iconName in $desktopGuids.Keys) {
+    if ($iconName -in $chosenIcons) {
+        $guidShowMap[$desktopGuids[$iconName]] = $true
+    }
+}
+
 foreach ($dk in $desktopKeys) {
     if (-not (Test-Path -LiteralPath $dk)) {
         $null = New-Item -Path $dk -Force -ErrorAction SilentlyContinue
     }
-    foreach ($iconName in $desktopGuids.Keys) {
-        $guid = $desktopGuids[$iconName]
-        $show = ($iconName -in $chosenIcons)
+    foreach ($guid in $guidShowMap.Keys) {
+        $show = $guidShowMap[$guid]
         # 0 = Show, 1 = Hide
         Set-ItemProperty -LiteralPath $dk -Name $guid -Value ($(if ($show) { 0 } else { 1 })) -Type DWord -Force -ErrorAction SilentlyContinue
     }
@@ -675,19 +739,16 @@ $cpKey = 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\ControlPanel'
 
 switch -Regex ($cpView) {
     '^(large)$' {
-        # Large icons: StartupPage = 1 (Classic view), AllItemsIconView = 0 (Large Icons)
         Set-RegValue $cpKey 'StartupPage' 1 'DWord'
         Set-RegValue $cpKey 'AllItemsIconView' 0 'DWord'
         Write-Log "INFO: [28] Control Panel set to Large Icons view (StartupPage=1, AllItemsIconView=0)."
     }
     '^(small)$' {
-        # Small icons: StartupPage = 1, AllItemsIconView = 1 (Small Icons)
         Set-RegValue $cpKey 'StartupPage' 1 'DWord'
         Set-RegValue $cpKey 'AllItemsIconView' 1 'DWord'
         Write-Log "INFO: [28] Control Panel set to Small Icons view (StartupPage=1, AllItemsIconView=1)."
     }
     '^(category)$' {
-        # Category view: StartupPage = 0
         Set-RegValue $cpKey 'StartupPage' 0 'DWord'
         Write-Log "INFO: [28] Control Panel set to Category view (StartupPage=0)."
     }

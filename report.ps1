@@ -4,7 +4,6 @@ param(
     [string] $OutputPath = 'C:\Auto-installer\report.md'
 )
 
-Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 function Get-LogLines {
@@ -46,15 +45,15 @@ try {
     $removeFeatLog   = 'C:\Windows\Setup\Scripts\RemoveFeatures.log'
 
     # Read log lines
-    $setupLines      = Get-LogLines $setupScriptsLog
-    $appsLines       = Get-LogLines $appsLogPath
-    $configLines     = Get-LogLines $configLogPath
-    $driverLines     = Get-LogLines $driverLogPath
-    $specializeLines = Get-LogLines $specializeLog
-    $firstLogonLines = Get-LogLines $firstLogonLog
-    $pkgLines        = Get-LogLines $removePkgLog
-    $capLines        = Get-LogLines $removeCapLog
-    $featLines       = Get-LogLines $removeFeatLog
+    $setupLines      = @(Get-LogLines $setupScriptsLog)
+    $appsLines       = @(Get-LogLines $appsLogPath)
+    $configLines     = @(Get-LogLines $configLogPath)
+    $driverLines     = @(Get-LogLines $driverLogPath)
+    $specializeLines = @(Get-LogLines $specializeLog)
+    $firstLogonLines = @(Get-LogLines $firstLogonLog)
+    $pkgLines        = @(Get-LogLines $removePkgLog)
+    $capLines        = @(Get-LogLines $removeCapLog)
+    $featLines       = @(Get-LogLines $removeFeatLog)
 
     $allLogLines = @($setupLines + $appsLines + $configLines + $driverLines + $specializeLines + $firstLogonLines)
 
@@ -68,11 +67,11 @@ try {
         $setupStatus = 'completed'
         
         # Check extraction
-        $extractSuccess = ($setupLines | Where-Object { $_ -match '\[ExtractScript\] File extraction completed successfully' }).Count -gt 0
+        $extractMatches = @($setupLines | Where-Object { $_ -match '\[ExtractScript\] File extraction completed successfully' })
         $setupTasks.Add([pscustomobject]@{
             Phase  = 'Specialize'
             Task   = 'Script Extraction (ExtractScript)'
-            Status = $(if ($extractSuccess) { 'Success' } else { 'Warning/Not Recorded' })
+            Status = $(if ($extractMatches.Count -gt 0) { 'Success' } else { 'Warning/Not Recorded' })
             Detail = 'Extracted setup helper scripts from unattend XML to C:\Windows\Setup\Scripts\'
         })
 
@@ -119,7 +118,8 @@ try {
         }
 
         # Check FirstLogon execution
-        if ($firstLogonLines.Count -gt 0 -or ($setupLines | Where-Object { $_ -match 'FirstLogon' }).Count -gt 0) {
+        $flMatches = @($setupLines | Where-Object { $_ -match 'FirstLogon' })
+        if ($firstLogonLines.Count -gt 0 -or $flMatches.Count -gt 0) {
             $setupTasks.Add([pscustomobject]@{
                 Phase  = 'FirstLogon'
                 Task   = 'First Logon Initialization'
