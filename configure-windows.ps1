@@ -703,7 +703,7 @@ for ($i = 0; $i -lt $runKeys.Count; $i++) {
 Write-Log "INFO: [20..21] Configuring Desktop Icons & Sorting..."
 
 # 20. Desktop Icons
-$chosenIcons = Get-IniList -Ini $iniConfig -Section 'desktop' -Key 'icons' -Default "This PC, Recycle Bin, User's Files, Network, Control Panel" | ForEach-Object { $_.ToLowerInvariant() }
+$chosenIcons = Get-IniList -Ini $iniConfig -Section 'desktop' -Key 'icons' -Default "This PC, Recycle Bin, Users Files, Network, Control Panel" | ForEach-Object { $_.ToLowerInvariant() }
 
 $desktopGuids = @{
     'this pc'        = '{20D04FE0-3AEA-1069-A2D8-08002B30309D}'
