@@ -1,9 +1,11 @@
+[CmdletBinding()]
 param(
     [string]$IniFile = "$PSScriptRoot\configure-windows.ini",
     [string]$LogFile = 'C:\Auto-installer\configure-windows.log'
 )
 
 $ErrorActionPreference = 'Stop'
+$script:LogFile = $LogFile
 
 # Ensure HKU registry drive is available in PowerShell
 if (-not (Get-PSDrive -Name HKU -ErrorAction SilentlyContinue)) {
@@ -19,11 +21,11 @@ function Write-Log {
     $ts = (Get-Date).ToString('yyyy-MM-dd HH:mm:ss')
     $line = "[$ts] [WinConfig] $msg"
     try {
-        $logDir = Split-Path -Path $LogFile -Parent
+        $logDir = Split-Path -Path $script:LogFile -Parent
         if ($logDir -and -not (Test-Path -LiteralPath $logDir)) {
             $null = New-Item -ItemType Directory -Force -Path $logDir -ErrorAction SilentlyContinue
         }
-        Add-Content -Path $LogFile -Value $line -Encoding UTF8 -ErrorAction SilentlyContinue
+        Add-Content -Path $script:LogFile -Value $line -Encoding UTF8 -ErrorAction SilentlyContinue
     } catch {}
     Write-Host $line
 }
@@ -45,7 +47,7 @@ function Set-RegValue {
     }
 }
 
-function Parse-IniFile {
+function Import-IniFile {
     param([string]$Path)
     $ini = @{}
     if (-not (Test-Path -LiteralPath $Path)) {
@@ -236,12 +238,12 @@ Write-Log "=====================================================================
 Write-Log "Starting Windows Post-Installation Configuration Engine"
 Write-Log "INI File: $IniFile"
 
-$iniConfig = Parse-IniFile -Path $IniFile
+$iniConfig = Import-IniFile -Path $IniFile
 
 # Override LogFile if specified in INI
 $iniLog = Get-IniValue -Ini $iniConfig -Section 'general' -Key 'log_path' -Default ''
 if ($iniLog -ne '') {
-    $LogFile = $iniLog
+    $script:LogFile = $iniLog
 }
 
 $buildNumber = 0
@@ -447,7 +449,7 @@ if ($buildNumber -ge 26100) {
 $removeDefaultStartPins = Get-IniBool -Ini $iniConfig -Section 'start_menu' -Key 'remove_default_pins' -Default $true
 $startPinItems = Get-IniList -Ini $iniConfig -Section 'start_menu' -Key 'pins' -Default 'edge, explorer, settings, chrome, notepadpp'
 
-if ($buildNumber -ge 20000) {
+if ($buildNumber -ge 20000 -and ($removeDefaultStartPins -or $startPinItems.Count -gt 0)) {
     $pinList = @()
     foreach ($sp in $startPinItems) {
         $spKey = $sp.Trim().ToLowerInvariant()
@@ -926,7 +928,7 @@ if ($sortMode.ToLowerInvariant() -ne 'none') {
     }
     
     try {
-        $code = @"
+        $code = @'
 using System;
 using System.Runtime.InteropServices;
 
@@ -978,7 +980,7 @@ public class DesktopSorter
         }
     }
 }
-"@
+'@
         Add-Type -TypeDefinition $code -ErrorAction SilentlyContinue
         [DesktopSorter]::Sort($wmCommandId)
         Write-Log "INFO: [21] Desktop icons sorted by $sortMode (WM_COMMAND ID=$wmCommandId)."
