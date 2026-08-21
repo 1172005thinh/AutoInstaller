@@ -287,10 +287,13 @@ if (-not [string]::IsNullOrWhiteSpace($IconPath)) {
         exit 1
     }
 } else {
-    # Auto-detect icon.ico in RootDir if present
+    # Default to icon.ico in the script/root directory; return error if not found
     $defaultIcon = Join-Path $RootDir 'icon.ico'
     if (Test-Path -LiteralPath $defaultIcon) {
         $resolvedIcon = (Resolve-Path -LiteralPath $defaultIcon).Path
+    } else {
+        Write-Error "Default icon file not found: $defaultIcon. Please ensure 'icon.ico' exists in the same folder or specify a custom icon path using --icon <path>."
+        exit 1
     }
 }
 
