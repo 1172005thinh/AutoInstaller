@@ -5,7 +5,8 @@
 .DESCRIPTION
     Compiles AutoIt (.au3) source files into standalone Windows executables (.exe)
     using the official AutoIt Aut2Exe compiler. Supports batch compilation, custom
-    input/output file mappings, exclusion filters, live compiler logging, and dry-run preview.
+    input/output file mappings, exclusion filters, custom icon injection (.ico),
+    live compiler logging, and dry-run preview.
 
 .PARAMETER All
     (-a, --a) Recompile all .au3 scripts in the workspace, including the master installer
@@ -21,6 +22,10 @@
 .PARAMETER Exclude
     (-ex, --exclude) One or more script paths or file names to exclude from compilation.
 
+.PARAMETER IconPath
+    (-ic, --icon) Path to a custom .ico icon file (e.g. icon.ico). If omitted,
+    the tool automatically checks for and uses 'icon.ico' in the workspace root if present.
+
 .PARAMETER DryRun
     (-d, --dry-run) Preview compilation targets without invoking the compiler.
 
@@ -35,15 +40,15 @@
 
 .EXAMPLE
     .\compile-au2exe.ps1 -a
-    # Compiles all .au3 files including master installer (producing both install-apps.exe and Auto-installer.exe)
+    # Compiles all .au3 files with icon.ico (producing both install-apps.exe and Auto-installer.exe)
 
 .EXAMPLE
     .\compile-au2exe.ps1 -a --dry-run
     # Previews all compilation targets without compiling
 
 .EXAMPLE
-    .\compile-au2exe.ps1 -i Tools\Editors\install_notepadpp.au3 Browsers\install_chrome-standalone.au3
-    # Compiles only the specified scripts
+    .\compile-au2exe.ps1 -i Tools\Editors\install_notepadpp.au3 --icon icon.ico
+    # Compiles notepad++ installer with custom icon
 
 .EXAMPLE
     .\compile-au2exe.ps1 -i install-apps.au3 -o Auto-installer.exe
@@ -68,6 +73,9 @@ param(
     [Alias('ex')]
     [string[]]$Exclude = @(),
 
+    [Alias('ic', 'icon')]
+    [string]$IconPath = '',
+
     [Alias('d', 'dry-run')]
     [switch]$DryRun,
 
@@ -89,7 +97,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
-# Process remaining arguments to support space-separated list for -i, -o, -ex, etc.
+# Process remaining arguments to support space-separated list for -i, -o, -ex, --icon, etc.
 if ($RemainingArgs -and $RemainingArgs.Count -gt 0) {
     $currentFlag = if ($InputPaths.Count -gt 0 -and $OutputPaths.Count -eq 0 -and $Exclude.Count -eq 0) { 'input' } `
                    elseif ($OutputPaths.Count -gt 0) { 'output' } `
@@ -112,6 +120,8 @@ if ($RemainingArgs -and $RemainingArgs.Count -gt 0) {
         } elseif ($lower -in @('-d', '--d', '-dry-run', '--dry-run', '-dryrun', '--dryrun')) {
             $DryRun = $true
             $currentFlag = $null
+        } elseif ($lower -in @('-ic', '--ic', '-icon', '--icon')) {
+            $currentFlag = 'icon'
         } elseif ($lower -in @('-i', '--i', '-input', '--input')) {
             $currentFlag = 'input'
         } elseif ($lower -in @('-o', '--o', '-output', '--output')) {
@@ -121,7 +131,10 @@ if ($RemainingArgs -and $RemainingArgs.Count -gt 0) {
         } elseif ($arg.StartsWith('-')) {
             $currentFlag = $null
         } else {
-            if ($currentFlag -eq 'input') {
+            if ($currentFlag -eq 'icon') {
+                $IconPath = $arg
+                $currentFlag = $null
+            } elseif ($currentFlag -eq 'input') {
                 $InputPaths += $arg
             } elseif ($currentFlag -eq 'output') {
                 $OutputPaths += $arg
@@ -133,8 +146,8 @@ if ($RemainingArgs -and $RemainingArgs.Count -gt 0) {
 }
 
 $TOOL_NAME    = 'compile-au2exe'
-$TOOL_VERSION = '1.1.0'
-$TOOL_AUTHOR  = '1172005thinh'
+$TOOL_VERSION = '1.2.0'
+$TOOL_AUTHOR  = 'AutoInstaller Team'
 
 # If no flags/parameters were parsed, display the help screen by default
 $hasExplicitTarget = ($All) -or ($InputPaths -and $InputPaths.Count -gt 0) -or ($Exclude -and $Exclude.Count -gt 0) -or ($Version)
@@ -170,6 +183,7 @@ OPTIONS:
     -i,  --input <files>    Specify one or more AU3 script paths to compile.
     -o,  --output <files>   Specify output EXE path(s) respectively for each input.
     -ex, --exclude <files>  Exclude specified script path(s) or file name(s).
+    -ic, --icon <file>      Specify a custom .ico icon file (defaults to icon.ico if present).
     -d,  --dry-run          Preview compilation targets without invoking compiler.
     -l,  --log              Stream live verbose output from Au2exe compiler.
     -v,  --version          Display tool version and author info.
@@ -184,14 +198,14 @@ EXAMPLES:
     # 1. Show help (default when invoked without parameters)
     .\compile-au2exe.ps1
 
-    # 2. Recompile everything (all child installers + master installer)
+    # 2. Recompile everything with default icon (icon.ico)
     .\compile-au2exe.ps1 -a
 
     # 3. Dry-run preview of all targets
     .\compile-au2exe.ps1 -a --dry-run
 
-    # 4. Compile specific scripts
-    .\compile-au2exe.ps1 -i Tools\Editors\install_notepadpp.au3 Socials\install_zalo.au3
+    # 4. Compile specific scripts with custom icon
+    .\compile-au2exe.ps1 -i Tools\Editors\install_notepadpp.au3 --icon icon.ico
 
     # 5. Compile with custom output executable name
     .\compile-au2exe.ps1 -i install-apps.au3 -o Auto-installer.exe
@@ -256,7 +270,32 @@ if (-not $foundCompiler) {
 }
 
 # ------------------------------------------------------------------------------
-# 5. Build Target Worklist
+# 5. Icon Resolution
+# ------------------------------------------------------------------------------
+$resolvedIcon = $null
+if (-not [string]::IsNullOrWhiteSpace($IconPath)) {
+    if (Test-Path -LiteralPath $IconPath) {
+        $resolvedIcon = (Resolve-Path -LiteralPath $IconPath).Path
+    } else {
+        $combinedIcon = Join-Path $RootDir $IconPath
+        if (Test-Path -LiteralPath $combinedIcon) {
+            $resolvedIcon = (Resolve-Path -LiteralPath $combinedIcon).Path
+        }
+    }
+    if (-not $resolvedIcon) {
+        Write-Error "Specified icon file not found: $IconPath"
+        exit 1
+    }
+} else {
+    # Auto-detect icon.ico in RootDir if present
+    $defaultIcon = Join-Path $RootDir 'icon.ico'
+    if (Test-Path -LiteralPath $defaultIcon) {
+        $resolvedIcon = (Resolve-Path -LiteralPath $defaultIcon).Path
+    }
+}
+
+# ------------------------------------------------------------------------------
+# 6. Build Target Worklist
 # ------------------------------------------------------------------------------
 $compilationTasks = @()
 $masterPatterns   = @('install-apps.au3', 'auto-installer.au3')
@@ -354,12 +393,13 @@ if ($InputPaths -and $InputPaths.Count -gt 0) {
 }
 
 # ------------------------------------------------------------------------------
-# 6. Execute Compilation
+# 7. Execute Compilation
 # ------------------------------------------------------------------------------
 Write-Host "======================================================================" -ForegroundColor Cyan
 Write-Host " $TOOL_NAME - Au2exe Compilation Utility" -ForegroundColor Cyan
 Write-Host " Compiler : $foundCompiler" -ForegroundColor Gray
 Write-Host " Root Dir : $RootDir" -ForegroundColor Gray
+Write-Host " Icon     : $(if ($resolvedIcon) { $resolvedIcon } else { 'None (Default AutoIt icon)' })" -ForegroundColor $(if ($resolvedIcon) { 'Green' } else { 'DarkGray' })
 Write-Host " Targets  : $($compilationTasks.Count) file(s)" -ForegroundColor Gray
 if ($Log) {
     Write-Host " Logging  : Verbose console streaming enabled (-l)" -ForegroundColor Yellow
@@ -401,6 +441,10 @@ foreach ($task in $compilationTasks) {
     }
 
     $argList = "/in `"$src`" /out `"$out`""
+    if ($resolvedIcon) {
+        $argList += " /icon `"$resolvedIcon`""
+    }
+
     if ($Log) {
         Write-Host ("`n>>> Compiling: {0}" -f $relSrc) -ForegroundColor Magenta
         Write-Host ("    Command: & `"$foundCompiler`" $argList") -ForegroundColor DarkGray
