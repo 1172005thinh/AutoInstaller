@@ -57,7 +57,7 @@ function Parse-IniFile {
     
     foreach ($line in Get-Content -LiteralPath $Path -Encoding UTF8) {
         $trimmed = $line.Trim()
-        if ($trimmed.Length -eq 0 -or $trimmed.StartsWith('#') -or $trimmed.StartsWith(';')) {
+        if ($trimmed.Length -eq 0 -or $trimmed.StartsWith('#')) {
             continue
         }
         if ($trimmed.StartsWith('[') -and $trimmed.EndsWith(']')) {
@@ -71,6 +71,10 @@ function Parse-IniFile {
         if ($eqIdx -gt 0) {
             $key = $trimmed.Substring(0, $eqIdx).Trim().ToLowerInvariant()
             $val = $trimmed.Substring($eqIdx + 1).Trim()
+            # Strip trailing semicolon statement terminator if present (key=val;)
+            if ($val.EndsWith(';')) {
+                $val = $val.Substring(0, $val.Length - 1).Trim()
+            }
             # Strip trailing inline comments beginning with '#'
             $hashIdx = $val.IndexOf('#')
             if ($hashIdx -gt 0) {
@@ -110,6 +114,27 @@ function Get-IniBool {
     )
     $val = Get-IniValue -Ini $Ini -Section $Section -Key $Key -Default ($Default.ToString().ToLower())
     return ($val.ToLowerInvariant() -in @('true', '1', 'yes', 'enable', 'enabled'))
+}
+
+function Get-IniList {
+    param(
+        [hashtable]$Ini,
+        [string]$Section,
+        [string]$Key,
+        [string]$Default = ''
+    )
+    $raw = Get-IniValue -Ini $Ini -Section $Section -Key $Key -Default $Default
+    if ([string]::IsNullOrWhiteSpace($raw) -or $raw.Trim().ToLowerInvariant() -eq 'none') {
+        return @()
+    }
+    $items = $raw -split '[,;]' | ForEach-Object {
+        $t = $_.Trim()
+        if (($t.StartsWith([char]34) -and $t.EndsWith([char]34)) -or ($t.StartsWith([char]39) -and $t.EndsWith([char]39))) {
+            $t = $t.Substring(1, $t.Length - 2).Trim()
+        }
+        $t
+    } | Where-Object { $_ -ne '' }
+    return @($items)
 }
 
 # Resolve target application executable or shortcut
@@ -351,7 +376,7 @@ Set-RegValue $explorerAdv 'ShowCopilotButton' 0 'DWord'
 
 # 6 & 7. Taskbar Unpin Defaults & Pinned Apps
 $unpinDefaults = Get-IniBool -Ini $iniConfig -Section 'taskbar' -Key 'unpin_defaults' -Default $true
-$taskbarPinsStr = Get-IniValue -Ini $iniConfig -Section 'taskbar' -Key 'pins' -Default 'explorer;chrome;word;excel;powerpoint;zalo'
+$pinItems = Get-IniList -Ini $iniConfig -Section 'taskbar' -Key 'pins' -Default 'explorer, chrome, word, excel, powerpoint, zalo'
 
 $shell = New-Object -ComObject Shell.Application
 $taskbarFolder = $shell.NameSpace("$env:AppData\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar")
@@ -366,7 +391,6 @@ if ($unpinDefaults -and $taskbarFolder) {
 }
 
 # Pin configured apps
-$pinItems = $taskbarPinsStr.Split(';', [System.StringSplitOptions]::RemoveEmptyEntries)
 $pinnedCount = 0
 foreach ($pKey in $pinItems) {
     $target = Resolve-AppPath -AppKey $pKey
@@ -421,11 +445,10 @@ if ($buildNumber -ge 26100) {
 
 # 12 & 13. Start Menu Pins (ConfigureStartPins JSON policy)
 $removeDefaultStartPins = Get-IniBool -Ini $iniConfig -Section 'start_menu' -Key 'remove_default_pins' -Default $true
-$startPinsStr = Get-IniValue -Ini $iniConfig -Section 'start_menu' -Key 'pins' -Default 'edge;explorer;settings;chrome;notepadpp'
+$startPinItems = Get-IniList -Ini $iniConfig -Section 'start_menu' -Key 'pins' -Default 'edge, explorer, settings, chrome, notepadpp'
 
 if ($buildNumber -ge 20000) {
     $pinList = @()
-    $startPinItems = $startPinsStr.Split(';', [System.StringSplitOptions]::RemoveEmptyEntries)
     foreach ($sp in $startPinItems) {
         $spKey = $sp.Trim().ToLowerInvariant()
         $lnkPath = $null
@@ -495,8 +518,7 @@ if ($buildNumber -ge 20000) {
 }
 
 # 22. Start Menu Folders beside Power Button
-$startFoldersStr = Get-IniValue -Ini $iniConfig -Section 'start_menu' -Key 'folders' -Default 'Settings;File Explorer;Downloads'
-$folderList = $startFoldersStr.Split(';', [System.StringSplitOptions]::RemoveEmptyEntries) | ForEach-Object { $_.Trim().ToLowerInvariant() }
+$folderList = Get-IniList -Ini $iniConfig -Section 'start_menu' -Key 'folders' -Default 'Settings, File Explorer, Downloads' | ForEach-Object { $_.ToLowerInvariant() }
 
 $folderMappings = @{
     'settings'        = 'Start_ShowSettings'
@@ -526,7 +548,7 @@ foreach ($fName in $folderMappings.Keys) {
 foreach ($regName in $distinctKeys.Keys) {
     Set-RegValue $explorerAdv $regName ($(if ($distinctKeys[$regName]) { 1 } else { 0 })) 'DWord'
 }
-Write-Log "INFO: [22] Start Menu: Folder shortcuts configured ($startFoldersStr)."
+Write-Log "INFO: [22] Start Menu: Folder shortcuts configured ($($folderList -join ', '))."
 
 # ==============================================================================
 # 14, 15, 16, 17, 18, 19, 23, 26, 27. System Settings Configuration
@@ -679,8 +701,7 @@ for ($i = 0; $i -lt $runKeys.Count; $i++) {
 Write-Log "INFO: [20..21] Configuring Desktop Icons & Sorting..."
 
 # 20. Desktop Icons
-$desktopIconsStr = Get-IniValue -Ini $iniConfig -Section 'desktop' -Key 'icons' -Default "This PC;Recycle Bin;User's Files;Network;Control Panel"
-$chosenIcons = $desktopIconsStr.Split(';', [System.StringSplitOptions]::RemoveEmptyEntries) | ForEach-Object { $_.Trim().ToLowerInvariant() }
+$chosenIcons = Get-IniList -Ini $iniConfig -Section 'desktop' -Key 'icons' -Default "This PC, Recycle Bin, User's Files, Network, Control Panel" | ForEach-Object { $_.ToLowerInvariant() }
 
 $desktopGuids = @{
     'this pc'        = '{20D04FE0-3AEA-1069-A2D8-08002B30309D}'
@@ -728,7 +749,7 @@ foreach ($dk in $desktopKeys) {
         Set-ItemProperty -LiteralPath $dk -Name $guid -Value ($(if ($show) { 0 } else { 1 })) -Type DWord -Force -ErrorAction SilentlyContinue
     }
 }
-Write-Log "INFO: [20] Desktop icons configured ($desktopIconsStr)."
+Write-Log "INFO: [20] Desktop icons configured ($($chosenIcons -join ', '))."
 
 # ==============================================================================
 # 28. Control Panel View Mode
