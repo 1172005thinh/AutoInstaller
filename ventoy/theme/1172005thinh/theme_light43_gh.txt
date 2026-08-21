@@ -3,7 +3,7 @@
 
 # Global Property
 title-text: ""
-desktop-image: "background_light43_htc.jpg"
+desktop-image: "background_light43_gh.jpg"
 desktop-color: "#3B3B39"
 terminal-font: "Cascadia Code Regular 16"
 terminal-box: "terminal_box_*.png"
