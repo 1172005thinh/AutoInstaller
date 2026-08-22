@@ -229,6 +229,17 @@ function Complete-DriverInstallation {
     }
 }
 
+function Apply-WindowsUpdatePolicyAndServices {
+    # Configure Windows Update policy to include drivers+security and block feature upgrades
+    Set-WindowsUpdatePolicy
+
+    # Force-restart WU services to pick up the new policy and ensure clean service state
+    Write-DriverLog INFO '[DRIVER] status=wu-service-restart; detail=restarting wuauserv and UsoSvc to apply policy'
+    Stop-Service -Name UsoSvc   -Force -ErrorAction SilentlyContinue
+    Restart-Service -Name wuauserv -Force -ErrorAction SilentlyContinue
+    Start-Service  -Name UsoSvc          -ErrorAction SilentlyContinue
+}
+
 try {
     if (-not (Test-Administrator)) {
         Write-DriverLog ERROR '[DRIVER] status=failed; detail=administrator privileges are required'
@@ -265,7 +276,11 @@ try {
                 "SDIO completed clean (all hardware drivers up to date)" 
             }
             Write-DriverLog INFO "[DRIVER] status=completed-sdio; detail=$detailMsg"
-            Complete-DriverInstallation -RootPath $softwareRoot -Status 'completed-sdio' -Detail $detailMsg
+
+            # Apply Windows Update policies without triggering WU search/install command
+            Apply-WindowsUpdatePolicyAndServices
+
+            Complete-DriverInstallation -RootPath $softwareRoot -Status 'completed-sdio' -Detail "$detailMsg (WU policy applied)"
             exit 0
         } else {
             Write-DriverLog WARN "[DRIVER] status=sdio-fallback; detail=SDIO exited with code $($sdioResult.ExitCode). Proceeding to Windows Update fallback."
@@ -275,16 +290,9 @@ try {
     }
 
     # --------------------------------------------------------------------------
-    # 3. Windows Update Fallback Routine
+    # 3. Windows Update Fallback Routine (Policy + Trigger Update Command)
     # --------------------------------------------------------------------------
-    # Configure Windows Update policy
-    Set-WindowsUpdatePolicy
-
-    # Force-restart WU services to pick up the new policy and ensure a clean scan state
-    Write-DriverLog INFO '[DRIVER] status=wu-service-restart; detail=restarting wuauserv and UsoSvc'
-    Stop-Service -Name UsoSvc   -Force -ErrorAction SilentlyContinue
-    Restart-Service -Name wuauserv -Force -ErrorAction SilentlyContinue
-    Start-Service  -Name UsoSvc          -ErrorAction SilentlyContinue
+    Apply-WindowsUpdatePolicyAndServices
 
     # Use the Windows Update Agent COM API.
     # Search includes drivers (Type='Driver') and software/security updates (Type='Software')
