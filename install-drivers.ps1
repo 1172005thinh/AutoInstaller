@@ -46,10 +46,125 @@ function Get-SoftwareRoot {
     throw "Could not locate the software partition marker '$markerFile'."
 }
 
+function Test-InternetConnection {
+    try {
+        $response = Invoke-WebRequest -UseBasicParsing -Uri 'http://www.msftconnecttest.com/connecttest.txt' -TimeoutSec 15 -ErrorAction Stop
+        return $response.StatusCode -ge 200 -and $response.StatusCode -lt 400
+    }
+    catch {
+        return $false
+    }
+}
+
+function Find-SdioExecutable {
+    param([string] $RootPath)
+
+    $searchPaths = @(
+        (Join-Path $RootPath 'Drivers\SDIO'),
+        (Join-Path $RootPath 'Drivers'),
+        (Join-Path $RootPath 'SDIO'),
+        $RootPath
+    )
+
+    $exePatterns = @(
+        'SDIO_x64.exe',
+        'SDI_x64.exe',
+        'SDIO.exe',
+        'SDI.exe',
+        'SDIO_*.exe',
+        'SDI_*.exe'
+    )
+
+    foreach ($dir in $searchPaths) {
+        if (Test-Path -LiteralPath $dir) {
+            foreach ($pattern in $exePatterns) {
+                $matched = Get-ChildItem -Path $dir -Filter $pattern -File -ErrorAction SilentlyContinue | Select-Object -First 1
+                if ($matched) {
+                    return $matched.FullName
+                }
+            }
+        }
+    }
+
+    return $null
+}
+
+function Invoke-SdioDriverInstallation {
+    param(
+        [string] $SdioPath,
+        [string] $LogDir = 'C:\Auto-installer\sdio_logs'
+    )
+
+    New-Item -ItemType Directory -Path $LogDir -Force -ErrorAction SilentlyContinue | Out-Null
+    $sdioDir = Split-Path -Path $SdioPath -Parent
+
+    Write-DriverLog INFO "[DRIVER] source=SDIO; status=starting; detail=launching SDIO tool from $SdioPath"
+    Write-Host "`n[DRIVER] Starting Snappy Driver Installer Origin (SDIO)..." -ForegroundColor Cyan
+
+    # SDIO command line switches:
+    # -autoinstall : automatically match and install missing hardware drivers
+    # -autoupdate  : update outdated drivers to better matches
+    # -autoclose   : terminate SDIO upon completion
+    # -nosnapshot  : skip system restore point creation for speed and unattended stability
+    # -license     : accept SDIO license agreement
+    # -logdir      : specify destination directory for SDIO logs
+    $sdioArgs = @(
+        '-autoinstall',
+        '-autoupdate',
+        '-autoclose',
+        '-nosnapshot',
+        '-license',
+        ('-logdir:"{0}"' -f $LogDir)
+    )
+
+    $sw = [System.Diagnostics.Stopwatch]::StartNew()
+    $proc = Start-Process -FilePath $SdioPath -ArgumentList ($sdioArgs -join ' ') -WorkingDirectory $sdioDir -PassThru -Wait
+    $sw.Stop()
+    $exitCode = $proc.ExitCode
+
+    Write-DriverLog INFO ("[DRIVER] source=SDIO; status=finished; detail=exit_code={0}; elapsed_ms={1}" -f $exitCode, $sw.ElapsedMilliseconds)
+
+    # Parse SDIO log files in $LogDir to extract individual driver items installed/failed
+    $installedDrivers = [System.Collections.Generic.List[pscustomobject]]::new()
+    $sdioLogs = Get-ChildItem -Path $LogDir -Filter '*.log' -File -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending
+    foreach ($logFile in $sdioLogs) {
+        $lines = Get-Content -LiteralPath $logFile.FullName -Encoding UTF8 -ErrorAction SilentlyContinue
+        foreach ($line in $lines) {
+            if ($line -match 'Install:\s*(?<driver>.*?)\s*\[(?<status>OK|SUCCESS|INSTALLED|DONE)\]' -or
+                $line -match 'Installing\s+(?<driver>.*?)\s*\.\.\.\s*(?<status>OK|SUCCESS|DONE)' -or
+                $line -match '(?<driver>DP_.*?)\s*->\s*(?<status>Installed|Success)') {
+                $driverName = $Matches.driver.Trim()
+                $driverStatus = $Matches.status.Trim()
+                $installedDrivers.Add([pscustomobject]@{
+                    Name   = $driverName
+                    Status = 'installed'
+                    Detail = "Installed via SDIO ($driverStatus)"
+                })
+                Write-DriverLog INFO ("[DRIVER] source=SDIO; name={0}; status=installed; detail=Installed via SDIO ({1})" -f $driverName, $driverStatus)
+            }
+            elseif ($line -match 'Install:\s*(?<driver>.*?)\s*\[(?<status>FAIL|ERROR|FAILED)\]') {
+                $driverName = $Matches.driver.Trim()
+                $installedDrivers.Add([pscustomobject]@{
+                    Name   = $driverName
+                    Status = 'failed'
+                    Detail = "SDIO installation failed ($($Matches.status))"
+                })
+                Write-DriverLog WARN ("[DRIVER] source=SDIO; name={0}; status=failed; detail=SDIO failed ({1})" -f $driverName, $Matches.status)
+            }
+        }
+    }
+
+    $success = ($exitCode -eq 0)
+    return @{
+        Success          = $success
+        ExitCode         = $exitCode
+        InstalledDrivers = $installedDrivers
+        LogDirectory     = $LogDir
+    }
+}
+
 function Set-WindowsUpdatePolicy {
     # Configure WU to include drivers and security patches, exclude feature upgrades.
-    # Wrapped in try/catch so that registry access errors (e.g. restricted policy paths
-    # in some VM environments) are logged as warnings rather than crashing the script.
     try {
         $wuPolicyPath     = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate'
         $auPolicyPath     = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU'
@@ -59,11 +174,11 @@ function Set-WindowsUpdatePolicy {
         New-Item -Path $auPolicyPath     -Force -ErrorAction SilentlyContinue | Out-Null
         New-Item -Path $targetPolicyPath -Force -ErrorAction SilentlyContinue | Out-Null
 
-        # Include driver updates in quality/Windows Update scans (overrides OEM suppression)
+        # Include driver updates in quality/Windows Update scans
         Set-ItemProperty -Path $wuPolicyPath -Name 'ExcludeWUDriversInQualityUpdate' -Value 0 -Type DWord -Force -ErrorAction SilentlyContinue
-        # Keep auto-update enabled (WU will be triggered manually by the script)
+        # Keep auto-update enabled
         Set-ItemProperty -Path $auPolicyPath -Name 'NoAutoUpdate' -Value 0 -Type DWord -Force -ErrorAction SilentlyContinue
-        # Block Windows version upgrade offers entirely
+        # Block Windows version upgrade offers
         Set-ItemProperty -Path $targetPolicyPath -Name 'DisableOSUpgrade'     -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue
         Set-ItemProperty -Path $targetPolicyPath -Name 'TargetReleaseVersion' -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue
 
@@ -90,16 +205,6 @@ function Register-DriverResumeTask {
     $settings  = New-ScheduledTaskSettingsSet -StartWhenAvailable -ExecutionTimeLimit (New-TimeSpan -Hours 2)
     Register-ScheduledTask -TaskName $taskName -Action $action -Trigger $trigger -Principal $principal -Settings $settings -Force | Out-Null
     Write-DriverLog INFO "[DRIVER] status=restart-pending; detail=scheduled iteration $($Iteration + 1) of $MaxIteration"
-}
-
-function Test-InternetConnection {
-    try {
-        $response = Invoke-WebRequest -UseBasicParsing -Uri 'http://www.msftconnecttest.com/connecttest.txt' -TimeoutSec 15 -ErrorAction Stop
-        return $response.StatusCode -ge 200 -and $response.StatusCode -lt 400
-    }
-    catch {
-        return $false
-    }
 }
 
 function Complete-DriverInstallation {
@@ -133,7 +238,46 @@ try {
     $softwareRoot = Get-SoftwareRoot
     Write-DriverLog INFO "[DRIVER] status=started; detail=iteration $Iteration of $MaxIteration; source=$softwareRoot"
 
-    # Configure Windows Update policy before anything else (idempotent — safe to re-apply on each resume)
+    # --------------------------------------------------------------------------
+    # 1. Mandatory Internet Check
+    # --------------------------------------------------------------------------
+    Write-DriverLog INFO '[DRIVER] status=checking-internet; detail=testing connection to Microsoft network endpoint'
+    if (-not (Test-InternetConnection)) {
+        Write-DriverLog WARN '[DRIVER] status=skipped-no-internet; detail=no Internet connection available. Driver installation requires active Internet.'
+        Complete-DriverInstallation -RootPath $softwareRoot -Status 'skipped-no-internet' -Detail 'no Internet connection available. Driver installation requires active Internet connection.'
+        exit 0
+    }
+    Write-DriverLog INFO '[DRIVER] status=internet-online; detail=Internet connection active and verified'
+
+    # --------------------------------------------------------------------------
+    # 2. SDIO Tool Execution (Primary Driver Engine)
+    # --------------------------------------------------------------------------
+    $sdioExe = Find-SdioExecutable -RootPath $softwareRoot
+    if ($sdioExe) {
+        Write-DriverLog INFO "[DRIVER] status=sdio-found; detail=found SDIO tool at $sdioExe"
+        $sdioResult = Invoke-SdioDriverInstallation -SdioPath $sdioExe
+
+        if ($sdioResult.Success) {
+            $installedCount = $sdioResult.InstalledDrivers.Count
+            $detailMsg = if ($installedCount -gt 0) { 
+                "SDIO successfully matched and installed $installedCount hardware driver(s)" 
+            } else { 
+                "SDIO completed clean (all hardware drivers up to date)" 
+            }
+            Write-DriverLog INFO "[DRIVER] status=completed-sdio; detail=$detailMsg"
+            Complete-DriverInstallation -RootPath $softwareRoot -Status 'completed-sdio' -Detail $detailMsg
+            exit 0
+        } else {
+            Write-DriverLog WARN "[DRIVER] status=sdio-fallback; detail=SDIO exited with code $($sdioResult.ExitCode). Proceeding to Windows Update fallback."
+        }
+    } else {
+        Write-DriverLog INFO '[DRIVER] status=sdio-not-found; detail=SDIO tool was not found on Software partition. Proceeding with Windows Update.'
+    }
+
+    # --------------------------------------------------------------------------
+    # 3. Windows Update Fallback Routine
+    # --------------------------------------------------------------------------
+    # Configure Windows Update policy
     Set-WindowsUpdatePolicy
 
     # Force-restart WU services to pick up the new policy and ensure a clean scan state
@@ -141,12 +285,6 @@ try {
     Stop-Service -Name UsoSvc   -Force -ErrorAction SilentlyContinue
     Restart-Service -Name wuauserv -Force -ErrorAction SilentlyContinue
     Start-Service  -Name UsoSvc          -ErrorAction SilentlyContinue
-
-    # Check internet connectivity; skip driver installation gracefully if offline
-    if (-not (Test-InternetConnection)) {
-        Complete-DriverInstallation -RootPath $softwareRoot -Status 'skipped-no-internet' -Detail 'no Internet connection available for Windows Update'
-        exit 0
-    }
 
     # Use the Windows Update Agent COM API.
     # Search includes drivers (Type='Driver') and software/security updates (Type='Software')
@@ -158,9 +296,9 @@ try {
     $maxSearchAttempts  = 3
     for ($searchAttempt = 1; $searchAttempt -le $maxSearchAttempts; $searchAttempt++) {
         try {
-            Write-DriverLog INFO "[DRIVER] status=searching; detail=attempt $searchAttempt of $maxSearchAttempts"
+            Write-DriverLog INFO "[DRIVER] status=searching; detail=Windows Update scan attempt $searchAttempt of $maxSearchAttempts"
             $searchResult = $updateSearcher.Search("IsInstalled=0 and IsHidden=0 and (Type='Driver' or Type='Software')")
-            Write-DriverLog INFO "[DRIVER] status=search-complete; detail=$($searchResult.Updates.Count) update(s) found"
+            Write-DriverLog INFO "[DRIVER] status=search-complete; detail=$($searchResult.Updates.Count) update(s) found via Windows Update"
             break
         }
         catch {
@@ -192,7 +330,7 @@ try {
         if (-not $update.EulaAccepted) { $update.AcceptEula() }
         [void] $updatesToInstall.Add($update)
         $line = "  [$idx] $($update.Title)  (Type=$($update.Type))"
-        Write-DriverLog INFO "[DRIVER] status=queued; detail=$line"
+        Write-DriverLog INFO "[DRIVER] source=WindowsUpdate; name=$($update.Title); type=$($update.Type); status=queued; detail=$line"
         Write-Host $line -ForegroundColor White
         $idx++
     }
@@ -203,6 +341,17 @@ try {
     $installer.Updates     = $updatesToInstall
     $installationResult    = $installer.Install()
     Write-DriverLog INFO ("[DRIVER] status=install-result; detail=result_code={0}; reboot_required={1}" -f $installationResult.ResultCode, $installationResult.RebootRequired)
+
+    # Record granular per-update result
+    for ($i = 0; $i -lt $updatesToInstall.Count; $i++) {
+        $u = $updatesToInstall.Item($i)
+        $res = $installationResult.GetUpdateResult($i)
+        $uStatus = switch ($res.ResultCode) {
+            2 { 'installed' }
+            default { 'failed' }
+        }
+        Write-DriverLog INFO ("[DRIVER] source=WindowsUpdate; name={0}; type={1}; status={2}; detail=ResultCode={3}" -f $u.Title, $u.Type, $uStatus, $res.ResultCode)
+    }
 
     if ($installationResult.RebootRequired) {
         if ($Iteration -ge $MaxIteration) {
@@ -217,7 +366,7 @@ try {
         exit 0
     }
 
-    Complete-DriverInstallation -RootPath $softwareRoot
+    Complete-DriverInstallation -RootPath $softwareRoot -Status 'completed-windows-update' -Detail "Successfully installed $($updatesToInstall.Count) update(s) via Windows Update"
     exit 0
 }
 catch {

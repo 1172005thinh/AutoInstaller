@@ -182,11 +182,30 @@ try {
     # --------------------------------------------------------------------------
     $driverStatus = 'not-run'
     $driverDetail = ''
+    $driverItems = [System.Collections.Generic.List[pscustomobject]]::new()
+    $seenDrivers = @{}
+
     foreach ($line in $driverLines) {
         if ($line -match '\[DRIVER\] status=(?<status>[^;\s]+)(; detail=(?<detail>.*))?') {
             $driverStatus = $Matches.status
             if ($Matches.detail) { $driverDetail = $Matches.detail }
         }
+        if ($line -match '\[DRIVER\] source=(?<source>[^;]+); name=(?<name>.*?); (type=(?<type>[^;]+); )?status=(?<status>[^;]+); detail=(?<detail>.*)$') {
+            $dName = $Matches.name.Trim()
+            $dSrc  = $Matches.source.Trim()
+            $dStat = $Matches.status.Trim()
+            $dKey  = "$dSrc|$dName"
+            $seenDrivers[$dKey] = [pscustomobject]@{
+                Source = $dSrc
+                Name   = $dName
+                Type   = if ($Matches.type) { $Matches.type.Trim() } else { 'Driver' }
+                Status = $dStat
+                Detail = $Matches.detail.Trim()
+            }
+        }
+    }
+    foreach ($v in $seenDrivers.Values) {
+        $driverItems.Add($v)
     }
 
     # --------------------------------------------------------------------------
@@ -284,13 +303,42 @@ try {
     }
 
     # --- Driver Installation ---
-    Add-Line '## 5. Drivers & Windows Update'
+    Add-Line '## 5. Drivers & Hardware Deployment'
     Add-Line ''
-    Add-Line ('- **Status:** `{0}`' -f @((Escape-MarkdownTableValue $driverStatus)))
+    $displayDriverStatus = switch ($driverStatus) {
+        'completed-sdio'           { 'Completed (SDIO)' }
+        'completed-windows-update' { 'Completed (Windows Update)' }
+        'completed-clean'          { 'Completed (System Clean)' }
+        'no-updates'               { 'Completed (Up to date)' }
+        'skipped-no-internet'      { 'Skipped (Offline / No Internet)' }
+        'reboot-required'          { 'Reboot Required' }
+        'failed'                   { 'FAILED' }
+        default                    { $driverStatus }
+    }
+    Add-Line ('- **Overall Status:** `{0}`' -f @((Escape-MarkdownTableValue $displayDriverStatus)))
     if ($driverDetail) {
-        Add-Line ('- **Details:** {0}' -f @((Escape-MarkdownTableValue $driverDetail)))
+        Add-Line ('- **Execution Details:** {0}' -f @((Escape-MarkdownTableValue $driverDetail)))
     }
     Add-Line ''
+
+    if ($driverItems.Count -gt 0) {
+        Add-Line '### Detected Hardware Driver Details'
+        Add-Line ''
+        Add-Line '| # | Driver / Hardware Component | Engine | Status | Details |'
+        Add-Line '| ---: | :--- | :--- | :--- | :--- |'
+        $dIdx = 1
+        foreach ($d in $driverItems) {
+            $badge = switch ($d.Status) {
+                'installed' { 'Installed' }
+                'queued'    { 'Queued' }
+                'failed'    { 'FAILED' }
+                default     { $d.Status }
+            }
+            Add-Line ('| {0} | {1} | `{2}` | `{3}` | {4} |' -f @($dIdx, (Escape-MarkdownTableValue $d.Name), (Escape-MarkdownTableValue $d.Source), $badge, (Escape-MarkdownTableValue $d.Detail)))
+            $dIdx++
+        }
+        Add-Line ''
+    }
 
     # --- Errors & Diagnostics ---
     if ($errorLines.Count -gt 0 -or $warnLines.Count -gt 0) {
