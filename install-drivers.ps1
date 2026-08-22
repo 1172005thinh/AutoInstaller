@@ -66,19 +66,35 @@ function Find-SdioExecutable {
         $RootPath
     )
 
-    $exePatterns = @(
-        'SDIO_x64.exe',
-        'SDI_x64.exe',
-        'SDIO.exe',
-        'SDI.exe',
-        'SDIO_*.exe',
-        'SDI_*.exe'
-    )
+    $is64 = [Environment]::Is64BitOperatingSystem
+    $exePatterns = if ($is64) {
+        @(
+            'SDIO_x64_*.exe',
+            'SDIO_x64.exe',
+            'SDIO*x64*.exe',
+            'SDI_x64_*.exe',
+            'SDI_x64.exe',
+            'SDI*x64*.exe',
+            'SDIO_*.exe',
+            'SDIO.exe',
+            'SDI_*.exe',
+            'SDI.exe'
+        )
+    } else {
+        @(
+            'SDIO_*.exe',
+            'SDIO.exe',
+            'SDI_*.exe',
+            'SDI.exe'
+        )
+    }
 
     foreach ($dir in $searchPaths) {
         if (Test-Path -LiteralPath $dir) {
             foreach ($pattern in $exePatterns) {
-                $matched = Get-ChildItem -Path $dir -Filter $pattern -File -ErrorAction SilentlyContinue | Select-Object -First 1
+                $matched = Get-ChildItem -Path $dir -Filter $pattern -File -ErrorAction SilentlyContinue |
+                           Where-Object { $_.Name -notmatch '-XP' } |
+                           Select-Object -First 1
                 if ($matched) {
                     return $matched.FullName
                 }
