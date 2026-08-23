@@ -147,7 +147,7 @@ if ($RemainingArgs -and $RemainingArgs.Count -gt 0) {
 
 $TOOL_NAME    = 'compile-au2exe'
 $TOOL_VERSION = '1.2.0'
-$TOOL_AUTHOR  = 'AutoInstaller Team'
+$TOOL_AUTHOR  = '1172005thinh'
 
 # If no flags/parameters were parsed, display the help screen by default
 $hasExplicitTarget = ($All) -or ($InputPaths -and $InputPaths.Count -gt 0) -or ($Exclude -and $Exclude.Count -gt 0) -or ($Version)

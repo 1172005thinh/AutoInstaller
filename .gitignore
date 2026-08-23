@@ -1,6 +1,5 @@
 *.exe
 *.msi
-*.md5
 *.cfg
 *.pptx
 /System Volume Information
@@ -20,3 +19,5 @@
 AGENTS.md
 PLANS.md
 PROMPT.md
+*.log
+
