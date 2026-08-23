@@ -3,14 +3,14 @@
 #NoTrayIcon
 #include <AutoItConstants.au3>
 
-; Visual C++ Redistributable AIO installer (2005-2022, x86 + x64).
-; $CmdLine[1] = setup filename (e.g. "vcredist-AIO-2005-2022.exe")
+; Visual C++ Redistributable AIO installer (2005-2026, x86 + x64).
+; $CmdLine[1] = setup filename (e.g. "vcredist-AIO-2005-2026.exe")
 ; $CmdLine[2] = desktop shortcut flag (ignored - no launchable EXE)
 ;
-; Detection: checks that both the x64 and x86 2022 runtimes are present,
-; which the AIO always installs last and which cover 2015-2022 inclusive.
+; Detection: checks that both the x64 and x86 2026 runtimes are present,
+; which the AIO always installs last and which cover 2015-2026 inclusive.
 
-Global $g_sSetupFilename = "vcredist-AIO-2005-2022.exe"
+Global $g_sSetupFilename = "vcredist-AIO.exe"
 Global $g_sLogPath = "C:\Auto-installer\install-apps.log"
 If $CmdLine[0] >= 4 Then $g_sLogPath = $CmdLine[4]
 If $CmdLine[0] >= 1 Then $g_sSetupFilename = $CmdLine[1]

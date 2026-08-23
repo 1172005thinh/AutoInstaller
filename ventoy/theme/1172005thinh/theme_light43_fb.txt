@@ -5,7 +5,7 @@
 title-text: ""
 desktop-image: "background_light43_fb.jpg"
 desktop-color: "#3B3B39"
-terminal-font: "Cascadia Code Regular 16"
+terminal-font: "Cascadia Code Regular 20"
 terminal-box: "terminal_box_*.png"
 terminal-left: "6%"
 terminal-top: "18%"
@@ -19,15 +19,15 @@ terminal-border: "0"
   top = 18%
   width = 65%
   height = 64%
-  item_font = "Cascadia Code Regular 20"
+  item_font = "Cascadia Code Regular 28"
   item_color = "#6C6E70"
   selected_item_color = "#CDCDCD"
-  icon_width = 56
-  icon_height = 56
-  item_icon_space = 12
-  item_height = 64
-  item_padding = 12
-  item_spacing = 8
+  icon_width = 84
+  icon_height = 84
+  item_icon_space = 24
+  item_height = 84
+  item_padding = 10
+  item_spacing = 16
   selected_item_pixmap_style = "select_*.png"
 }
 
@@ -40,5 +40,5 @@ terminal-border: "0"
   id = "__timeout__"
   text = "Booting in %d seconds"
   color = "#CDCDCD"
-  font = "Cascadia Code Regular 16"
+  font = "Cascadia Code Regular 20"
 }
