@@ -5,9 +5,15 @@
 .DESCRIPTION
     Automates the deployment and extraction of AutoInstaller assets from the local
     workspace to the target Ventoy USB drive partitions (ISO Partition & Software Partition).
-    Validates administrative privileges, locates partition drive letters via MD5 marker files,
-    copies Ventoy configuration and Unattend templates to the ISO partition, executes full AutoIt
-    script compilation, and deploys all application directories and root binaries to the Software partition.
+    Validates administrative privileges, locates partition drive letters via MD5 marker files
+    or explicit CLI flags (-i ISO:SOFTWARE), copies Ventoy configuration and Unattend templates
+    to the ISO partition, executes full AutoIt script compilation, and deploys all application
+    directories and root binaries to the Software partition.
+
+.PARAMETER InputDrives
+    (-i, --input) Explicitly specify target partition drive letters or volume labels
+    in the format: <ISO_PARTITION>:<SOFTWARE_PARTITION> (e.g. -i I:S or -i VENTOY:SOFTWARE).
+    Prompts for user confirmation if either target resolves to local drive C: or D:.
 
 .PARAMETER DryRun
     (-d, --dry-run) Simulates the deployment process, showing planned file operations,
@@ -27,19 +33,26 @@
 
 .EXAMPLE
     .\extract.ps1
-    # Standard deployment to connected Ventoy USB drive
+    # Standard automated deployment with auto-detected USB partitions
 
 .EXAMPLE
-    .\extract.ps1 --dry-run
-    # Simulates USB deployment and validates partition markers
+    .\extract.ps1 -i I:S
+    # Deploys explicitly to ISO partition I: and Software partition S:
 
 .EXAMPLE
-    .\extract.ps1 -l
+    .\extract.ps1 -i VENTOY:SOFTWARE --dry-run
+    # Simulates deployment targeting volumes labeled VENTOY and SOFTWARE
+
+.EXAMPLE
+    .\extract.ps1 -i I:S -l
     # Deploys with live verbose streaming log output
 #>
 
 [CmdletBinding(PositionalBinding = $false)]
 param(
+    [Alias('i', 'input')]
+    [string]$InputDrives = '',
+
     [Alias('d', 'dry-run')]
     [switch]$DryRun,
 
@@ -64,18 +77,31 @@ $ErrorActionPreference = 'Stop'
 
 # Process remaining arguments for flexible CLI flag variations
 if ($RemainingArgs -and $RemainingArgs.Count -gt 0) {
+    $currentFlag = $null
     foreach ($arg in $RemainingArgs) {
         $lower = $arg.ToLowerInvariant()
         if ($lower -in @('-l', '--l', '-log', '--log')) {
             $Log = $true
+            $currentFlag = $null
         } elseif ($lower -in @('-v', '--v', '-version', '--version')) {
             $Version = $true
+            $currentFlag = $null
         } elseif ($lower -in @('-h', '--h', '-help', '--help', '-?')) {
             $Help = $true
+            $currentFlag = $null
         } elseif ($lower -in @('-d', '--d', '-dry-run', '--dry-run', '-dryrun', '--dryrun')) {
             $DryRun = $true
+            $currentFlag = $null
         } elseif ($lower -in @('-noprompt', '--noprompt', '-no-prompt', '--no-prompt')) {
             $NoPrompt = $true
+            $currentFlag = $null
+        } elseif ($lower -in @('-i', '--i', '-input', '--input')) {
+            $currentFlag = 'input'
+        } elseif ($currentFlag -eq 'input') {
+            $InputDrives = $arg
+            $currentFlag = $null
+        } elseif ($arg.StartsWith('-')) {
+            $currentFlag = $null
         }
     }
 }
@@ -108,6 +134,7 @@ USAGE:
     .\extract.ps1 [OPTIONS]
 
 OPTIONS:
+    -i,  --input <ISO:SOFT> Explicitly specify target partition drive letters or volume labels (e.g. -i I:S).
     -d,  --dry-run          Simulate extraction & show planned copy operations.
     -l,  --log              Stream live verbose log messages in the console.
     -v,  --version          Display tool version (v1.0.0) and author info.
@@ -129,14 +156,17 @@ DEPLOYMENT FLOW:
     7. Wait for user confirmation before exiting.
 
 EXAMPLES:
-    # 1. Normal automated deployment
+    # 1. Normal automated deployment with auto-detection
     .\extract.ps1
 
-    # 2. Dry-run preview
-    .\extract.ps1 --dry-run
+    # 2. Explicit drive letter targets
+    .\extract.ps1 -i I:S
 
-    # 3. Deployment with live verbose console logs
-    .\extract.ps1 -l
+    # 3. Explicit volume label targets with dry-run
+    .\extract.ps1 --input VENTOY:SOFTWARE --dry-run
+
+    # 4. Deployment with live verbose console logs
+    .\extract.ps1 -i I:S -l
 
 "@ -ForegroundColor White
     exit 0
@@ -220,7 +250,7 @@ if (-not (Test-Administrator)) {
 }
 
 # ------------------------------------------------------------------------------
-# 5. Locate USB Partitions via MD5 Markers (with Repo Isolation & Auto-Detection)
+# 5. Locate USB Partitions (via -i / --input flag OR auto-marker discovery)
 # ------------------------------------------------------------------------------
 $isoMarker      = '5b512ee8a59deb284ad0a6a035ba10b1.md5'
 $softwareMarker = 'aea541d7f9574587656dc5125116e548.md5'
@@ -229,69 +259,135 @@ $repoDriveRoot  = [System.IO.Path]::GetPathRoot($RootDir).TrimEnd('\')
 $isoRoot        = $null
 $softwareRoot   = $null
 
-Write-Host "[STEP 1/5] Probing connected drives for Ventoy USB partition markers..." -ForegroundColor Cyan
-Write-ExtractLog INFO "Scanning filesystem drives (excluding local repo drive '$repoDriveRoot\') for markers."
+function Resolve-PartitionDrive {
+    param([string]$Target)
 
-# Candidate drives excluding the local development repository drive
-$allDrives = Get-PSDrive -PSProvider FileSystem | 
-             Where-Object { $_.Root -and (Test-Path -LiteralPath $_.Root) }
-
-$externalDrives = @($allDrives | Where-Object { $_.Root.TrimEnd('\') -ne $repoDriveRoot })
-
-# Pass 1: Direct Marker Search on External/USB Drives
-foreach ($drive in $externalDrives) {
-    $dRoot = $drive.Root.TrimEnd('\')
+    if ([string]::IsNullOrWhiteSpace($Target)) { return $null }
+    $clean = $Target.Trim().TrimEnd('\').TrimEnd('/')
     
-    # Check for ISO marker
-    if (-not $isoRoot -and (Test-Path -LiteralPath (Join-Path $drive.Root $isoMarker))) {
-        $isoRoot = $dRoot
+    # Check if single letter or drive letter (e.g. 'I' or 'I:')
+    if ($clean -match '^[a-zA-Z]:?$') {
+        $letter = $clean.Substring(0, 1).ToUpperInvariant()
+        return "$letter`:"
     }
 
-    # Check for Software marker
-    if (-not $softwareRoot -and (Test-Path -LiteralPath (Join-Path $drive.Root $softwareMarker))) {
-        $softwareRoot = $dRoot
+    # Check by Volume FileSystemLabel exact match
+    $vol = Get-Volume -FileSystemLabel $clean -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($vol -and $vol.DriveLetter) {
+        return "$($vol.DriveLetter):"
     }
+
+    # Check by partial Volume FileSystemLabel match
+    $allVols = Get-Volume -ErrorAction SilentlyContinue
+    foreach ($v in $allVols) {
+        if ($v.FileSystemLabel -and ($v.FileSystemLabel -like "*$clean*" -or $clean -like "*$($v.FileSystemLabel)*")) {
+            if ($v.DriveLetter) {
+                return "$($v.DriveLetter):"
+            }
+        }
+    }
+
+    return $null
 }
 
-# Pass 2: Auto-Detection via Volume Label / Ventoy Structure if markers not yet created on USB
-if (-not $isoRoot -or -not $softwareRoot) {
+Write-Host "[STEP 1/5] Identifying target USB partitions..." -ForegroundColor Cyan
+
+if (-not [string]::IsNullOrWhiteSpace($InputDrives)) {
+    # --------------------------------------------------------------------------
+    # Explicit Input Mode (-i / --input <ISO>:<SOFTWARE>)
+    # --------------------------------------------------------------------------
+    Write-ExtractLog INFO "Processing explicit partition targets from CLI flag: '$InputDrives'."
+    $raw = $InputDrives.Trim()
+    $tokens = @()
+    if ($raw -match '^(.*?):+(.*)$') {
+        $tokens = @($Matches[1].TrimEnd(':').Trim(), $Matches[2].TrimEnd(':').Trim())
+    }
+
+    if ($tokens.Count -ne 2 -or [string]::IsNullOrWhiteSpace($tokens[0]) -or [string]::IsNullOrWhiteSpace($tokens[1])) {
+        $errMsg = "Invalid input partition format: '$InputDrives'. Expected format: <ISO_PARTITION>:<SOFTWARE_PARTITION> (e.g. -i I:S or -i VENTOY:SOFTWARE)."
+        Write-ExtractLog ERROR $errMsg
+        Write-Host "`n[ERROR] $errMsg`n" -ForegroundColor Red
+        exit 1
+    }
+
+    $isoRoot      = Resolve-PartitionDrive $tokens[0]
+    $softwareRoot = Resolve-PartitionDrive $tokens[1]
+
+    if (-not $isoRoot) {
+        if ($DryRun) {
+            $isoRoot = "$($tokens[0].Substring(0, 1).ToUpperInvariant()):"
+        } else {
+            $errMsg = "Target ISO partition '$($tokens[0])' could not be resolved to an active drive letter."
+            Write-ExtractLog ERROR $errMsg
+            Write-Host "`n[ERROR] $errMsg`n" -ForegroundColor Red
+            exit 1
+        }
+    }
+
+    if (-not $softwareRoot) {
+        if ($DryRun) {
+            $softwareRoot = "$($tokens[1].Substring(0, 1).ToUpperInvariant()):"
+        } else {
+            $errMsg = "Target SOFTWARE partition '$($tokens[1])' could not be resolved to an active drive letter."
+            Write-ExtractLog ERROR $errMsg
+            Write-Host "`n[ERROR] $errMsg`n" -ForegroundColor Red
+            exit 1
+        }
+    }
+} else {
+    # --------------------------------------------------------------------------
+    # Auto-Discovery Mode (Probing connected drives)
+    # --------------------------------------------------------------------------
+    Write-ExtractLog INFO "Scanning filesystem drives (excluding local repo drive '$repoDriveRoot\') for markers."
+
+    $allDrives = Get-PSDrive -PSProvider FileSystem | 
+                 Where-Object { $_.Root -and (Test-Path -LiteralPath $_.Root) }
+
+    $externalDrives = @($allDrives | Where-Object { $_.Root.TrimEnd('\') -ne $repoDriveRoot })
+
+    # Pass 1: Direct Marker Search on External/USB Drives
     foreach ($drive in $externalDrives) {
         $dRoot = $drive.Root.TrimEnd('\')
         
-        # Detect ISO partition by Ventoy directory or volume label
-        if (-not $isoRoot) {
-            $isVentoyDir = Test-Path -LiteralPath (Join-Path $drive.Root 'ventoy')
-            $isVentoyIso = Test-Path -LiteralPath (Join-Path $drive.Root 'Windows')
-            $vol = Get-Volume -DriveLetter $drive.Name -ErrorAction SilentlyContinue
-            $isVentoyLabel = $vol -and ($vol.FileSystemLabel -match 'VENTOY|ISO')
-
-            if ($isVentoyDir -or $isVentoyIso -or $isVentoyLabel) {
-                $isoRoot = $dRoot
-                Write-ExtractLog INFO "Auto-detected Ventoy ISO partition at '$isoRoot\' based on volume signatures."
-                if (-not $DryRun) {
-                    try {
-                        New-Item -ItemType File -Path (Join-Path $drive.Root $isoMarker) -Force -ErrorAction SilentlyContinue | Out-Null
-                        Write-ExtractLog SUCCESS "Automatically created ISO marker '$isoMarker' on '$isoRoot\'."
-                    } catch {}
-                }
-            }
+        # Check for ISO marker
+        if (-not $isoRoot -and (Test-Path -LiteralPath (Join-Path $drive.Root $isoMarker))) {
+            $isoRoot = $dRoot
         }
 
-        # Detect SOFTWARE partition by volume label or AutoInstaller markers
-        if (-not $softwareRoot -and $dRoot -ne $isoRoot) {
-            $vol = Get-Volume -DriveLetter $drive.Name -ErrorAction SilentlyContinue
-            $isSoftwareLabel = $vol -and ($vol.FileSystemLabel -match 'SOFTWARE|APPS|AUTOINSTALLER')
-            $isSoftwareApps  = (Test-Path -LiteralPath (Join-Path $drive.Root 'install-apps.ini')) -or
-                               (Test-Path -LiteralPath (Join-Path $drive.Root 'Auto-installer.exe'))
+        # Check for Software marker
+        if (-not $softwareRoot -and (Test-Path -LiteralPath (Join-Path $drive.Root $softwareMarker))) {
+            $softwareRoot = $dRoot
+        }
+    }
 
-            if ($isSoftwareLabel -or $isSoftwareApps) {
-                $softwareRoot = $dRoot
-                Write-ExtractLog INFO "Auto-detected SOFTWARE partition at '$softwareRoot\' based on volume signatures."
-                if (-not $DryRun) {
-                    try {
-                        New-Item -ItemType File -Path (Join-Path $drive.Root $softwareMarker) -Force -ErrorAction SilentlyContinue | Out-Null
-                        Write-ExtractLog SUCCESS "Automatically created SOFTWARE marker '$softwareMarker' on '$softwareRoot\'."
-                    } catch {}
+    # Pass 2: Auto-Detection via Volume Label / Ventoy Structure if markers not yet created on USB
+    if (-not $isoRoot -or -not $softwareRoot) {
+        foreach ($drive in $externalDrives) {
+            $dRoot = $drive.Root.TrimEnd('\')
+            
+            # Detect ISO partition by Ventoy directory or volume label
+            if (-not $isoRoot) {
+                $isVentoyDir = Test-Path -LiteralPath (Join-Path $drive.Root 'ventoy')
+                $isVentoyIso = Test-Path -LiteralPath (Join-Path $drive.Root 'Windows')
+                $vol = Get-Volume -DriveLetter $drive.Name -ErrorAction SilentlyContinue
+                $isVentoyLabel = $vol -and ($vol.FileSystemLabel -match 'VENTOY|ISO')
+
+                if ($isVentoyDir -or $isVentoyIso -or $isVentoyLabel) {
+                    $isoRoot = $dRoot
+                    Write-ExtractLog INFO "Auto-detected Ventoy ISO partition at '$isoRoot\' based on volume signatures."
+                }
+            }
+
+            # Detect SOFTWARE partition by volume label or AutoInstaller markers
+            if (-not $softwareRoot -and $dRoot -ne $isoRoot) {
+                $vol = Get-Volume -DriveLetter $drive.Name -ErrorAction SilentlyContinue
+                $isSoftwareLabel = $vol -and ($vol.FileSystemLabel -match 'SOFTWARE|APPS|AUTOINSTALLER')
+                $isSoftwareApps  = (Test-Path -LiteralPath (Join-Path $drive.Root 'install-apps.ini')) -or
+                                   (Test-Path -LiteralPath (Join-Path $drive.Root 'Auto-installer.exe'))
+
+                if ($isSoftwareLabel -or $isSoftwareApps) {
+                    $softwareRoot = $dRoot
+                    Write-ExtractLog INFO "Auto-detected SOFTWARE partition at '$softwareRoot\' based on volume signatures."
                 }
             }
         }
@@ -310,7 +406,9 @@ if ($DryRun) {
     }
 }
 
-# Safety Checks
+# ------------------------------------------------------------------------------
+# Safety Validations & C: / D: Confirmation Prompt
+# ------------------------------------------------------------------------------
 if ($isoRoot -and $isoRoot -eq $repoDriveRoot) {
     $errMsg = "Safety Violation: ISO Partition cannot be the same as the local repository drive ($repoDriveRoot\)."
     Write-ExtractLog ERROR $errMsg
@@ -337,14 +435,59 @@ if (-not $isoRoot) { $missingMarkers += "ISO Partition marker '$isoMarker'" }
 if (-not $softwareRoot) { $missingMarkers += "SOFTWARE Partition marker '$softwareMarker'" }
 
 if ($missingMarkers.Count -gt 0) {
-    $errMsg = "Missing target partition(s): $($missingMarkers -join ', '). Ensure the Ventoy USB is plugged in with both partitions accessible."
+    $errMsg = "Missing target partition(s): $($missingMarkers -join ', '). Ensure the Ventoy USB is plugged in or specify target drives explicitly via -i ISO:SOFTWARE (e.g. -i I:S)."
     Write-ExtractLog ERROR $errMsg
     Write-Host "`n[ERROR] $errMsg`n" -ForegroundColor Red
     exit 1
 }
 
-Write-Host ("  [FOUND] ISO Partition      : {0}\ ({1})" -f $isoRoot, $isoMarker) -ForegroundColor Green
-Write-Host ("  [FOUND] SOFTWARE Partition : {0}\ ({1})" -f $softwareRoot, $softwareMarker) -ForegroundColor Green
+# Safety prompt if C: or D: drive is targeted
+$isDangerous = ($isoRoot -match '^[CcDd]:') -or ($softwareRoot -match '^[CcDd]:')
+if ($isDangerous) {
+    Write-Host @"
+
+======================================================================
+ [WARNING] POTENTIALLY DANGEROUS TARGET PARTITION DETECTED
+======================================================================
+ One or more targeted partitions resolves to local system drive C: or D::
+   - ISO Partition      : $isoRoot\
+   - SOFTWARE Partition : $softwareRoot\
+
+ Extracting to a local system drive may overwrite important system files!
+======================================================================
+"@ -ForegroundColor Yellow
+
+    if (-not $DryRun) {
+        $confirm = Read-Host -Prompt "Are you absolutely sure you want to proceed? (Type 'y' or 'yes' to continue)"
+        if ($confirm.Trim().ToLowerInvariant() -notin @('y', 'yes')) {
+            Write-Host "`n[ABORTED] Deployment cancelled by user.`n" -ForegroundColor Yellow
+            Write-ExtractLog WARN "Deployment cancelled by user upon C:/D: drive warning prompt."
+            exit 0
+        }
+        Write-ExtractLog WARN "User explicitly confirmed deployment to local C:/D: drive ($isoRoot / $softwareRoot)."
+    }
+}
+
+# Auto-create marker files on target partitions if missing (Live mode only)
+if (-not $DryRun) {
+    $isoMarkerPath = Join-Path "$isoRoot\" $isoMarker
+    if (-not (Test-Path -LiteralPath $isoMarkerPath)) {
+        try {
+            New-Item -ItemType File -Path $isoMarkerPath -Force -ErrorAction SilentlyContinue | Out-Null
+            Write-ExtractLog SUCCESS "Created missing ISO marker '$isoMarker' at '$isoRoot\'"
+        } catch {}
+    }
+    $softMarkerPath = Join-Path "$softwareRoot\" $softwareMarker
+    if (-not (Test-Path -LiteralPath $softMarkerPath)) {
+        try {
+            New-Item -ItemType File -Path $softMarkerPath -Force -ErrorAction SilentlyContinue | Out-Null
+            Write-ExtractLog SUCCESS "Created missing SOFTWARE marker '$softwareMarker' at '$softwareRoot\'"
+        } catch {}
+    }
+}
+
+Write-Host ("  [TARGET] ISO Partition      : {0}\ ({1})" -f $isoRoot, $isoMarker) -ForegroundColor Green
+Write-Host ("  [TARGET] SOFTWARE Partition : {0}\ ({1})" -f $softwareRoot, $softwareMarker) -ForegroundColor Green
 Write-ExtractLog INFO "Confirmed ISO partition at '$isoRoot\' and SOFTWARE partition at '$softwareRoot\'."
 
 $totalOperations = 0

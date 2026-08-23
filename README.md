@@ -79,6 +79,7 @@ AutoInstaller/
 ├── configure-windows.au3                       <-- AutoIt script to configure Windows
 ├── configure-windows.ini                       <-- Configuration file for configure-windows.au3
 ├── configure-windows.ps1                       <-- PowerShell script to configure Windows
+├── extract.ps1                                 <-- PowerShell script to extract files
 ├── icon.ico                                    <-- Icon file for the tool
 ├── icon.png
 ├── install-apps.au3                            <-- AutoIt script to install applications

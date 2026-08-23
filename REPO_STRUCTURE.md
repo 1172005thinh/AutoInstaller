@@ -246,6 +246,7 @@ AutoInstaller/
 │   └── ventoy.json.example
 ├── .gitignore
 ├── compile-au2exe.ps1
+├── extract.ps1
 ├── configure-windows.au3
 ├── configure-windows.ini
 ├── configure-windows.ps1
