@@ -220,36 +220,80 @@ if (-not (Test-Administrator)) {
 }
 
 # ------------------------------------------------------------------------------
-# 5. Locate USB Partitions via MD5 Markers
+# 5. Locate USB Partitions via MD5 Markers (with Repo Isolation & Auto-Detection)
 # ------------------------------------------------------------------------------
 $isoMarker      = '5b512ee8a59deb284ad0a6a035ba10b1.md5'
 $softwareMarker = 'aea541d7f9574587656dc5125116e548.md5'
 
-$isoRoot      = $null
-$softwareRoot = $null
+$repoDriveRoot  = [System.IO.Path]::GetPathRoot($RootDir).TrimEnd('\')
+$isoRoot        = $null
+$softwareRoot   = $null
 
 Write-Host "[STEP 1/5] Probing connected drives for Ventoy USB partition markers..." -ForegroundColor Cyan
-Write-ExtractLog INFO "Scanning filesystem drives for ISO marker '$isoMarker' and Software marker '$softwareMarker'."
+Write-ExtractLog INFO "Scanning filesystem drives (excluding local repo drive '$repoDriveRoot\') for markers."
 
-$allDrives = Get-PSDrive -PSProvider FileSystem | Where-Object { $_.Root -and (Test-Path -LiteralPath $_.Root) }
+# Candidate drives excluding the local development repository drive
+$allDrives = Get-PSDrive -PSProvider FileSystem | 
+             Where-Object { $_.Root -and (Test-Path -LiteralPath $_.Root) }
 
-foreach ($drive in $allDrives) {
-    $driveRoot = $drive.Root.TrimEnd('\')
+$externalDrives = @($allDrives | Where-Object { $_.Root.TrimEnd('\') -ne $repoDriveRoot })
+
+# Pass 1: Direct Marker Search on External/USB Drives
+foreach ($drive in $externalDrives) {
+    $dRoot = $drive.Root.TrimEnd('\')
     
     # Check for ISO marker
-    $candIso = Join-Path $drive.Root $isoMarker
-    if (Test-Path -LiteralPath $candIso) {
-        # Ensure we prioritize USB partitions over workspace root if distinct
-        if (-not $isoRoot) {
-            $isoRoot = $driveRoot
-        }
+    if (-not $isoRoot -and (Test-Path -LiteralPath (Join-Path $drive.Root $isoMarker))) {
+        $isoRoot = $dRoot
     }
 
     # Check for Software marker
-    $candSoftware = Join-Path $drive.Root $softwareMarker
-    if (Test-Path -LiteralPath $candSoftware) {
-        if (-not $softwareRoot) {
-            $softwareRoot = $driveRoot
+    if (-not $softwareRoot -and (Test-Path -LiteralPath (Join-Path $drive.Root $softwareMarker))) {
+        $softwareRoot = $dRoot
+    }
+}
+
+# Pass 2: Auto-Detection via Volume Label / Ventoy Structure if markers not yet created on USB
+if (-not $isoRoot -or -not $softwareRoot) {
+    foreach ($drive in $externalDrives) {
+        $dRoot = $drive.Root.TrimEnd('\')
+        
+        # Detect ISO partition by Ventoy directory or volume label
+        if (-not $isoRoot) {
+            $isVentoyDir = Test-Path -LiteralPath (Join-Path $drive.Root 'ventoy')
+            $isVentoyIso = Test-Path -LiteralPath (Join-Path $drive.Root 'Windows')
+            $vol = Get-Volume -DriveLetter $drive.Name -ErrorAction SilentlyContinue
+            $isVentoyLabel = $vol -and ($vol.FileSystemLabel -match 'VENTOY|ISO')
+
+            if ($isVentoyDir -or $isVentoyIso -or $isVentoyLabel) {
+                $isoRoot = $dRoot
+                Write-ExtractLog INFO "Auto-detected Ventoy ISO partition at '$isoRoot\' based on volume signatures."
+                if (-not $DryRun) {
+                    try {
+                        New-Item -ItemType File -Path (Join-Path $drive.Root $isoMarker) -Force -ErrorAction SilentlyContinue | Out-Null
+                        Write-ExtractLog SUCCESS "Automatically created ISO marker '$isoMarker' on '$isoRoot\'."
+                    } catch {}
+                }
+            }
+        }
+
+        # Detect SOFTWARE partition by volume label or AutoInstaller markers
+        if (-not $softwareRoot -and $dRoot -ne $isoRoot) {
+            $vol = Get-Volume -DriveLetter $drive.Name -ErrorAction SilentlyContinue
+            $isSoftwareLabel = $vol -and ($vol.FileSystemLabel -match 'SOFTWARE|APPS|AUTOINSTALLER')
+            $isSoftwareApps  = (Test-Path -LiteralPath (Join-Path $drive.Root 'install-apps.ini')) -or
+                               (Test-Path -LiteralPath (Join-Path $drive.Root 'Auto-installer.exe'))
+
+            if ($isSoftwareLabel -or $isSoftwareApps) {
+                $softwareRoot = $dRoot
+                Write-ExtractLog INFO "Auto-detected SOFTWARE partition at '$softwareRoot\' based on volume signatures."
+                if (-not $DryRun) {
+                    try {
+                        New-Item -ItemType File -Path (Join-Path $drive.Root $softwareMarker) -Force -ErrorAction SilentlyContinue | Out-Null
+                        Write-ExtractLog SUCCESS "Automatically created SOFTWARE marker '$softwareMarker' on '$softwareRoot\'."
+                    } catch {}
+                }
+            }
         }
     }
 }
@@ -257,13 +301,35 @@ foreach ($drive in $allDrives) {
 # Dry-run fallback simulation if USB is not physically attached during dry-run preview
 if ($DryRun) {
     if (-not $isoRoot) {
-        $isoRoot = "X:"
-        Write-ExtractLog DRY-RUN "Simulated ISO Partition at '$isoRoot' (Marker '$isoMarker')"
+        $isoRoot = "I:"
+        Write-ExtractLog DRY-RUN "Simulated ISO Partition at '$isoRoot\' (Marker '$isoMarker')"
     }
     if (-not $softwareRoot) {
-        $softwareRoot = "Y:"
-        Write-ExtractLog DRY-RUN "Simulated SOFTWARE Partition at '$softwareRoot' (Marker '$softwareMarker')"
+        $softwareRoot = "S:"
+        Write-ExtractLog DRY-RUN "Simulated SOFTWARE Partition at '$softwareRoot\' (Marker '$softwareMarker')"
     }
+}
+
+# Safety Checks
+if ($isoRoot -and $isoRoot -eq $repoDriveRoot) {
+    $errMsg = "Safety Violation: ISO Partition cannot be the same as the local repository drive ($repoDriveRoot\)."
+    Write-ExtractLog ERROR $errMsg
+    Write-Host "`n[ERROR] $errMsg`n" -ForegroundColor Red
+    exit 1
+}
+
+if ($softwareRoot -and $softwareRoot -eq $repoDriveRoot) {
+    $errMsg = "Safety Violation: SOFTWARE Partition cannot be the same as the local repository drive ($repoDriveRoot\)."
+    Write-ExtractLog ERROR $errMsg
+    Write-Host "`n[ERROR] $errMsg`n" -ForegroundColor Red
+    exit 1
+}
+
+if ($isoRoot -and $softwareRoot -and $isoRoot -eq $softwareRoot) {
+    $errMsg = "Safety Violation: ISO Partition ($isoRoot\) and SOFTWARE Partition ($softwareRoot\) cannot point to the same drive."
+    Write-ExtractLog ERROR $errMsg
+    Write-Host "`n[ERROR] $errMsg`n" -ForegroundColor Red
+    exit 1
 }
 
 $missingMarkers = @()
@@ -271,7 +337,7 @@ if (-not $isoRoot) { $missingMarkers += "ISO Partition marker '$isoMarker'" }
 if (-not $softwareRoot) { $missingMarkers += "SOFTWARE Partition marker '$softwareMarker'" }
 
 if ($missingMarkers.Count -gt 0) {
-    $errMsg = "Missing partition marker file(s): $($missingMarkers -join ', '). Ensure the Ventoy USB is connected and partition markers are placed at root."
+    $errMsg = "Missing target partition(s): $($missingMarkers -join ', '). Ensure the Ventoy USB is plugged in with both partitions accessible."
     Write-ExtractLog ERROR $errMsg
     Write-Host "`n[ERROR] $errMsg`n" -ForegroundColor Red
     exit 1
@@ -279,7 +345,7 @@ if ($missingMarkers.Count -gt 0) {
 
 Write-Host ("  [FOUND] ISO Partition      : {0}\ ({1})" -f $isoRoot, $isoMarker) -ForegroundColor Green
 Write-Host ("  [FOUND] SOFTWARE Partition : {0}\ ({1})" -f $softwareRoot, $softwareMarker) -ForegroundColor Green
-Write-ExtractLog INFO "Located ISO partition at '$isoRoot\' and SOFTWARE partition at '$softwareRoot\'."
+Write-ExtractLog INFO "Confirmed ISO partition at '$isoRoot\' and SOFTWARE partition at '$softwareRoot\'."
 
 $totalOperations = 0
 $successCount    = 0
