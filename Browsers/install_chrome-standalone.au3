@@ -1,14 +1,26 @@
-﻿#RequireAdmin
+#RequireAdmin
 #AutoIt3Wrapper_UseX64=y
 #NoTrayIcon
 #include <AutoItConstants.au3>
 
-; Generic Chrome installer.
-; $CmdLine[1] = setup filename (e.g. "chrome-standalone.exe")  [optional, fallback built-in]
-; $CmdLine[2] = desktop shortcut flag ("true"/"false")          [optional, fallback false]
+; Generic Chrome installer (supports both EXE and Enterprise MSI installers).
+; $CmdLine[1] = setup filename (e.g. "chrome-standalone.exe" or "GoogleChromeStandaloneEnterprise64.msi") [optional, fallback built-in]
+; $CmdLine[2] = desktop shortcut flag ("true"/"false") [optional, fallback false]
 
 Global $g_sSetupFilename = "chrome-standalone.exe"
-If $CmdLine[0] >= 1 Then $g_sSetupFilename = $CmdLine[1]
+If $CmdLine[0] >= 1 Then
+    $g_sSetupFilename = $CmdLine[1]
+Else
+    If FileExists(@ScriptDir & "\GoogleChromeStandaloneEnterprise64.msi") Then
+        $g_sSetupFilename = "GoogleChromeStandaloneEnterprise64.msi"
+    ElseIf FileExists(@ScriptDir & "\chrome.msi") Then
+        $g_sSetupFilename = "chrome.msi"
+    ElseIf FileExists(@ScriptDir & "\chrome-standalone.exe") Then
+        $g_sSetupFilename = "chrome-standalone.exe"
+    ElseIf FileExists(@ScriptDir & "\chrome.exe") Then
+        $g_sSetupFilename = "chrome.exe"
+    EndIf
+EndIf
 Global Const $g_sSetupPath = @ScriptDir & "\" & $g_sSetupFilename
 
 Global $g_bShortcut = False
@@ -29,16 +41,31 @@ If _IsChromeInstalled() Then
 EndIf
 
 _Log("INFO: Starting installation...")
-Local $iExitCode = RunWait('"' & $g_sSetupPath & '" /silent /install', @ScriptDir, @SW_HIDE)
+Local $iExitCode = 0
+Local $sExt = StringLower(StringRight($g_sSetupFilename, 4))
+If $sExt = ".msi" Then
+    $iExitCode = RunWait('"' & @SystemDir & '\msiexec.exe" /i "' & $g_sSetupPath & '" /qn /norestart', @ScriptDir, @SW_HIDE)
+Else
+    $iExitCode = RunWait('"' & $g_sSetupPath & '" /silent /install', @ScriptDir, @SW_HIDE)
+EndIf
+
 _Log("INFO: Installer finished with exit code: " & $iExitCode)
 If @error Then
     _Log("ERROR: RunWait failed with AutoIt error: " & @error)
     Exit 21
 EndIf
 
-If $iExitCode <> 0 Then
-    _Log("ERROR: Installer returned non-zero exit code: " & $iExitCode)
-    Exit $iExitCode
+If $sExt = ".msi" Then
+    ; msiexec returns 3010 for "success, reboot required" -- treat as success
+    If $iExitCode <> 0 And $iExitCode <> 3010 Then
+        _Log("ERROR: Installer returned non-zero exit code: " & $iExitCode)
+        Exit $iExitCode
+    EndIf
+Else
+    If $iExitCode <> 0 Then
+        _Log("ERROR: Installer returned non-zero exit code: " & $iExitCode)
+        Exit $iExitCode
+    EndIf
 EndIf
 
 _Log("INFO: Waiting for app to be fully registered...")
@@ -68,7 +95,7 @@ EndFunc
 Func _CreateDesktopShortcut()
     If Not $g_bShortcut Then Return
 
-    ; Chrome's /silent installer places its own shortcut on the current user's Desktop.
+    ; Chrome's installer may place its own shortcut on the current user's Desktop.
     ; Remove it so we don't end up with two Chrome icons on the merged Desktop view.
     Local $sUserLink = @DesktopDir & "\Google Chrome.lnk"
     If FileExists($sUserLink) Then FileDelete($sUserLink)
@@ -85,12 +112,12 @@ Func _CreateDesktopShortcut()
     EndIf
 EndFunc
 
-
 Func _Log($sMsg)
     Local $sLogPath = $g_sLogPath
     Local $hLog = FileOpen($sLogPath, 1 + 256) ; FO_APPEND (1) + FO_UTF8_NOBOM (256)
     If $hLog <> -1 Then
-        FileWriteLine($hLog, "[" & @YEAR & "-" & StringFormat("%02d", @MON) & "-" & StringFormat("%02d", @MDAY) & " " & @HOUR & ":" & @MIN & ":" & @SEC & "] [" & StringReplace($g_sSetupFilename, ".exe", "") & "] " & $sMsg)
+        Local $sTag = StringRegExpReplace($g_sSetupFilename, "\.[^.]+$", "")
+        FileWriteLine($hLog, "[" & @YEAR & "-" & StringFormat("%02d", @MON) & "-" & StringFormat("%02d", @MDAY) & " " & @HOUR & ":" & @MIN & ":" & @SEC & "] [" & $sTag & "] " & $sMsg)
         FileClose($hLog)
     EndIf
 EndFunc
