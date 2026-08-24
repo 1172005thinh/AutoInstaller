@@ -1,11 +1,13 @@
-# AUTOINSTALLER
+# <img src="icon.png" width="36" height="36" valign="middle" /> AUTOINSTALLER
 
 ![Version](https://img.shields.io/badge/version-0.1-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Platform](https://img.shields.io/badge/platform-Windows-lightgrey)
 ![DEV](https://img.shields.io/badge/status-in_development-orange)
 
-`AutoInstaller` is a comprehensive automation solution for a fresh Windows installation with third-party apps, drivers and configurations.
+<img src="icon.png" width="32" height="32" align="left" style="margin-right: 10px;" /> `AutoInstaller` is a comprehensive automation solution for a fresh Windows installation with third-party apps, drivers and configurations.
+
+<br clear="left"/>
 
 ## 💡 WHY AUTOINSTALLER?
 
