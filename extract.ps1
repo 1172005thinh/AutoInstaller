@@ -634,6 +634,28 @@ $ventoySrc = Join-Path $RootDir 'ventoy'
 $ventoyDst = Join-Path $isoRoot 'ventoy'
 Copy-DeployDirectory -SourceDir $ventoySrc -DestinationDir $ventoyDst -Description "Ventoy Folder (/ventoy)"
 
+# Automatically rename/initialize ventoy.json from ventoy.json.example on ISO partition
+$dstExampleJson = Join-Path $ventoyDst 'ventoy.json.example'
+$dstVentoyJson  = Join-Path $ventoyDst 'ventoy.json'
+
+if ($DryRun) {
+    Write-Host ("  [DRY-RUN] Config Rename: {0}\ventoy.json.example -> {0}\ventoy.json" -f $ventoyDst) -ForegroundColor Cyan
+    Write-ExtractLog DRY-RUN "Simulated renaming of 'ventoy.json.example' to 'ventoy.json' in '$ventoyDst'."
+} else {
+    if (Test-Path -LiteralPath $dstExampleJson) {
+        if (-not (Test-Path -LiteralPath $dstVentoyJson)) {
+            try {
+                Copy-Item -LiteralPath $dstExampleJson -Destination $dstVentoyJson -Force -ErrorAction Stop
+                Write-Host ("  [SUCCESS] Renamed ventoy.json.example -> ventoy.json in {0}" -f $ventoyDst) -ForegroundColor Green
+                Write-ExtractLog SUCCESS "Initialized 'ventoy.json' from 'ventoy.json.example' in '$ventoyDst'."
+            } catch {
+                Write-Host ("  [WARN]  Failed initializing ventoy.json: {0}" -f $_.Exception.Message) -ForegroundColor Yellow
+                Write-ExtractLog WARN "Failed initializing ventoy.json: $($_.Exception.Message)"
+            }
+        }
+    }
+}
+
 # ------------------------------------------------------------------------------
 # 7. Step 3: Deploy /Unattend XMLs to Root of ISO Partition
 # ------------------------------------------------------------------------------
