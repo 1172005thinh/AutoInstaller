@@ -51,7 +51,7 @@
     ],
     "auto_install":[
         {
-            "image": "/Windows/Windows11/w11_24h2.iso",
+            "image": "/Windows/Windows11/w11.iso",
             "template":[
                 "/full_dyn_C_D.xml",
                 "/full_C_D.xml",
