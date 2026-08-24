@@ -1,8 +1,13 @@
 # AUTOINSTALLER
 
+![Version](https://img.shields.io/badge/version-0.1-blue)
+![License](https://img.shields.io/badge/license-MIT-green)
+![Platform](https://img.shields.io/badge/platform-Windows-lightgrey)
+![DEV](https://img.shields.io/badge/status-in_development-orange)
+
 `AutoInstaller` is a comprehensive automation solution for a fresh Windows installation with third-party apps, drivers and configurations.
 
-## WHY AUTOINSTALLER?
+## 💡 WHY AUTOINSTALLER?
 
 > **Ever heard of `GHOST`?**
 
@@ -16,7 +21,7 @@ It is an "old school" solution to `clone` a machine to another one. A clone imag
 
 Your machine, your own personalized Windows, softwares and configuration in your hand, fully installed with automation scripts.
 
-## MAIN FEATURE
+## ✨ MAIN FEATURES
 
 [AutoInstaller](https://github.com/1172005thinh/AutoInstaller) is a complete automation of fresh Windows installation, this tool provides:
 
@@ -53,7 +58,7 @@ Your machine, your own personalized Windows, softwares and configuration in your
     - A comprehensive `report.md` will also be generated at `log_path` for you to review the installation process.
     - However, some **Unattend scripts' logs** are stored in `C:\Windows\Setup\Scripts\*.log`, due to time limitations, I have not copied them to `log_path`. **Maybe in the future, I will.**
 
-## PROJECT STRUCTURE
+## 📁 PROJECT STRUCTURE
 
 This repository is a `collection`, the source tree is not a representation of the folder structure of the bootable USB drive. **You need to manually copy the files to the bootable USB drive later**.
 
@@ -97,11 +102,11 @@ AutoInstaller/
 
 For a detailed folder structure, please refer to [Repo Structure](REPO_STRUCTURE.md).
 
-## HOW TO BUILD YOUR OWN BOOTABLE USB DRIVE?
+## 🚀 HOW TO BUILD YOUR OWN BOOTABLE USB DRIVE?
 
 **NOTE THAT THIS IS THE INSTRUCTION FOR `WINDOWS` FOLKS ONLY**
 
-### REQUIREMENTS
+### 📋 REQUIREMENTS
 
 This repo depends on the following tools:
 
@@ -120,9 +125,9 @@ This repo depends on the following tools:
 4. `vs-code` if you want to edit the source code more efficiently, please visit [official website](https://code.visualstudio.com/download).
 5. `AI Agents` if you don't understand what the hecks I am writing. **However, the AI Agents are not guaranteed to provide a correct answer, so please double-check the answer.**
 
-### STEP-BY-STEP
+### 🛠️ STEP-BY-STEP
 
-**1. PREPARING USB DRIVE WITH VENTOY**
+**1. 💾 PREPARING USB DRIVE WITH VENTOY**
 
 Ensure you have Ventoy installed on you host machine, your USB drive is plugged in and add data is backed up:
 
@@ -153,7 +158,7 @@ Ensure you have Ventoy installed on you host machine, your USB drive is plugged 
     ```
     > *The MD5 flag file is a hash for identification. Removing it will cause issues.*
 
-**2. COPYING THE ISO FILES**
+**2. 💽 COPYING THE ISO FILES**
 
 Please copy your desired original Windows ISO file to the ISO partition of the USB drive:
 
@@ -171,7 +176,7 @@ Please copy your desired original Windows ISO file to the ISO partition of the U
     *Optional: You may add other ISO images, e.g. `ArchLinux`, `Ubuntu`, to the `ISO/` partition as needed.*
     > *The ISO filename can be renamed however you like, but it might require to update the `ventoy.json` file. I recommend to rename it as above.*
 
-**3. CLONING THIS REPOSITORY**
+**3. 📦 CLONING THIS REPOSITORY**
 
 You have to download or clone this repository from GitHub by either:
 
@@ -183,7 +188,7 @@ You have to download or clone this repository from GitHub by either:
     git clone https://github.com/1172005thinh/AutoInstaller.git
     ```
 
-**4. COPYING REPO FILES TO USB**
+**4. ⚡ COPYING REPO FILES TO USB**
 
 This repo includes a script `extract.ps1` to automatically compile source code into executables, copy the required files from the repo to the USB partitions:
 
@@ -210,7 +215,7 @@ This repo includes a script `extract.ps1` to automatically compile source code i
 
     *Once ran, you may also refer to `extract.log` to verify the output.*
 
-**5. DOWNLOADING SETUP FILES**
+**5. 📥 DOWNLOADING SETUP FILES**
 
 This repo does not ship any binary executables, all the required `setup_file` should be manually downloaded by the users. Please refer to [install-apps.ini](install-apps.ini) to modify the list of apps you want to install.
 
@@ -275,22 +280,22 @@ This repo does not ship any binary executables, all the required `setup_file` sh
     ];
     ```
 
-**6. COSTUM WINDOWS CONFIGURATION**
+**6. ⚙️ CUSTOM WINDOWS CONFIGURATION**
 
 This is the easiest part as you just need to modify the options in [configure-windows.ini](configure-windows.ini) carefully.
 
-**7. VALIDATION**
+**7. ✅ VALIDATION**
 
 Please have a look at [USB Structure](USB_STRUCTURE.md) to verify if your USB has been set up properly.
 
-## INCOMING FEATURES
+## 🔮 INCOMING FEATURES
 
 This is a scratchpad for incoming features, not all of them will be implemented:
 
 1. **AUTO DOWNLOAD THE SETUP FILES WITH ADVANCED install-apps.ini**
 2. **GUI APPLICATION FOR EDITING THE INI FILES, COMPILING AND COPYING TO USB**
 
-## KNOWN ISSUES
+## ⚠️ KNOWN ISSUES
 
 1. **LOG INCONSISTENT PATHS**: Some log are not stored under a central path but split across multiple locations which makes it hard to track the logs.
     - *Expected*: All logs gathered under a single pred-defined path `log_path`.
@@ -309,7 +314,7 @@ This is a scratchpad for incoming features, not all of them will be implemented:
     - *Got*: Nothing created.
     - *Current workaround*: Manually create the desktop shortcut.
 
-## REFERENCES
+## 📚 REFERENCES
 
 - [Unattend Generator Schneegans.de](https://schneegans.de/windows/unattend-generator/)
 - [Microsoft Autounattend](https://learn.microsoft.com/en-us/windows-hardware/customize/desktop/unattend/)
@@ -317,11 +322,11 @@ This is a scratchpad for incoming features, not all of them will be implemented:
 - [Cascadia-Code Fonts](https://fonts.google.com/specimen/Cascadia+Code)
 - [AutoIt Scripts](https://www.autoitscript.com/wiki/)
 
-## LICENSE
+## 📄 LICENSE
 
 Please refer to [LICENSE.md](LICENSE.md) for more information.
 
-## CONTRIBUTION
+## 🤝 CONTRIBUTION
 
 This is a `hobby project`, I am the only developer and I am still in school so I can not promise to update the tools regularly. It is my own decision to maintain or discontinue this project at any time.
 
