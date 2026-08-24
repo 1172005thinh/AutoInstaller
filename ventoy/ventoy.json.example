@@ -24,7 +24,7 @@
     },
     "menu_alias":[
         {
-            "image": "/Windows/Windows11/w11_24h2.iso",
+            "image": "/Windows/Windows11/w11.iso",
             "alias": "Windows 11 24H2"
         }
     ],
@@ -34,7 +34,7 @@
         "color": "#CDCDCD",
         "tips":[
             {
-                "image": "/Windows/Windows11/w11_24h2.iso",
+                "image": "/Windows/Windows11/w11.iso",
                 "tip": "Auto-pilot Windows 11 Installation"
             }
         ]
