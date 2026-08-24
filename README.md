@@ -339,4 +339,4 @@ This is a `hobby project`, I am the only developer and I am still in school so I
 
 ---
 
-*Updated: 08:00 24/08/2026*
+*Last Updated:* ![GitHub last commit](https://img.shields.io/github/last-commit/1172005thinh/AutoInstaller?label=&style=flat-square)
