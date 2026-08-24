@@ -22,8 +22,11 @@ Your machine, your own personalized Windows, softwares and configuration in your
 
 1. **A custom bootable USB drive** with [Ventoy](https://www.ventoy.net/en/index.html) supporting:
     - A custom boot menu theme [ventoy/theme/1172005thinh](ventoy/theme/1172005thinh):
-        + [Dark Theme Preview](ventoy/theme/preview_dark43.png)
-        + [Light Theme Preview](ventoy/theme/preview_light43.png)
+
+        | Dark Theme Preview | Light Theme Preview |
+        | :---: | :---: |
+        | ![Dark Theme Preview](ventoy/theme/preview_dark43.png) | ![Light Theme Preview](ventoy/theme/preview_light43.png) |
+
     - A custom Ventoy configuration [ventoy/ventoy.json.example](ventoy/ventoy.json.example) with pre-defined `Menu Alias`, `Menu Tips`, `Themes`, `Menu Class`, and `Auto-select` with [unattend scripts](Unattend):
         + **Menu Alias**: Replace the default image name with a custom name.
         + **Menu Tips**: Display a short description of the image.
