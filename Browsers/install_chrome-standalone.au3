@@ -4,15 +4,15 @@
 #include <AutoItConstants.au3>
 
 ; Generic Chrome installer (supports both EXE and Enterprise MSI installers).
-; $CmdLine[1] = setup filename (e.g. "chrome-standalone.exe" or "GoogleChromeStandaloneEnterprise64.msi") [optional, fallback built-in]
+; $CmdLine[1] = setup filename (e.g. "chrome-standalone.exe" or "chrome-standalone.msi") [optional, fallback built-in]
 ; $CmdLine[2] = desktop shortcut flag ("true"/"false") [optional, fallback false]
 
 Global $g_sSetupFilename = "chrome-standalone.exe"
 If $CmdLine[0] >= 1 Then
     $g_sSetupFilename = $CmdLine[1]
 Else
-    If FileExists(@ScriptDir & "\GoogleChromeStandaloneEnterprise64.msi") Then
-        $g_sSetupFilename = "GoogleChromeStandaloneEnterprise64.msi"
+    If FileExists(@ScriptDir & "\chrome-standalone.msi") Then
+        $g_sSetupFilename = "chrome-standalone.msi"
     ElseIf FileExists(@ScriptDir & "\chrome.msi") Then
         $g_sSetupFilename = "chrome.msi"
     ElseIf FileExists(@ScriptDir & "\chrome-standalone.exe") Then

@@ -274,13 +274,18 @@ This repo does not ship any binary executables, all the required `setup_file` sh
 
 **6. COSTUM WINDOWS CONFIGURATION**
 
-This is the easiest part as you just need to modify the options carefully.
+This is the easiest part as you just need to modify the options in [configure-windows.ini](configure-windows.ini) carefully.
 
 **7. VALIDATION**
 
 Please have a look at [USB Structure](USB_STRUCTURE.md) to verify if your USB has been set up properly.
 
 ## INCOMING FEATURES
+
+This is a scratchpad for incoming features, not all of them will be implemented:
+
+1. **AUTO DOWNLOAD THE SETUP FILES WITH ADVANCED install-apps.ini**
+2. **GUI APPLICATION FOR EDITING THE INI FILES, COMPILING AND COPYING TO USB**
 
 ## KNOWN ISSUES
 
@@ -296,6 +301,10 @@ Please have a look at [USB Structure](USB_STRUCTURE.md) to verify if your USB ha
     - `Start Menu Folder`: *Expected* to add listed folders, *Got* nothing added.
 3. **PAINFULLY SLOW GETTING SETUP FILES DOWNLOADED**: The process of downloading all the setup files takes too much effort to manually do it.
     - `Suggestion`: Modify `install-apps.ini` to now include the `download URL` of each setup file and create a new script `download-apps.ps1` to automatically download all the setup files. **Not guaranteed to work for all apps due to anti-bot/credentials issues**
+4. **WINRAR DESKTOP SHORTCUT NOT CREATED**: Currently, even if the `desktop_shortcut_flag` is true, WinRAR failed to add its shortcut to the desktop.
+    - *Expected*: A desktop shortcut for WinRAR will be created at `C:\Users\Public\Desktop\WinRAR.lnk`
+    - *Got*: Nothing created.
+    - *Current workaround*: Manually create the desktop shortcut.
 
 ## REFERENCES
 
@@ -311,7 +320,7 @@ Please refer to [LICENSE.md](LICENSE.md) for more information.
 
 ## CONTRIBUTION
 
-This is a `hobby project`, and I am the only developer. It is my own decision to maintain or discontinue this project at any time.
+This is a `hobby project`, I am the only developer and I am still in school so I can not promise to update the tools regularly. It is my own decision to maintain or discontinue this project at any time.
 
 **Author: `1172005thinh`**
 
