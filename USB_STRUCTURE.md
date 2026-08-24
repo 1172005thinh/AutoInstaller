@@ -5,7 +5,8 @@ A complete structure of the USB:
 ``` txt
 ISO/
 ├── Windows
-│   └── w11.iso
+│   └── Windows11
+│       └── w11.iso
 ├── .gitignore
 ├── full_C.xml
 ├── full_C_D.xml

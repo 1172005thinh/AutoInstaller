@@ -1,11 +1,11 @@
-# <img src="icon.png" width="36" height="36" valign="middle" /> AUTOINSTALLER
+# <img src="icon.png" width="32" height="32" valign="middle"  /> AUTOINSTALLER
 
 ![Version](https://img.shields.io/badge/version-0.1-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Platform](https://img.shields.io/badge/platform-Windows-lightgrey)
 ![DEV](https://img.shields.io/badge/status-in_development-orange)
 
-<img src="icon.png" width="32" height="32" align="left" style="margin-right: 10px;" /> `AutoInstaller` is a comprehensive automation solution for a fresh Windows installation with third-party apps, drivers and configurations.
+`AutoInstaller` is a comprehensive automation solution for a fresh Windows installation with third-party apps, drivers and configurations.
 
 <br clear="left"/>
 
@@ -152,7 +152,8 @@ Ensure you have Ventoy installed on you host machine, your USB drive is plugged 
 
     ``` txt
     ISO/
-    ├── Windows                                 <-- Windows ISO files stored here
+    ├── Windows                                 
+    │   └── Windows11                           <-- Windows ISO files stored here
     └── 5b512ee8a59deb284ad0a6a035ba10b1.md5    <-- Important flag, do not delete
 
     USB/
@@ -170,7 +171,8 @@ Please copy your desired original Windows ISO file to the ISO partition of the U
     ``` txt
     ISO/
     ├── Windows
-    │   └── w11.iso                             <-- Copied Windows ISO file
+    │   └── Windows11
+    │       └── w11.iso                         <-- Copied Windows ISO file
     ├── ArchLinux
     │   └── archlinux.iso                       <-- Copied ArchLinux ISO file
     └── 5b512ee8a59deb284ad0a6a035ba10b1.md5
@@ -332,7 +334,7 @@ Please refer to [LICENSE.md](LICENSE.md) for more information.
 
 This is a `hobby project`, I am the only developer and I am still in school so I can not promise to update the tools regularly. It is my own decision to maintain or discontinue this project at any time.
 
-**Author: `1172005thinh`**
+**Author: `1172005thinh`** <img src="https://avatars.githubusercontent.com/u/190686462?v=4" width="32" height="32" align="center" style="margin-left: 10px;" />
 
 - `Hung Thinh Nguyen` [GitHub](https://github.com/1172005thinh)
 - `Nguyễn Hưng Thịnh` [Facebook](https://www.facebook.com/quickcomp.hungthinhnguyen)
@@ -346,4 +348,4 @@ This is a `hobby project`, I am the only developer and I am still in school so I
 
 ---
 
-*Last Updated:* ![GitHub last commit](https://img.shields.io/github/last-commit/1172005thinh/AutoInstaller?label=&style=flat-square)
+> *Last Updated:* ![GitHub last commit](https://img.shields.io/github/last-commit/1172005thinh/AutoInstaller?label=&style=flat-square)
