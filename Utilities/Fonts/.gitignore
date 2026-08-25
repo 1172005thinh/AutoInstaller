@@ -1,10 +1,7 @@
-# Ignore everything in this directory
+# Ignore
 *
 
-# But do not ignore these file types
+# Keep
 !*.au3
 !*.ps1
-
-# And do not ignore this .gitignore file itself
-!.gitignore
-!.gitkeep
+!/.gitignore

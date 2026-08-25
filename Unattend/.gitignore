@@ -1,1 +1,18 @@
-test.xml
+# Ignore
+*
+
+# Keep
+!/.gitignore
+!/README.md
+!/full_C_D.xml
+!/full_C.xml
+!/full_dyn_C_D.xml
+!/full_manisk.xml
+!/noapps_C_D.xml
+!/noapps_C.xml
+!/noapps_dyn_C_D.xml
+!/noapps_manisk.xml
+!/nodrivers_C_D.xml
+!/nodrivers_C.xml
+!/nodrivers_dyn_C_D.xml
+!/nodrivers_manisk.xml

@@ -4,15 +4,15 @@
     ],
     "theme":{
         "file":[
-            "/ventoy/theme/1172005thinh/theme_light169_htc.txt",
-            "/ventoy/theme/1172005thinh/theme_dark169_htc.txt",
-            "/ventoy/theme/1172005thinh/theme_light169_fb.txt",
-            "/ventoy/theme/1172005thinh/theme_dark169_fb.txt",
-            "/ventoy/theme/1172005thinh/theme_light169_gh.txt",
-            "/ventoy/theme/1172005thinh/theme_dark169_gh.txt"
+            "/ventoy/theme/1172005thinh/theme_light1610_htc.txt",
+            "/ventoy/theme/1172005thinh/theme_dark1610_htc.txt",
+            "/ventoy/theme/1172005thinh/theme_light1610_fb.txt",
+            "/ventoy/theme/1172005thinh/theme_dark1610_fb.txt",
+            "/ventoy/theme/1172005thinh/theme_light1610_gh.txt",
+            "/ventoy/theme/1172005thinh/theme_dark1610_gh.txt"
         ],
-        "gfxmode": "1920x1080",
-        "ventoy_left": "72%",
+        "gfxmode": "1920x1200",
+        "ventoy_left": "76%",
         "ventoy_top": "95%",
         "ventoy_color": "#3B3B39",
         "fonts":[
@@ -29,7 +29,7 @@
         }
     ],
     "menu_tip":{
-        "left": "30%",
+        "left": "28%",
         "top": "11%",
         "color": "#CDCDCD",
         "tips":[

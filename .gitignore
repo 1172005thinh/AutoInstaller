@@ -1,23 +1,46 @@
+# Ignore
 *.exe
 *.msi
 *.cfg
 *.pptx
-/System Volume Information
-/Office/Office2024/Office
-/windows
-/source
-/temp
-/ventoy/ventoy.json
-/ventoy/ventoy.43.json.example
-/ventoy/ventoy.169.json.example
-/ventoy/ventoy.1610.json.example
-/ventoy/script
-.claude/
-.agents/
-.github/
-.vscode/
+*.log
 AGENTS.md
 PLANS.md
 PROMPT.md
-*.log
+/System Volume Information
+/Office/Office2024/Office
+/BMW
+/windows
+/source
+/temp
+/.claude
+/.agents
+/.github
+/.vscode
 
+# Will be released later
+AUTOINSTALLER.md
+
+#Keep
+!/.gitignore
+!/README.md
+!/LICENSE.md
+!/REPO_STRUCTURE.md
+!/USB_STRUCTURE.md
+!/icon.png
+!/icon.ico
+!/wallpaper.png
+!*.au3
+!*.ps1
+!*.ini
+!/5b512ee8a59deb284ad0a6a035ba10b1.md5
+!/aea541d7f9574587656dc5125116e548.md5
+!/Antivirus
+!/Browsers
+!/Drivers
+!/Environment
+!/Socials
+!/Tools
+!/Unattend
+!/Utilities
+!/ventoy

@@ -1,0 +1,15 @@
+# Ignore
+*
+
+# Will be released later
+ventoy_grub.cfg
+
+# Keep
+!/.gitignore
+!/.README.md
+!/ventoy.json.example
+!/ventoy.43.json.example
+!/ventoy.169.json.example
+!/ventoy.1610.json.example
+!/theme
+!/font
