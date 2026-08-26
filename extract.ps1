@@ -294,30 +294,28 @@ Write-Host "[STEP 1/5] Identifying target USB partitions..." -ForegroundColor Cy
 
 if (-not [string]::IsNullOrWhiteSpace($InputDrives)) {
     # --------------------------------------------------------------------------
-    # Explicit Input Mode (-i / --input <ISO>:<SOFTWARE>)
+    # Explicit Input Mode (-i / --input <ISO>:<SOFTWARE>[:<DATA>])
     # --------------------------------------------------------------------------
     Write-ExtractLog INFO "Processing explicit partition targets from CLI flag: '$InputDrives'."
     $raw = $InputDrives.Trim()
-    $tokens = @()
-    if ($raw -match '^(.*?):+(.*)$') {
-        $tokens = @($Matches[1].TrimEnd(':').Trim(), $Matches[2].TrimEnd(':').Trim())
-    }
+    $tokenList = @($raw.Split(':') | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
 
-    if ($tokens.Count -ne 2 -or [string]::IsNullOrWhiteSpace($tokens[0]) -or [string]::IsNullOrWhiteSpace($tokens[1])) {
-        $errMsg = "Invalid input partition format: '$InputDrives'. Expected format: <ISO_PARTITION>:<SOFTWARE_PARTITION> (e.g. -i I:S or -i VENTOY:SOFTWARE)."
+    if ($tokenList.Count -lt 2) {
+        $errMsg = "Invalid input partition format: '$InputDrives'. Expected format: <ISO_PARTITION>:<SOFTWARE_PARTITION> (e.g. -i I:S or -i I:S:D or -i VENTOY:SOFTWARE)."
         Write-ExtractLog ERROR $errMsg
         Write-Host "`n[ERROR] $errMsg`n" -ForegroundColor Red
         exit 1
     }
 
-    $isoRoot      = Resolve-PartitionDrive $tokens[0]
-    $softwareRoot = Resolve-PartitionDrive $tokens[1]
+    $isoRoot      = Resolve-PartitionDrive $tokenList[0]
+    $softwareRoot = Resolve-PartitionDrive $tokenList[1]
+    $thirdRoot    = if ($tokenList.Count -ge 3) { Resolve-PartitionDrive $tokenList[2] } else { $null }
 
     if (-not $isoRoot) {
         if ($DryRun) {
-            $isoRoot = "$($tokens[0].Substring(0, 1).ToUpperInvariant()):"
+            $isoRoot = "$($tokenList[0].Substring(0, 1).ToUpperInvariant()):"
         } else {
-            $errMsg = "Target ISO partition '$($tokens[0])' could not be resolved to an active drive letter."
+            $errMsg = "Target ISO partition '$($tokenList[0])' could not be resolved to an active drive letter."
             Write-ExtractLog ERROR $errMsg
             Write-Host "`n[ERROR] $errMsg`n" -ForegroundColor Red
             exit 1
@@ -326,12 +324,18 @@ if (-not [string]::IsNullOrWhiteSpace($InputDrives)) {
 
     if (-not $softwareRoot) {
         if ($DryRun) {
-            $softwareRoot = "$($tokens[1].Substring(0, 1).ToUpperInvariant()):"
+            $softwareRoot = "$($tokenList[1].Substring(0, 1).ToUpperInvariant()):"
         } else {
-            $errMsg = "Target SOFTWARE partition '$($tokens[1])' could not be resolved to an active drive letter."
+            $errMsg = "Target SOFTWARE partition '$($tokenList[1])' could not be resolved to an active drive letter."
             Write-ExtractLog ERROR $errMsg
             Write-Host "`n[ERROR] $errMsg`n" -ForegroundColor Red
             exit 1
+        }
+    }
+
+    if ($tokenList.Count -ge 3 -and -not $thirdRoot) {
+        if ($DryRun) {
+            $thirdRoot = "$($tokenList[2].Substring(0, 1).ToUpperInvariant()):"
         }
     }
 } else {
@@ -470,14 +474,14 @@ if ($isDangerous) {
 
 # Auto-create marker files on target partitions if missing (Live mode only)
 if (-not $DryRun) {
-    $isoMarkerPath = Join-Path "$isoRoot\" $isoMarker
+    $isoMarkerPath = "$($isoRoot.TrimEnd('\'))\$isoMarker"
     if (-not (Test-Path -LiteralPath $isoMarkerPath)) {
         try {
             New-Item -ItemType File -Path $isoMarkerPath -Force -ErrorAction SilentlyContinue | Out-Null
             Write-ExtractLog SUCCESS "Created missing ISO marker '$isoMarker' at '$isoRoot\'"
         } catch {}
     }
-    $softMarkerPath = Join-Path "$softwareRoot\" $softwareMarker
+    $softMarkerPath = "$($softwareRoot.TrimEnd('\'))\$softwareMarker"
     if (-not (Test-Path -LiteralPath $softMarkerPath)) {
         try {
             New-Item -ItemType File -Path $softMarkerPath -Force -ErrorAction SilentlyContinue | Out-Null
@@ -626,17 +630,88 @@ function Copy-DeployFiles {
     }
 }
 
+function Set-DriveIconAndAutorun {
+    param(
+        [string]$DriveRoot,
+        [string]$IconSource,
+        [string]$DriveLabel
+    )
+
+    $script:totalOperations++
+    $sw = [System.Diagnostics.Stopwatch]::StartNew()
+
+    if (-not (Test-Path -LiteralPath $IconSource)) {
+        Write-ExtractLog WARN "Icon file not found: '$IconSource'."
+        $script:taskResults.Add([pscustomobject]@{
+            Step   = "Drive Icon ($DriveLabel)"
+            Target = "$DriveRoot\"
+            Status = 'SKIPPED (Icon missing)'
+            TimeMs = 0
+        })
+        return
+    }
+
+    $cleanRoot = $DriveRoot.TrimEnd('\')
+    $dstIcon = "$cleanRoot\icon.ico"
+    $dstAutorun = "$cleanRoot\autorun.inf"
+    $autorunContent = "[AutoRun]`r`nIcon=icon.ico,0`r`nLabel=$DriveLabel`r`n"
+
+    if ($DryRun) {
+        $sw.Stop()
+        Write-Host ("  [DRY-RUN] Drive Icon & Autorun: {0} -> {1}\ (Label: {2})" -f $IconSource, $DriveRoot, $DriveLabel) -ForegroundColor Cyan
+        Write-ExtractLog DRY-RUN "Simulated drive icon & autorun.inf on '$DriveRoot\' (Label: $DriveLabel)."
+        $script:taskResults.Add([pscustomobject]@{
+            Step   = "Drive Icon & Autorun ($DriveLabel)"
+            Target = "$DriveRoot\"
+            Status = 'DRY-RUN'
+            TimeMs = 0
+        })
+        $script:successCount++
+        return
+    }
+
+    try {
+        # Copy icon.ico
+        Copy-Item -LiteralPath $IconSource -Destination $dstIcon -Force -ErrorAction Stop
+        
+        # Write autorun.inf (ASCII encoding)
+        [System.IO.File]::WriteAllText($dstAutorun, $autorunContent, [System.Text.Encoding]::ASCII)
+        
+        $sw.Stop()
+        Write-Host ("  [SUCCESS] Drive Icon & autorun.inf applied to {0}\ (Label: {1}) ({2} ms)" -f $DriveRoot, $DriveLabel, $sw.ElapsedMilliseconds) -ForegroundColor Green
+        Write-ExtractLog SUCCESS "Applied drive icon & autorun.inf to '$DriveRoot\' (Label: $DriveLabel) in $($sw.ElapsedMilliseconds) ms."
+        $script:taskResults.Add([pscustomobject]@{
+            Step   = "Drive Icon & Autorun ($DriveLabel)"
+            Target = "$DriveRoot\"
+            Status = 'SUCCESS'
+            TimeMs = $sw.ElapsedMilliseconds
+        })
+        $script:successCount++
+    } catch {
+        $sw.Stop()
+        Write-Host ("  [FAILED]  Failed setting drive icon on {0}\: {1}" -f $DriveRoot, $_.Exception.Message) -ForegroundColor Red
+        Write-ExtractLog ERROR "Failed to set drive icon on '$DriveRoot\': $($_.Exception.Message)"
+        $script:taskResults.Add([pscustomobject]@{
+            Step   = "Drive Icon & Autorun ($DriveLabel)"
+            Target = "$DriveRoot\"
+            Status = 'FAILED'
+            TimeMs = $sw.ElapsedMilliseconds
+        })
+        $script:failCount++
+    }
+}
+
 # ------------------------------------------------------------------------------
 # 6. Step 2: Deploy /ventoy to ISO Partition
 # ------------------------------------------------------------------------------
 Write-Host "`n[STEP 2/5] Deploying Ventoy configuration to ISO partition..." -ForegroundColor Cyan
 $ventoySrc = Join-Path $RootDir 'ventoy'
-$ventoyDst = Join-Path $isoRoot 'ventoy'
+$ventoyDst = "$isoRoot\ventoy"
 Copy-DeployDirectory -SourceDir $ventoySrc -DestinationDir $ventoyDst -Description "Ventoy Folder (/ventoy)"
 
 # Automatically rename/initialize ventoy.json from ventoy.json.example on ISO partition
-$dstExampleJson = Join-Path $ventoyDst 'ventoy.json.example'
-$dstVentoyJson  = Join-Path $ventoyDst 'ventoy.json'
+$dstExampleJson = "$ventoyDst\ventoy.json.example"
+$dstVentoyJson  = "$ventoyDst\ventoy.json"
 
 if ($DryRun) {
     Write-Host ("  [DRY-RUN] Config Rename: {0}\ventoy.json.example -> {0}\ventoy.json" -f $ventoyDst) -ForegroundColor Cyan
@@ -655,6 +730,10 @@ if ($DryRun) {
         }
     }
 }
+
+# Deploy Drive Icon & autorun.inf to ISO partition
+$iconFile = Join-Path $RootDir 'icon.ico'
+Set-DriveIconAndAutorun -DriveRoot $isoRoot -IconSource $iconFile -DriveLabel "Ventoy"
 
 # ------------------------------------------------------------------------------
 # 7. Step 3: Deploy /Unattend XMLs to Root of ISO Partition
@@ -712,6 +791,7 @@ Write-Host "`n[STEP 5/5] Deploying application packages and scripts to SOFTWARE 
 # Application directories to copy
 $appFolders = @(
     'Antivirus',
+    'BMW',
     'Browsers',
     'Drivers',
     'Environment',
@@ -723,7 +803,7 @@ $appFolders = @(
 
 foreach ($folder in $appFolders) {
     $src = Join-Path $RootDir $folder
-    $dst = Join-Path $softwareRoot $folder
+    $dst = "$softwareRoot\$folder"
     if (Test-Path -LiteralPath $src) {
         Copy-DeployDirectory -SourceDir $src -DestinationDir $dst -Description "App Folder (/$folder)"
     }
@@ -761,7 +841,7 @@ if ($rootFiles.Count -gt 0) {
     } else {
         try {
             foreach ($rf in $rootFiles) {
-                Copy-Item -LiteralPath $rf.FullName -Destination (Join-Path $softwareRoot $rf.Name) -Force -ErrorAction Stop
+                Copy-Item -LiteralPath $rf.FullName -Destination "$($softwareRoot.TrimEnd('\'))\$($rf.Name)" -Force -ErrorAction Stop
             }
             $rootFilesSw.Stop()
             Write-Host ("  [SUCCESS] Root Scripts & Binaries ({0} file(s)) -> {1}\ ({2} ms)" -f $rootFiles.Count, $softwareRoot, $rootFilesSw.ElapsedMilliseconds) -ForegroundColor Green
@@ -786,6 +866,29 @@ if ($rootFiles.Count -gt 0) {
             $script:failCount++
         }
     }
+}
+
+# Deploy Drive Icon & autorun.inf to SOFTWARE partition
+$iconFile = Join-Path $RootDir 'icon.ico'
+Set-DriveIconAndAutorun -DriveRoot $softwareRoot -IconSource $iconFile -DriveLabel "AutoInstaller"
+
+# Automatically apply Drive Icon & autorun.inf to any 3rd/extra partition on the USB drive if present
+if ($thirdRoot) {
+    Set-DriveIconAndAutorun -DriveRoot $thirdRoot -IconSource $iconFile -DriveLabel "Ventoy Data"
+} else {
+    try {
+        $isoLetter = $isoRoot.Substring(0, 1)
+        $softLetter = $softwareRoot.Substring(0, 1)
+        $usbPart = Get-Partition -DriveLetter $isoLetter -ErrorAction SilentlyContinue
+        if ($usbPart) {
+            $extraUsbParts = Get-Partition -DiskNumber $usbPart.DiskNumber -ErrorAction SilentlyContinue |
+                             Where-Object { $_.DriveLetter -and $_.DriveLetter -ne $isoLetter -and $_.DriveLetter -ne $softLetter }
+            foreach ($p in $extraUsbParts) {
+                $extraRoot = "$($p.DriveLetter):"
+                Set-DriveIconAndAutorun -DriveRoot $extraRoot -IconSource $iconFile -DriveLabel "Ventoy Data"
+            }
+        }
+    } catch {}
 }
 
 # ------------------------------------------------------------------------------
