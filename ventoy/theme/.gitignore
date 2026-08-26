@@ -1,6 +1,8 @@
+# Ignore
 /*
 *.pptx
 
-!/1172005thinh/
+# Keep
 !/.gitignore
+!/1172005thinh/
 !/*.png

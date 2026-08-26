@@ -1,0 +1,44 @@
+# GRUB2 gfxmenu Linux theme
+# Designed for ratio 4:3 Light style
+
+# Global Property
+title-text: ""
+desktop-image: "background_light43_gh.jpg"
+desktop-color: "#3B3B39"
+terminal-font: "Cascadia Code Regular 20"
+terminal-box: "terminal_box_*.png"
+terminal-left: "6%"
+terminal-top: "18%"
+terminal-width: "60%"
+terminal-height: "64%"
+terminal-border: "0"
+
+# Show the boot menu
++ boot_menu {
+  left = 8%
+  top = 18%
+  width = 65%
+  height = 64%
+  item_font = "Cascadia Code Regular 28"
+  item_color = "#6C6E70"
+  selected_item_color = "#CDCDCD"
+  icon_width = 84
+  icon_height = 84
+  item_icon_space = 24
+  item_height = 84
+  item_padding = 10
+  item_spacing = 16
+  selected_item_pixmap_style = "select_*.png"
+}
+
+# Show a countdown message using the label component
++ label {
+  top = 11%
+  left = 24%
+  width = 43%
+  align = "left"
+  id = "__timeout__"
+  text = "Booting in %d seconds"
+  color = "#CDCDCD"
+  font = "Cascadia Code Regular 20"
+}

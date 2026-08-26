@@ -424,7 +424,7 @@ EndFunc
 
 Func _ConsolePause()
     _CW(@CRLF & $g_cDim & "--------------------------------------------" & $g_cRst & @CRLF)
-    _CW($g_cWht & "  You may can now close this window..." & $g_cRst & @CRLF)
+    _CW($g_cWht & "  You can now close this window..." & $g_cRst & @CRLF)
     Local $hStdin = FileOpen("CONIN$", 0)
     FileReadLine($hStdin)
     FileClose($hStdin)
