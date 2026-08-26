@@ -1,16 +1,17 @@
-﻿#RequireAdmin
+#RequireAdmin
 #AutoIt3Wrapper_UseX64=y
 #NoTrayIcon
 #include <AutoItConstants.au3>
 
 ; Generic Python installer.
-; $CmdLine[1] = setup filename (e.g. "python-3.14.2.exe")   [optional, fallback "python.exe"]
-; $CmdLine[2] = desktop shortcut flag ("true"/"false")       [optional, fallback false]
+; $CmdLine[1] = setup filename (e.g. "python-3.14.7.exe", "python.exe") [optional, fallback "python.exe"]
+; $CmdLine[2] = desktop shortcut flag ("true"/"false")                   [optional, fallback false]
+; $CmdLine[4] = log path                                                 [optional, fallback "C:\Auto-installer\install-apps.log"]
 ;
-; The major.minor version (e.g. "3.14") is extracted from the setup filename so that
-; the correct registry key and install folder are derived at runtime. When the setup
-; filename changes to "python-3.14.7.exe" or "python-3.15.0.exe", only the INI needs
-; updating -- this script does not need to be recompiled.
+; The installer dynamically inspects the registry (HKLM64, HKCU64, HKLM, HKCU) under
+; SOFTWARE\Python\PythonCore for installed versions, parses ExecutablePath and InstallPath,
+; and falls back to filesystem searches in Program Files / AppData. Works reliably with
+; any Python version (3.14.2, 3.14.7, 3.15, etc.) regardless of setup filename.
 
 Global $g_sSetupFilename = "python.exe"
 If $CmdLine[0] >= 1 Then $g_sSetupFilename = $CmdLine[1]
@@ -21,13 +22,13 @@ Global $g_sLogPath = "C:\Auto-installer\install-apps.log"
 If $CmdLine[0] >= 4 Then $g_sLogPath = $CmdLine[4]
 If $CmdLine[0] >= 2 And StringLower($CmdLine[2]) = "true" Then $g_bShortcut = True
 
-; Derive major.minor (e.g. "3.14") and folder suffix (e.g. "314") from the filename.
-Global $g_sPyMajorMinor = "3"     ; fallback: just major
-Global $g_sPyDirSuffix  = "3"     ; fallback: just major
-Local $aVer = StringRegExp($g_sSetupFilename, "python-(\d+)\.(\d+)", 1)
+; Optionally derive major.minor (e.g. "3.14") and folder suffix (e.g. "314") from filename if present
+Global $g_sPyMajorMinor = ""
+Global $g_sPyDirSuffix  = ""
+Local $aVer = StringRegExp($g_sSetupFilename, "(?:python-)?(\d+)\.(\d+)", 1)
 If Not @error And UBound($aVer) = 2 Then
-    $g_sPyMajorMinor = $aVer[0] & "." & $aVer[1]   ; "3.14"
-    $g_sPyDirSuffix  = $aVer[0] & $aVer[1]          ; "314"
+    $g_sPyMajorMinor = $aVer[0] & "." & $aVer[1]   ; e.g. "3.14"
+    $g_sPyDirSuffix  = $aVer[0] & $aVer[1]          ; e.g. "314"
 EndIf
 
 If Not FileExists($g_sSetupPath) Then
@@ -56,7 +57,7 @@ If $iExitCode <> 0 Then
 EndIf
 
 _Log("INFO: Waiting for app to be fully registered...")
-If _WaitForPython(900) Then
+If _WaitForPython(120) Then
     _Log("INFO: Installation confirmed. Exiting with code 0.")
     _CreateDesktopShortcut()
     Exit 0
@@ -64,10 +65,105 @@ EndIf
 _Log("ERROR: Installation validation timed out.")
 Exit 22
 
+Func _GetInstalledPythonPath(ByRef $sInstallDir, ByRef $sExePath, ByRef $sWindowedExe, ByRef $sVersion)
+    Local $aRoots[4] = ["HKLM64", "HKCU64", "HKLM", "HKCU"]
+
+    ; 1. If major.minor was matched from filename, query it directly across roots
+    If $g_sPyMajorMinor <> "" Then
+        For $iR = 0 To UBound($aRoots) - 1
+            Local $sBase = $aRoots[$iR] & "\SOFTWARE\Python\PythonCore\" & $g_sPyMajorMinor
+            Local $sExe = RegRead($sBase & "\InstallPath", "ExecutablePath")
+            If Not @error And FileExists($sExe) Then
+                $sExePath = $sExe
+                $sInstallDir = RegRead($sBase & "\InstallPath", "")
+                If StringRight($sInstallDir, 1) = "\" Then $sInstallDir = StringTrimRight($sInstallDir, 1)
+                $sWindowedExe = RegRead($sBase & "\InstallPath", "WindowedExecutablePath")
+                If @error Or Not FileExists($sWindowedExe) Then $sWindowedExe = $sInstallDir & "\pythonw.exe"
+                $sVersion = $g_sPyMajorMinor
+                Return True
+            EndIf
+            
+            Local $sDir = RegRead($sBase & "\InstallPath", "")
+            If Not @error And $sDir <> "" Then
+                If StringRight($sDir, 1) = "\" Then $sDir = StringTrimRight($sDir, 1)
+                If FileExists($sDir & "\python.exe") Then
+                    $sInstallDir = $sDir
+                    $sExePath = $sDir & "\python.exe"
+                    $sWindowedExe = $sDir & "\pythonw.exe"
+                    $sVersion = $g_sPyMajorMinor
+                    Return True
+                EndIf
+            EndIf
+        Next
+    EndIf
+
+    ; 2. Enumerate all versions under SOFTWARE\Python\PythonCore across roots
+    For $iR = 0 To UBound($aRoots) - 1
+        Local $iKey = 1
+        While 1
+            Local $sSubKey = RegEnumKey($aRoots[$iR] & "\SOFTWARE\Python\PythonCore", $iKey)
+            If @error Then ExitLoop
+            Local $sBase = $aRoots[$iR] & "\SOFTWARE\Python\PythonCore\" & $sSubKey
+            
+            Local $sExe = RegRead($sBase & "\InstallPath", "ExecutablePath")
+            If Not @error And FileExists($sExe) Then
+                $sExePath = $sExe
+                $sInstallDir = RegRead($sBase & "\InstallPath", "")
+                If StringRight($sInstallDir, 1) = "\" Then $sInstallDir = StringTrimRight($sInstallDir, 1)
+                $sWindowedExe = RegRead($sBase & "\InstallPath", "WindowedExecutablePath")
+                If @error Or Not FileExists($sWindowedExe) Then $sWindowedExe = $sInstallDir & "\pythonw.exe"
+                $sVersion = $sSubKey
+                Return True
+            EndIf
+
+            Local $sDir = RegRead($sBase & "\InstallPath", "")
+            If Not @error And $sDir <> "" Then
+                If StringRight($sDir, 1) = "\" Then $sDir = StringTrimRight($sDir, 1)
+                If FileExists($sDir & "\python.exe") Then
+                    $sInstallDir = $sDir
+                    $sExePath = $sDir & "\python.exe"
+                    $sWindowedExe = $sDir & "\pythonw.exe"
+                    $sVersion = $sSubKey
+                    Return True
+                EndIf
+            EndIf
+            $iKey += 1
+        WEnd
+    Next
+
+    ; 3. Filesystem fallback: Program Files & AppData
+    If $g_sPyDirSuffix <> "" And FileExists(@ProgramFilesDir & "\Python" & $g_sPyDirSuffix & "\python.exe") Then
+        $sInstallDir = @ProgramFilesDir & "\Python" & $g_sPyDirSuffix
+        $sExePath = $sInstallDir & "\python.exe"
+        $sWindowedExe = $sInstallDir & "\pythonw.exe"
+        $sVersion = $g_sPyMajorMinor
+        Return True
+    EndIf
+
+    ; Search for any Python3* directory under @ProgramFilesDir
+    Local $hSearch = FileFindFirstFile(@ProgramFilesDir & "\Python3*")
+    If $hSearch <> -1 Then
+        While 1
+            Local $sFile = FileFindNextFile($hSearch)
+            If @error Then ExitLoop
+            If FileExists(@ProgramFilesDir & "\" & $sFile & "\python.exe") Then
+                $sInstallDir = @ProgramFilesDir & "\" & $sFile
+                $sExePath = $sInstallDir & "\python.exe"
+                $sWindowedExe = $sInstallDir & "\pythonw.exe"
+                $sVersion = StringReplace($sFile, "Python", "")
+                FileClose($hSearch)
+                Return True
+            EndIf
+        WEnd
+        FileClose($hSearch)
+    EndIf
+
+    Return False
+EndFunc
+
 Func _IsPythonInstalled()
-    Local $sPath = RegRead("HKLM64\SOFTWARE\Python\PythonCore\" & $g_sPyMajorMinor & "\InstallPath", "")
-    If Not @error And FileExists($sPath & "\python.exe") Then Return True
-    Return FileExists(@ProgramFilesDir & "\Python" & $g_sPyDirSuffix & "\python.exe")
+    Local $sDir = "", $sExe = "", $sWinExe = "", $sVer = ""
+    Return _GetInstalledPythonPath($sDir, $sExe, $sWinExe, $sVer)
 EndFunc
 
 Func _WaitForPython($iTimeoutSeconds)
@@ -81,15 +177,21 @@ EndFunc
 
 Func _CreateDesktopShortcut()
     If Not $g_bShortcut Then Return
-    Local $sPythonDir = RegRead("HKLM64\SOFTWARE\Python\PythonCore\" & $g_sPyMajorMinor & "\InstallPath", "")
-    If @error Or $sPythonDir = "" Then $sPythonDir = @ProgramFilesDir & "\Python" & $g_sPyDirSuffix
-    Local $sTarget = $sPythonDir & "\pythonw.exe"
-    If Not FileExists($sTarget) Then Return
-    Local $sLink = "C:\Users\Public\Desktop\IDLE (Python " & $g_sPyMajorMinor & ").lnk"
-    If FileExists($sLink) Then Return
-    FileCreateShortcut($sTarget, $sLink, $sPythonDir, "-m idlelib", "IDLE (Python " & $g_sPyMajorMinor & ")", $sTarget, "", 0, @SW_SHOW)
-EndFunc
+    Local $sDir = "", $sExe = "", $sWinExe = "", $sVer = ""
+    If Not _GetInstalledPythonPath($sDir, $sExe, $sWinExe, $sVer) Then Return
 
+    If Not FileExists($sWinExe) Then $sWinExe = $sDir & "\pythonw.exe"
+    If Not FileExists($sWinExe) Then $sWinExe = $sExe
+    If Not FileExists($sWinExe) Then Return
+
+    Local $sTitleVer = $sVer
+    If $sTitleVer = "" Then $sTitleVer = $g_sPyMajorMinor
+    If $sTitleVer = "" Then $sTitleVer = "3"
+
+    Local $sLink = "C:\Users\Public\Desktop\IDLE (Python " & $sTitleVer & ").lnk"
+    If FileExists($sLink) Then Return
+    FileCreateShortcut($sWinExe, $sLink, $sDir, "-m idlelib", "IDLE (Python " & $sTitleVer & ")", $sWinExe, "", 0, @SW_SHOW)
+EndFunc
 
 Func _Log($sMsg)
     Local $sLogPath = $g_sLogPath
