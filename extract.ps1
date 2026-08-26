@@ -12,7 +12,7 @@
 
 .PARAMETER InputDrives
     (-i, --input) Explicitly specify target partition drive letters or volume labels
-    in the format: <ISO_PARTITION>:<SOFTWARE_PARTITION> (e.g. -i I:S or -i VENTOY:SOFTWARE).
+    in the format: <ISO_PARTITION>:<SOFTWARE_PARTITION> (e.g. -i I:S or -i ISO:SOFTWARE).
     Prompts for user confirmation if either target resolves to local drive C: or D:.
 
 .PARAMETER DryRun
@@ -40,8 +40,8 @@
     # Deploys explicitly to ISO partition I: and Software partition S:
 
 .EXAMPLE
-    .\extract.ps1 -i VENTOY:SOFTWARE --dry-run
-    # Simulates deployment targeting volumes labeled VENTOY and SOFTWARE
+    .\extract.ps1 -i ISO:SOFTWARE --dry-run
+    # Simulates deployment targeting volumes labeled ISO and SOFTWARE
 
 .EXAMPLE
     .\extract.ps1 -i I:S -l
@@ -163,7 +163,7 @@ EXAMPLES:
     .\extract.ps1 -i I:S
 
     # 3. Explicit volume label targets with dry-run
-    .\extract.ps1 --input VENTOY:SOFTWARE --dry-run
+    .\extract.ps1 --input ISO:SOFTWARE --dry-run
 
     # 4. Deployment with live verbose console logs
     .\extract.ps1 -i I:S -l
@@ -301,7 +301,7 @@ if (-not [string]::IsNullOrWhiteSpace($InputDrives)) {
     $tokenList = @($raw.Split(':') | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
 
     if ($tokenList.Count -lt 2) {
-        $errMsg = "Invalid input partition format: '$InputDrives'. Expected format: <ISO_PARTITION>:<SOFTWARE_PARTITION> (e.g. -i I:S or -i I:S:D or -i VENTOY:SOFTWARE)."
+        $errMsg = "Invalid input partition format: '$InputDrives'. Expected format: <ISO_PARTITION>:<SOFTWARE_PARTITION> (e.g. -i I:S or -i I:S:D or -i ISO:SOFTWARE)."
         Write-ExtractLog ERROR $errMsg
         Write-Host "`n[ERROR] $errMsg`n" -ForegroundColor Red
         exit 1
@@ -733,7 +733,7 @@ if ($DryRun) {
 
 # Deploy Drive Icon & autorun.inf to ISO partition
 $iconFile = Join-Path $RootDir 'icon.ico'
-Set-DriveIconAndAutorun -DriveRoot $isoRoot -IconSource $iconFile -DriveLabel "Ventoy"
+Set-DriveIconAndAutorun -DriveRoot $isoRoot -IconSource $iconFile -DriveLabel "ISO"
 
 # ------------------------------------------------------------------------------
 # 7. Step 3: Deploy /Unattend XMLs to Root of ISO Partition
@@ -896,7 +896,7 @@ Set-DriveIconAndAutorun -DriveRoot $softwareRoot -IconSource $iconFile -DriveLab
 
 # Automatically apply Drive Icon & autorun.inf to any 3rd/extra partition on the USB drive if present
 if ($thirdRoot) {
-    Set-DriveIconAndAutorun -DriveRoot $thirdRoot -IconSource $iconFile -DriveLabel "Ventoy Data"
+    Set-DriveIconAndAutorun -DriveRoot $thirdRoot -IconSource $iconFile -DriveLabel "VTOYEFI"
 } else {
     try {
         $isoLetter = $isoRoot.Substring(0, 1)
@@ -907,7 +907,7 @@ if ($thirdRoot) {
                              Where-Object { $_.DriveLetter -and $_.DriveLetter -ne $isoLetter -and $_.DriveLetter -ne $softLetter }
             foreach ($p in $extraUsbParts) {
                 $extraRoot = "$($p.DriveLetter):"
-                Set-DriveIconAndAutorun -DriveRoot $extraRoot -IconSource $iconFile -DriveLabel "Ventoy Data"
+                Set-DriveIconAndAutorun -DriveRoot $extraRoot -IconSource $iconFile -DriveLabel "VTOYEFI"
             }
         }
     } catch {}
