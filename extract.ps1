@@ -791,7 +791,6 @@ Write-Host "`n[STEP 5/5] Deploying application packages and scripts to SOFTWARE 
 # Application directories to copy
 $appFolders = @(
     'Antivirus',
-    'BMW',
     'Browsers',
     'Drivers',
     'Environment',
@@ -806,6 +805,29 @@ foreach ($folder in $appFolders) {
     $dst = "$softwareRoot\$folder"
     if (Test-Path -LiteralPath $src) {
         Copy-DeployDirectory -SourceDir $src -DestinationDir $dst -Description "App Folder (/$folder)"
+    }
+}
+
+# Automatically rename/initialize rarreg.key from rarreg.key.example on SOFTWARE partition
+$dstArchiversDir = "$softwareRoot\Tools\Archivers"
+$dstExampleKey   = "$dstArchiversDir\rarreg.key.example"
+$dstRarregKey    = "$dstArchiversDir\rarreg.key"
+
+if ($DryRun) {
+    Write-Host ("  [DRY-RUN] Key Initialization: {0}\rarreg.key.example -> {0}\rarreg.key" -f $dstArchiversDir) -ForegroundColor Cyan
+    Write-ExtractLog DRY-RUN "Simulated initialization of 'rarreg.key' from 'rarreg.key.example' in '$dstArchiversDir'."
+} else {
+    if (Test-Path -LiteralPath $dstExampleKey) {
+        if (-not (Test-Path -LiteralPath $dstRarregKey)) {
+            try {
+                Copy-Item -LiteralPath $dstExampleKey -Destination $dstRarregKey -Force -ErrorAction Stop
+                Write-Host ("  [SUCCESS] Initialized rarreg.key from rarreg.key.example in {0}" -f $dstArchiversDir) -ForegroundColor Green
+                Write-ExtractLog SUCCESS "Initialized 'rarreg.key' from 'rarreg.key.example' in '$dstArchiversDir'."
+            } catch {
+                Write-Host ("  [WARN]  Failed initializing rarreg.key: {0}" -f $_.Exception.Message) -ForegroundColor Yellow
+                Write-ExtractLog WARN "Failed initializing rarreg.key: $($_.Exception.Message)"
+            }
+        }
     }
 }
 
