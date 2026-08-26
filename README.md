@@ -197,10 +197,22 @@ You have to download or clone this repository from GitHub by either:
 This repo includes a script `extract.ps1` to automatically compile source code into executables, copy the required files from the repo to the USB partitions:
 
 1. Open `PowerShell` as administrator in the extracted repo directory.
-2. Run this command:
+2. *(Optional)* If you encounter a script execution policy error (`PSSecurityException` / `not digitally signed`), unblock the scripts or allow script execution for the current session:
+
+    ``` powershell
+    # Temporarily allow script execution in current PowerShell session:
+    Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+
+    # Or unblock all extracted files if downloaded as a ZIP from GitHub:
+    Get-ChildItem -Recurse | Unblock-File
+    ```
+
+3. Run this command:
     
     ``` powershell
     .\extract.ps1
+    # Or run directly with one-shot policy bypass:
+    powershell -ExecutionPolicy Bypass -File .\extract.ps1
     ```
     > *This command will automatically identify the ISO and USB partitions, and copy the required files from the repo to the USB partitions. Please view the output to make sure there are no errors.*
 
@@ -208,7 +220,7 @@ This repo includes a script `extract.ps1` to automatically compile source code i
     ``` powershell
     .\extract.ps1 -i I:S
     ```
-    > *Where I and S are the lable of ISO partition and USB partition respectively.*
+    > *Where I and S are the label of ISO partition and USB partition respectively.*
 
     *For a safe simulation, you might want to try:*
 
