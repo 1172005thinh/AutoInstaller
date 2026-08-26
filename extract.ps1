@@ -892,7 +892,7 @@ if ($rootFiles.Count -gt 0) {
 
 # Deploy Drive Icon & autorun.inf to SOFTWARE partition
 $iconFile = Join-Path $RootDir 'icon.ico'
-Set-DriveIconAndAutorun -DriveRoot $softwareRoot -IconSource $iconFile -DriveLabel "AutoInstaller"
+Set-DriveIconAndAutorun -DriveRoot $softwareRoot -IconSource $iconFile -DriveLabel "AUTOINSTALLER"
 
 # Automatically apply Drive Icon & autorun.inf to any 3rd/extra partition on the USB drive if present
 if ($thirdRoot) {
