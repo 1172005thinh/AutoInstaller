@@ -1,4 +1,4 @@
-﻿#RequireAdmin
+#RequireAdmin
 #AutoIt3Wrapper_UseX64=y
 #NoTrayIcon
 #include <AutoItConstants.au3>
@@ -6,9 +6,10 @@
 ; Kaspersky antivirus installer.
 ; $CmdLine[1] = setup filename (e.g. "kaspersky.exe")
 ; $CmdLine[2] = desktop shortcut flag ("true"/"false")
+; $CmdLine[4] = log path                                [optional, fallback "C:\Auto-installer\install-apps.log"]
 ;
-; Kaspersky supports EULA=1 PRIVACYPOLICY=1 /s /pSKIPPRODUCTCHECK=1
-; for silent installation without UI.
+; Detection: dynamically enumerates KasperskyLab registry hives across all versions,
+; checks the Windows AVP service registration, and inspects Kaspersky installation directories.
 
 Global $g_sSetupFilename = "kaspersky.exe"
 If $CmdLine[0] >= 1 Then $g_sSetupFilename = $CmdLine[1]
@@ -52,13 +53,86 @@ EndIf
 _Log("ERROR: Installation validation timed out.")
 Exit 22
 
+Func _GetKasperskyExecutable()
+    Local $aRoots[2] = ["HKLM64", "HKLM"]
+
+    ; 1. Enumerate all subkeys under KasperskyLab
+    For $iR = 0 To UBound($aRoots) - 1
+        Local $sBase = $aRoots[$iR] & "\SOFTWARE\KasperskyLab"
+        Local $iKey = 1
+        While 1
+            Local $sSubKey = RegEnumKey($sBase, $iKey)
+            If @error Then ExitLoop
+            Local $sSubPath = $sBase & "\" & $sSubKey
+            
+            ; Try ProductInstallDir under Environment or directly
+            Local $aValNames[3] = ["ProductInstallDir", "InstallPath", "InstallDir"]
+            For $iV = 0 To UBound($aValNames) - 1
+                Local $sDir = RegRead($sSubPath & "\Environment", $aValNames[$iV])
+                If @error Or $sDir = "" Then $sDir = RegRead($sSubPath, $aValNames[$iV])
+                If Not @error And $sDir <> "" Then
+                    If StringRight($sDir, 1) = "\" Then $sDir = StringTrimRight($sDir, 1)
+                    If FileExists($sDir & "\avpui.exe") Then Return $sDir & "\avpui.exe"
+                    If FileExists($sDir & "\avp.exe") Then Return $sDir & "\avp.exe"
+                EndIf
+            Next
+            $iKey += 1
+        WEnd
+    Next
+
+    ; 2. Enumerate Uninstall registry keys for Kaspersky
+    For $iR = 0 To UBound($aRoots) - 1
+        Local $sUninstBase = $aRoots[$iR] & "\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall"
+        Local $iU = 1
+        While 1
+            Local $sUKey = RegEnumKey($sUninstBase, $iU)
+            If @error Then ExitLoop
+            Local $sDisplay = RegRead($sUninstBase & "\" & $sUKey, "DisplayName")
+            If Not @error And StringInStr($sDisplay, "Kaspersky") > 0 Then
+                Local $sLoc = RegRead($sUninstBase & "\" & $sUKey, "InstallLocation")
+                If StringRight($sLoc, 1) = "\" Then $sLoc = StringTrimRight($sLoc, 1)
+                If FileExists($sLoc & "\avpui.exe") Then Return $sLoc & "\avpui.exe"
+                If FileExists($sLoc & "\avp.exe") Then Return $sLoc & "\avp.exe"
+            EndIf
+            $iU += 1
+        WEnd
+    Next
+
+    ; 3. Filesystem search
+    Local $aProgramPaths[2] = [@ProgramFilesDir & "\Kaspersky Lab", @ProgramFilesDir & " (x86)\Kaspersky Lab"]
+    For $iP = 0 To UBound($aProgramPaths) - 1
+        Local $sKDir = $aProgramPaths[$iP]
+        If FileExists($sKDir & "\avpui.exe") Then Return $sKDir & "\avpui.exe"
+        Local $hSearch = FileFindFirstFile($sKDir & "\*")
+        If $hSearch <> -1 Then
+            While 1
+                Local $sFolder = FileFindNextFile($hSearch)
+                If @error Then ExitLoop
+                If FileExists($sKDir & "\" & $sFolder & "\avpui.exe") Then
+                    FileClose($hSearch)
+                    Return $sKDir & "\" & $sFolder & "\avpui.exe"
+                EndIf
+                If FileExists($sKDir & "\" & $sFolder & "\avp.exe") Then
+                    FileClose($hSearch)
+                    Return $sKDir & "\" & $sFolder & "\avp.exe"
+                EndIf
+            WEnd
+            FileClose($hSearch)
+        EndIf
+    Next
+
+    ; 4. Service check
+    Local $sSvc = RegRead("HKLM64\SYSTEM\CurrentControlSet\Services\AVP", "ImagePath")
+    If Not @error And $sSvc <> "" Then
+        $sSvc = StringReplace($sSvc, '"', '')
+        If FileExists($sSvc) Then Return $sSvc
+    EndIf
+
+    Return ""
+EndFunc
+
 Func _IsKasperskyInstalled()
-    ; Check for Kaspersky service or executable
-    Local $sPath = RegRead("HKLM64\SOFTWARE\KasperskyLab\avp22\Environment", "ProductInstallDir")
-    If Not @error And FileExists($sPath & "\avpui.exe") Then Return True
-    ; Broader fallback: any Kaspersky uninstall entry
-    Local $sDisplay = RegRead("HKLM64\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\{8ECDE29A-8617-4E32-AAA0-4DA7D4C5006E}", "DisplayName")
-    Return Not @error And StringInStr($sDisplay, "Kaspersky") > 0
+    Return (_GetKasperskyExecutable() <> "")
 EndFunc
 
 Func _WaitForKaspersky($iTimeoutSeconds)
@@ -72,17 +146,15 @@ EndFunc
 
 Func _CreateDesktopShortcut()
     If Not $g_bShortcut Then Return
-    Local $sTarget = ""
-    Local $sPath = RegRead("HKLM64\SOFTWARE\KasperskyLab\avp22\Environment", "ProductInstallDir")
-    If Not @error And $sPath <> "" Then $sTarget = $sPath & "\avpui.exe"
-    If Not FileExists($sTarget) Then Return
+    Local $sTarget = _GetKasperskyExecutable()
+    If $sTarget = "" Or Not FileExists($sTarget) Then Return
+    
     Local $iSlash = StringInStr($sTarget, "\", 0, -1)
     Local $sDir = StringLeft($sTarget, $iSlash - 1)
     Local $sLink = "C:\Users\Public\Desktop\Kaspersky.lnk"
     If FileExists($sLink) Then Return
     FileCreateShortcut($sTarget, $sLink, $sDir, "", "Kaspersky", $sTarget, "", 0, @SW_SHOW)
 EndFunc
-
 
 Func _Log($sMsg)
     Local $sLogPath = $g_sLogPath

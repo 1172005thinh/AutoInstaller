@@ -3,24 +3,13 @@
 #NoTrayIcon
 #include <AutoItConstants.au3>
 
-; Generic Chrome installer (supports both EXE and Enterprise MSI installers).
-; $CmdLine[1] = setup filename (e.g. "chrome-standalone.exe" or "chrome-standalone.msi") [optional, fallback built-in]
-; $CmdLine[2] = desktop shortcut flag ("true"/"false") [optional, fallback false]
+; Generic Chrome standalone installer (EXE and MSI support).
+; $CmdLine[1] = setup filename (e.g. "chrome-standalone.exe", "GoogleChromeStandaloneEnterprise64.msi") [optional, fallback "chrome-standalone.exe"]
+; $CmdLine[2] = desktop shortcut flag ("true"/"false")                                                  [optional, fallback false]
+; $CmdLine[4] = log path                                                                                [optional, fallback "C:\Auto-installer\install-apps.log"]
 
 Global $g_sSetupFilename = "chrome-standalone.exe"
-If $CmdLine[0] >= 1 Then
-    $g_sSetupFilename = $CmdLine[1]
-Else
-    If FileExists(@ScriptDir & "\chrome-standalone.msi") Then
-        $g_sSetupFilename = "chrome-standalone.msi"
-    ElseIf FileExists(@ScriptDir & "\chrome.msi") Then
-        $g_sSetupFilename = "chrome.msi"
-    ElseIf FileExists(@ScriptDir & "\chrome-standalone.exe") Then
-        $g_sSetupFilename = "chrome-standalone.exe"
-    ElseIf FileExists(@ScriptDir & "\chrome.exe") Then
-        $g_sSetupFilename = "chrome.exe"
-    EndIf
-EndIf
+If $CmdLine[0] >= 1 Then $g_sSetupFilename = $CmdLine[1]
 Global Const $g_sSetupPath = @ScriptDir & "\" & $g_sSetupFilename
 
 Global $g_bShortcut = False
@@ -69,7 +58,7 @@ Else
 EndIf
 
 _Log("INFO: Waiting for app to be fully registered...")
-If _WaitForChrome(900) Then
+If _WaitForChrome(120) Then
     _Log("INFO: Installation confirmed. Exiting with code 0.")
     _CreateDesktopShortcut()
     Exit 0
@@ -77,10 +66,42 @@ EndIf
 _Log("ERROR: Installation validation timed out.")
 Exit 22
 
+Func _GetChromeExe()
+    Local $aRoots[4] = ["HKLM64", "HKLM", "HKCU64", "HKCU"]
+    For $iR = 0 To UBound($aRoots) - 1
+        Local $sPath = RegRead($aRoots[$iR] & "\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\chrome.exe", "")
+        If Not @error And $sPath <> "" Then
+            $sPath = StringReplace($sPath, '"', '')
+            If FileExists($sPath) Then Return $sPath
+        EndIf
+    Next
+
+    If FileExists(@ProgramFilesDir & "\Google\Chrome\Application\chrome.exe") Then Return @ProgramFilesDir & "\Google\Chrome\Application\chrome.exe"
+    If FileExists(@ProgramFilesDir & " (x86)\Google\Chrome\Application\chrome.exe") Then Return @ProgramFilesDir & " (x86)\Google\Chrome\Application\chrome.exe"
+    If FileExists(@LocalAppDataDir & "\Google\Chrome\Application\chrome.exe") Then Return @LocalAppDataDir & "\Google\Chrome\Application\chrome.exe"
+
+    ; Scan across all user profiles
+    Local $hUsers = FileFindFirstFile("C:\Users\*")
+    If $hUsers <> -1 Then
+        While 1
+            Local $sUser = FileFindNextFile($hUsers)
+            If @error Then ExitLoop
+            If $sUser <> "." And $sUser <> ".." And $sUser <> "Public" And $sUser <> "Default" Then
+                Local $sC = "C:\Users\" & $sUser & "\AppData\Local\Google\Chrome\Application\chrome.exe"
+                If FileExists($sC) Then
+                    FileClose($hUsers)
+                    Return $sC
+                EndIf
+            EndIf
+        WEnd
+        FileClose($hUsers)
+    EndIf
+
+    Return ""
+EndFunc
+
 Func _IsChromeInstalled()
-    Local $sPath = RegRead("HKLM64\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\chrome.exe", "")
-    If Not @error And FileExists($sPath) Then Return True
-    Return FileExists(@ProgramFilesDir & "\Google\Chrome\Application\chrome.exe")
+    Return (_GetChromeExe() <> "")
 EndFunc
 
 Func _WaitForChrome($iTimeoutSeconds)
@@ -95,20 +116,18 @@ EndFunc
 Func _CreateDesktopShortcut()
     If Not $g_bShortcut Then Return
 
-    ; Chrome's installer may place its own shortcut on the current user's Desktop.
-    ; Remove it so we don't end up with two Chrome icons on the merged Desktop view.
+    ; Remove per-user shortcut if present
     Local $sUserLink = @DesktopDir & "\Google Chrome.lnk"
     If FileExists($sUserLink) Then FileDelete($sUserLink)
 
-    Local $sTarget = RegRead("HKLM64\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\chrome.exe", "")
-    If @error Or Not FileExists($sTarget) Then
-        $sTarget = @ProgramFilesDir & "\Google\Chrome\Application\chrome.exe"
-    EndIf
-    If Not FileExists($sTarget) Then Return
+    Local $sTarget = _GetChromeExe()
+    If $sTarget = "" Or Not FileExists($sTarget) Then Return
 
+    Local $iSlash = StringInStr($sTarget, "\", 0, -1)
+    Local $sDir = StringLeft($sTarget, $iSlash - 1)
     Local $sLink = "C:\Users\Public\Desktop\Google Chrome.lnk"
     If Not FileExists($sLink) Then
-        FileCreateShortcut($sTarget, $sLink, @ProgramFilesDir & "\Google\Chrome\Application", "", "Google Chrome", $sTarget, "", 0, @SW_SHOW)
+        FileCreateShortcut($sTarget, $sLink, $sDir, "", "Google Chrome", $sTarget, "", 0, @SW_SHOW)
     EndIf
 EndFunc
 

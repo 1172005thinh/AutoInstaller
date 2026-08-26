@@ -1,13 +1,15 @@
-﻿#RequireAdmin
+#RequireAdmin
 #AutoIt3Wrapper_UseX64=y
 #NoTrayIcon
 #include <AutoItConstants.au3>
 
 ; Zalo installer.
-; $CmdLine[1] = setup filename (e.g. "zalo-26.8.10.exe")
+; $CmdLine[1] = setup filename (e.g. "zalo.exe")
 ; $CmdLine[2] = desktop shortcut flag ("true"/"false")
+; $CmdLine[4] = log path                                [optional, fallback "C:\Auto-installer\install-apps.log"]
 ;
-; Zalo uses NSIS; it installs per-user to %LocalAppData%\Zalo.
+; Zalo uses NSIS; it installs per-user to %LocalAppData%\Zalo or Programs\Zalo.
+; Detection checks user and machine profiles, registry hives, and filesystem locations.
 
 Global $g_sSetupFilename = "zalo.exe"
 If $CmdLine[0] >= 1 Then $g_sSetupFilename = $CmdLine[1]
@@ -54,11 +56,52 @@ EndIf
 _Log("ERROR: Installation validation timed out.")
 Exit 22
 
+Func _GetZaloExecutable()
+    ; 1. Current user LocalAppData
+    If FileExists(@LocalAppDataDir & "\Zalo\Zalo.exe") Then Return @LocalAppDataDir & "\Zalo\Zalo.exe"
+    If FileExists(@LocalAppDataDir & "\Programs\Zalo\Zalo.exe") Then Return @LocalAppDataDir & "\Programs\Zalo\Zalo.exe"
+
+    ; 2. Scan across all user profiles under C:\Users (covers OEM/FirstLogon passes)
+    Local $hUsers = FileFindFirstFile("C:\Users\*")
+    If $hUsers <> -1 Then
+        While 1
+            Local $sUser = FileFindNextFile($hUsers)
+            If @error Then ExitLoop
+            If $sUser <> "." And $sUser <> ".." And $sUser <> "Public" And $sUser <> "Default" Then
+                Local $sC1 = "C:\Users\" & $sUser & "\AppData\Local\Zalo\Zalo.exe"
+                If FileExists($sC1) Then
+                    FileClose($hUsers)
+                    Return $sC1
+                EndIf
+                Local $sC2 = "C:\Users\" & $sUser & "\AppData\Local\Programs\Zalo\Zalo.exe"
+                If FileExists($sC2) Then
+                    FileClose($hUsers)
+                    Return $sC2
+                EndIf
+            EndIf
+        WEnd
+        FileClose($hUsers)
+    EndIf
+
+    ; 3. Program Files
+    If FileExists(@ProgramFilesDir & "\Zalo\Zalo.exe") Then Return @ProgramFilesDir & "\Zalo\Zalo.exe"
+    If FileExists(@ProgramFilesDir & " (x86)\Zalo\Zalo.exe") Then Return @ProgramFilesDir & " (x86)\Zalo\Zalo.exe"
+
+    ; 4. Registry check
+    Local $aRoots[3] = ["HKCU", "HKLM64", "HKLM"]
+    For $iR = 0 To UBound($aRoots) - 1
+        Local $sLoc = RegRead($aRoots[$iR] & "\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Zalo", "InstallLocation")
+        If Not @error And $sLoc <> "" Then
+            If StringRight($sLoc, 1) = "\" Then $sLoc = StringTrimRight($sLoc, 1)
+            If FileExists($sLoc & "\Zalo.exe") Then Return $sLoc & "\Zalo.exe"
+        EndIf
+    Next
+
+    Return ""
+EndFunc
+
 Func _IsZaloInstalled()
-    If FileExists(@LocalAppDataDir & "\Zalo\Zalo.exe") Then Return True
-    If FileExists(@LocalAppDataDir & "\Programs\Zalo\Zalo.exe") Then Return True
-    Local $sPath = RegRead("HKCU\SOFTWARE\Zalo\Update", "LastVersion")
-    Return Not @error And (FileExists(@LocalAppDataDir & "\Zalo\Zalo.exe") Or FileExists(@LocalAppDataDir & "\Programs\Zalo\Zalo.exe"))
+    Return (_GetZaloExecutable() <> "")
 EndFunc
 
 Func _WaitForZalo($iTimeoutSeconds)
@@ -71,16 +114,14 @@ Func _WaitForZalo($iTimeoutSeconds)
 EndFunc
 
 Func _CreateDesktopShortcut()
-    ; Remove shortcuts Zalo's own installer may have placed
     Local $sUserDesktop   = @UserProfileDir & "\Desktop\Zalo.lnk"
     Local $sPublicDesktop = "C:\Users\Public\Desktop\Zalo.lnk"
     If FileExists($sUserDesktop)   Then FileDelete($sUserDesktop)
     If FileExists($sPublicDesktop) Then FileDelete($sPublicDesktop)
 
     If Not $g_bShortcut Then Return
-    Local $sTarget = @LocalAppDataDir & "\Zalo\Zalo.exe"
-    If Not FileExists($sTarget) Then $sTarget = @LocalAppDataDir & "\Programs\Zalo\Zalo.exe"
-    If Not FileExists($sTarget) Then Return
+    Local $sTarget = _GetZaloExecutable()
+    If $sTarget = "" Or Not FileExists($sTarget) Then Return
 
     Local $iSlash = StringInStr($sTarget, "\", 0, -1)
     Local $sDir = StringLeft($sTarget, $iSlash - 1)
@@ -90,16 +131,11 @@ Func _CreateDesktopShortcut()
 EndFunc
 
 Func _HandleZaloPopup()
-    ; Detect any window with title "Zalo" that might be a prompt
-    ; Specifically look for the prompt asking to delete data (which usually has Yes/No options)
     If WinExists("Zalo", "") Then
-        ; Try to click the Yes button if it is a confirmation dialog
         ControlClick("Zalo", "", "&Yes")
-        ; In Vietnamese it might be "CÃ³"
-        ControlClick("Zalo", "", "CÃ³")
+        ControlClick("Zalo", "", "Có")
     EndIf
 EndFunc
-
 
 Func _Log($sMsg)
     Local $sLogPath = $g_sLogPath

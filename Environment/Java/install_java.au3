@@ -1,14 +1,15 @@
-﻿#RequireAdmin
+#RequireAdmin
 #AutoIt3Wrapper_UseX64=y
 #NoTrayIcon
 #include <AutoItConstants.au3>
 
-; Generic Java 8 installer.
-; $CmdLine[1] = setup filename (e.g. "java-8u441.exe")   [optional, fallback "java.exe"]
-; $CmdLine[2] = desktop shortcut flag ("true"/"false")   [optional, fallback false]
+; Generic Java installer.
+; $CmdLine[1] = setup filename (e.g. "java-8u441.exe", "java.exe") [optional, fallback "java.exe"]
+; $CmdLine[2] = desktop shortcut flag ("true"/"false")            [optional, fallback false]
+; $CmdLine[4] = log path                                          [optional, fallback "C:\Auto-installer\install-apps.log"]
 ;
-; Detection: checks JavaSoft registry for any Java 8 (version "1.8.*").
-; NOTE: If upgrading to Java 11+ the registry path changes; update _IsJavaInstalled accordingly.
+; Detection: dynamically inspects JavaSoft, Eclipse Adoptium, and OpenJDK registry hives
+; across 64-bit and 32-bit locations, with filesystem search fallbacks across Program Files.
 
 Global $g_sSetupFilename = "java.exe"
 If $CmdLine[0] >= 1 Then $g_sSetupFilename = $CmdLine[1]
@@ -53,11 +54,61 @@ EndIf
 _Log("ERROR: Installation validation timed out.")
 Exit 22
 
+Func _GetJavaHome()
+    Local $aRoots[2] = ["HKLM64", "HKLM"]
+    Local $aKeys[4]  = ["SOFTWARE\JavaSoft\Java Runtime Environment", "SOFTWARE\JavaSoft\Java Development Kit", "SOFTWARE\JavaSoft\JDK", "SOFTWARE\Eclipse Adoptium\JDK"]
+
+    For $iR = 0 To UBound($aRoots) - 1
+        For $iK = 0 To UBound($aKeys) - 1
+            Local $sBase = $aRoots[$iR] & "\" & $aKeys[$iK]
+            Local $sCurrentVer = RegRead($sBase, "CurrentVersion")
+            If Not @error And $sCurrentVer <> "" Then
+                Local $sHome = RegRead($sBase & "\" & $sCurrentVer, "JavaHome")
+                If StringRight($sHome, 1) = "\" Then $sHome = StringTrimRight($sHome, 1)
+                If FileExists($sHome & "\bin\java.exe") Then Return $sHome
+            EndIf
+
+            ; Enumerate subkeys under this key
+            Local $iSub = 1
+            While 1
+                Local $sSubKey = RegEnumKey($sBase, $iSub)
+                If @error Then ExitLoop
+                Local $sHomeSub = RegRead($sBase & "\" & $sSubKey, "JavaHome")
+                If StringRight($sHomeSub, 1) = "\" Then $sHomeSub = StringTrimRight($sHomeSub, 1)
+                If FileExists($sHomeSub & "\bin\java.exe") Then Return $sHomeSub
+                $iSub += 1
+            WEnd
+        Next
+    Next
+
+    ; Filesystem Search Fallbacks
+    Local $aSearchPaths[4] = [@ProgramFilesDir & "\Java", @ProgramFilesDir & " (x86)\Java", @ProgramFilesDir & "\Eclipse Adoptium", @ProgramFilesDir & "\Common Files\Oracle\Java\javapath"]
+    For $iP = 0 To UBound($aSearchPaths) - 1
+        Local $sPath = $aSearchPaths[$iP]
+        If FileExists($sPath & "\bin\java.exe") Then Return $sPath
+        If FileExists($sPath & "\java.exe") Then Return $sPath
+
+        Local $hSearch = FileFindFirstFile($sPath & "\*")
+        If $hSearch <> -1 Then
+            While 1
+                Local $sFile = FileFindNextFile($hSearch)
+                If @error Then ExitLoop
+                Local $sCandidate = $sPath & "\" & $sFile
+                If FileExists($sCandidate & "\bin\java.exe") Then
+                    FileClose($hSearch)
+                    Return $sCandidate
+                EndIf
+            WEnd
+            FileClose($hSearch)
+        EndIf
+    Next
+
+    If FileExists(@WindowsDir & "\System32\java.exe") Then Return @WindowsDir & "\System32"
+    Return ""
+EndFunc
+
 Func _IsJavaInstalled()
-    Local $sVersion = RegRead("HKLM64\SOFTWARE\JavaSoft\Java Runtime Environment", "CurrentVersion")
-    If @error Or StringLeft($sVersion, 3) <> "1.8" Then Return False
-    Local $sJavaHome = RegRead("HKLM64\SOFTWARE\JavaSoft\Java Runtime Environment\" & $sVersion, "JavaHome")
-    Return Not @error And FileExists($sJavaHome & "\bin\java.exe")
+    Return (_GetJavaHome() <> "")
 EndFunc
 
 Func _WaitForJava($iTimeoutSeconds)
@@ -71,17 +122,18 @@ EndFunc
 
 Func _CreateDesktopShortcut()
     If Not $g_bShortcut Then Return
-    Local $sVersion = RegRead("HKLM64\SOFTWARE\JavaSoft\Java Runtime Environment", "CurrentVersion")
-    If @error Then Return
-    Local $sJavaHome = RegRead("HKLM64\SOFTWARE\JavaSoft\Java Runtime Environment\" & $sVersion, "JavaHome")
-    If @error Then Return
+    Local $sJavaHome = _GetJavaHome()
+    If $sJavaHome = "" Then Return
+
+    ; Check for javaws.exe (Java Web Start in Java 8)
     Local $sTarget = $sJavaHome & "\bin\javaws.exe"
-    If Not FileExists($sTarget) Then Return
+    If Not FileExists($sTarget) Then $sTarget = $sJavaHome & "\javaws.exe"
+    If Not FileExists($sTarget) Then Return ; Modern Java (9+) does not include Java Web Start
+
     Local $sLink = "C:\Users\Public\Desktop\Java Web Start.lnk"
     If FileExists($sLink) Then Return
     FileCreateShortcut($sTarget, $sLink, $sJavaHome & "\bin", "", "Java Web Start", $sTarget, "", 0, @SW_SHOW)
 EndFunc
-
 
 Func _Log($sMsg)
     Local $sLogPath = $g_sLogPath

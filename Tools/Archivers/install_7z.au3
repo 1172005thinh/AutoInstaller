@@ -1,11 +1,12 @@
-﻿#RequireAdmin
+#RequireAdmin
 #AutoIt3Wrapper_UseX64=y
 #NoTrayIcon
 #include <AutoItConstants.au3>
 
 ; Generic 7-Zip installer.
-; $CmdLine[1] = setup filename (e.g. "7z-2602.exe")
-; $CmdLine[2] = desktop shortcut flag ("true"/"false")
+; $CmdLine[1] = setup filename (e.g. "7z2602-x64.exe", "7z.exe") [optional, fallback "7z.exe"]
+; $CmdLine[2] = desktop shortcut flag ("true"/"false")            [optional, fallback false]
+; $CmdLine[4] = log path                                          [optional, fallback "C:\Auto-installer\install-apps.log"]
 
 Global $g_sSetupFilename = "7z.exe"
 If $CmdLine[0] >= 1 Then $g_sSetupFilename = $CmdLine[1]
@@ -16,47 +17,57 @@ Global $g_sLogPath = "C:\Auto-installer\install-apps.log"
 If $CmdLine[0] >= 4 Then $g_sLogPath = $CmdLine[4]
 If $CmdLine[0] >= 2 And StringLower($CmdLine[2]) = "true" Then $g_bShortcut = True
 
-If Not FileExists($g_sSetupPath) Then
+If Not FileExists($g_sSetupPath) Then 
     _Log("ERROR: Setup file not found: " & $g_sSetupPath)
     Exit 20
 EndIf
 
-_Log("INFO: Checking if app is already installed...")
+_Log("INFO: Checking if 7-Zip is already installed...")
 If _Is7ZipInstalled() Then
-    _Log("INFO: App is already installed. Exiting with code 10.")
+    _Log("INFO: 7-Zip is already installed. Exiting with code 10.")
     _CreateDesktopShortcut()
     Exit 10
 EndIf
 
-; 7-Zip NSIS installer: /S for silent
-_Log("INFO: Starting installation...")
+_Log("INFO: Starting installation of 7-Zip: " & $g_sSetupPath)
 Local $iExitCode = RunWait('"' & $g_sSetupPath & '" /S', @ScriptDir, @SW_HIDE)
 _Log("INFO: Installer finished with exit code: " & $iExitCode)
-If @error Then
+If @error Then 
     _Log("ERROR: RunWait failed with AutoIt error: " & @error)
     Exit 21
 EndIf
 
-If $iExitCode <> 0 Then
+If $iExitCode <> 0 Then 
     _Log("ERROR: Installer returned non-zero exit code: " & $iExitCode)
     Exit $iExitCode
 EndIf
 
-_Log("INFO: Waiting for app to be fully registered...")
-If _WaitFor7Zip(60) Then
-    _Log("INFO: Installation confirmed. Exiting with code 0.")
+_Log("INFO: Waiting for 7-Zip to be fully registered...")
+If _WaitFor7Zip(120) Then
+    _Log("INFO: 7-Zip installation confirmed. Creating shortcut and exiting with code 0.")
     _CreateDesktopShortcut()
     Exit 0
 EndIf
 _Log("ERROR: Installation validation timed out.")
 Exit 22
 
+Func _Get7ZipDir()
+    Local $aRoots[3] = ["HKLM64", "HKLM", "HKCU"]
+    For $iR = 0 To UBound($aRoots) - 1
+        Local $sPath = RegRead($aRoots[$iR] & "\SOFTWARE\7-Zip", "Path")
+        If Not @error And $sPath <> "" Then
+            If StringRight($sPath, 1) = "\" Then $sPath = StringTrimRight($sPath, 1)
+            If FileExists($sPath & "\7z.exe") Or FileExists($sPath & "\7zFM.exe") Then Return $sPath
+        EndIf
+    Next
+
+    If FileExists(@ProgramFilesDir & "\7-Zip\7z.exe") Then Return @ProgramFilesDir & "\7-Zip"
+    If FileExists(@ProgramFilesDir & " (x86)\7-Zip\7z.exe") Then Return @ProgramFilesDir & " (x86)\7-Zip"
+    Return ""
+EndFunc
+
 Func _Is7ZipInstalled()
-    Local $sPath = RegRead("HKLM64\SOFTWARE\7-Zip", "Path")
-    If Not @error And FileExists($sPath & "\7z.exe") Then Return True
-    Local $sPath32 = RegRead("HKLM\SOFTWARE\7-Zip", "Path")
-    If Not @error And FileExists($sPath32 & "\7z.exe") Then Return True
-    Return FileExists(@ProgramFilesDir & "\7-Zip\7z.exe")
+    Return (_Get7ZipDir() <> "")
 EndFunc
 
 Func _WaitFor7Zip($iTimeoutSeconds)
@@ -70,15 +81,16 @@ EndFunc
 
 Func _CreateDesktopShortcut()
     If Not $g_bShortcut Then Return
-    Local $sTarget = RegRead("HKLM64\SOFTWARE\7-Zip", "Path")
-    If @error Or $sTarget = "" Then $sTarget = @ProgramFilesDir & "\7-Zip"
-    $sTarget = $sTarget & "\7zFM.exe"   ; 7-Zip File Manager (GUI)
+    Local $sDir = _Get7ZipDir()
+    If $sDir = "" Then $sDir = @ProgramFilesDir & "\7-Zip"
+    Local $sTarget = $sDir & "\7zFM.exe"   ; 7-Zip File Manager (GUI)
+    If Not FileExists($sTarget) Then $sTarget = $sDir & "\7z.exe"
     If Not FileExists($sTarget) Then Return
+
     Local $sLink = "C:\Users\Public\Desktop\7-Zip File Manager.lnk"
     If FileExists($sLink) Then Return
-    FileCreateShortcut($sTarget, $sLink, @ProgramFilesDir & "\7-Zip", "", "7-Zip File Manager", $sTarget, "", 0, @SW_SHOW)
+    FileCreateShortcut($sTarget, $sLink, $sDir, "", "7-Zip File Manager", $sTarget, "", 0, @SW_SHOW)
 EndFunc
-
 
 Func _Log($sMsg)
     Local $sLogPath = $g_sLogPath

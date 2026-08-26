@@ -1,47 +1,46 @@
-﻿#RequireAdmin
+#RequireAdmin
 #AutoIt3Wrapper_UseX64=y
 #NoTrayIcon
 #include <AutoItConstants.au3>
 
-; Office 2024 ProPlus installer wrapper.
-; $CmdLine[1] = setup filename (e.g. "office2024.exe")   [optional, fallback "office2024.exe"]
+; Office 2024 installer (ODT-based).
+; $CmdLine[1] = setup filename (e.g. "office2024.exe")  [optional, fallback "office2024.exe"]
 ; $CmdLine[2] = desktop shortcut flag ("true"/"false")   [optional, fallback false]
+; $CmdLine[4] = log path                                 [optional, fallback "C:\Auto-installer\install-apps.log"]
 ;
-; Runs: office2024.exe /configure full_en.xml  (Office Deployment Tool, silent)
-;
-; Shortcuts: created for every Office app whose EXE is present in Office16 after install.
-; This naturally honours the ExcludeApp entries in full_en.xml without XML parsing --
-; excluded apps simply won't have an EXE on disk.
-;
-; Return codes:
-;   0  = installed successfully
-;   10 = already installed
-;   20 = setup or config file missing
-;   21 = RunWait failed to launch
-;   22+ = setup returned a non-zero exit code (passed through)
+; Detection: dynamically resolves Office root from ClickToRun registry configuration
+; and verifies presence of core Office executables across 64-bit and 32-bit install paths.
 
 Global $g_sSetupFilename = "office2024.exe"
 If $CmdLine[0] >= 1 Then $g_sSetupFilename = $CmdLine[1]
-Global Const $g_sSetupPath  = @ScriptDir & "\" & $g_sSetupFilename
-Global Const $g_sConfigPath = @ScriptDir & "\full_en.xml"
+Global Const $g_sSetupPath = @ScriptDir & "\" & $g_sSetupFilename
+Global Const $g_sXmlPath   = @ScriptDir & "\full_en.xml"
 
 Global $g_bShortcut = False
 Global $g_sLogPath = "C:\Auto-installer\install-apps.log"
 If $CmdLine[0] >= 4 Then $g_sLogPath = $CmdLine[4]
 If $CmdLine[0] >= 2 And StringLower($CmdLine[2]) = "true" Then $g_bShortcut = True
 
-If Not FileExists($g_sSetupPath)  Then Exit 20
-If Not FileExists($g_sConfigPath) Then Exit 20
+If Not FileExists($g_sSetupPath) Then
+    _Log("ERROR: Setup file not found: " & $g_sSetupPath)
+    Exit 20
+EndIf
 
-_Log("INFO: Checking if app is already installed...")
+If Not FileExists($g_sXmlPath) Then
+    _Log("ERROR: Configuration XML not found: " & $g_sXmlPath)
+    Exit 20
+EndIf
+
+_Log("INFO: Checking if Office 2024 is already installed...")
 If _IsOffice2024Installed() Then
-    _Log("INFO: App is already installed. Exiting with code 10.")
+    _Log("INFO: Office 2024 is already installed. Exiting with code 10.")
     _CreateDesktopShortcuts()
     Exit 10
 EndIf
 
-_Log("INFO: Starting installation...")
-Local $iExitCode = RunWait('"' & $g_sSetupPath & '" /configure "' & $g_sConfigPath & '"', @ScriptDir, @SW_HIDE)
+_Log("INFO: Starting Office 2024 installation via ODT...")
+Local $sCmd = '"' & $g_sSetupPath & '" /configure "' & $g_sXmlPath & '"'
+Local $iExitCode = RunWait($sCmd, @ScriptDir, @SW_HIDE)
 _Log("INFO: Installer finished with exit code: " & $iExitCode)
 If @error Then
     _Log("ERROR: RunWait failed with AutoIt error: " & @error)
@@ -53,8 +52,6 @@ If $iExitCode <> 0 Then
     Exit $iExitCode
 EndIf
 
-; ODT may take time to write registry keys after the process exits.
-; Poll up to 60 seconds, then trust the exit code.
 _Log("INFO: Waiting for app to be fully registered...")
 If _WaitForOffice2024(60) Then
     _Log("INFO: Installation confirmed. Exiting with code 0.")
@@ -64,13 +61,43 @@ EndIf
 _CreateDesktopShortcuts()
 Exit 0
 
-; â”€â”€â”€ Detection â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+Func _GetOffice16Dir()
+    Local $aRoots[2] = ["HKLM64", "HKLM"]
+    For $iR = 0 To UBound($aRoots) - 1
+        Local $sRoot = RegRead($aRoots[$iR] & "\SOFTWARE\Microsoft\Office\ClickToRun\Configuration", "InstallationPath")
+        If Not @error And $sRoot <> "" Then
+            If StringRight($sRoot, 1) = "\" Then $sRoot = StringTrimRight($sRoot, 1)
+            If FileExists($sRoot & "\root\Office16\WINWORD.EXE") Then Return $sRoot & "\root\Office16"
+            If FileExists($sRoot & "\Office16\WINWORD.EXE") Then Return $sRoot & "\Office16"
+        EndIf
+    Next
+
+    Local $aCandidates[4] = [ _
+        @ProgramFilesDir & "\Microsoft Office\root\Office16", _
+        @ProgramFilesDir & "\Microsoft Office\Office16", _
+        @ProgramFilesDir & " (x86)\Microsoft Office\root\Office16", _
+        @ProgramFilesDir & " (x86)\Microsoft Office\Office16" _
+    ]
+
+    For $iC = 0 To UBound($aCandidates) - 1
+        If FileExists($aCandidates[$iC] & "\WINWORD.EXE") Or FileExists($aCandidates[$iC] & "\EXCEL.EXE") Then
+            Return $aCandidates[$iC]
+        EndIf
+    Next
+
+    Return ""
+EndFunc
 
 Func _IsOffice2024Installed()
-    Local $sIds = RegRead("HKLM64\SOFTWARE\Microsoft\Office\ClickToRun\Configuration", "ProductReleaseIds")
-    If Not @error And StringInStr($sIds, "ProPlus2024Volume") Then Return True
-    Local $sRoot = RegRead("HKLM64\SOFTWARE\Microsoft\Office\ClickToRun\Configuration", "InstallationPath")
-    If Not @error And $sRoot <> "" And FileExists($sRoot & "\root\Office16\WINWORD.EXE") Then Return True
+    Local $sOffice16 = _GetOffice16Dir()
+    If $sOffice16 <> "" Then Return True
+
+    Local $aRoots[2] = ["HKLM64", "HKLM"]
+    For $iR = 0 To UBound($aRoots) - 1
+        Local $sIds = RegRead($aRoots[$iR] & "\SOFTWARE\Microsoft\Office\ClickToRun\Configuration", "ProductReleaseIds")
+        If Not @error And (StringInStr($sIds, "2024") > 0 Or StringInStr($sIds, "ProPlus") > 0) Then Return True
+    Next
+
     Return False
 EndFunc
 
@@ -83,20 +110,12 @@ Func _WaitForOffice2024($iTimeoutSeconds)
     Return False
 EndFunc
 
-; â”€â”€â”€ Shortcuts â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-; Creates one shortcut per Office app whose EXE actually exists under Office16.
-; This naturally handles ExcludeApp entries in full_en.xml -- excluded apps have
-; no EXE on disk, so they simply get no shortcut.
-
 Func _CreateDesktopShortcuts()
     If Not $g_bShortcut Then Return
 
-    Local $sOfficePath = RegRead("HKLM64\SOFTWARE\Microsoft\Office\ClickToRun\Configuration", "InstallationPath")
-    If @error Or $sOfficePath = "" Then Return
-    Local $sOffice16 = $sOfficePath & "\root\Office16"
+    Local $sOffice16 = _GetOffice16Dir()
+    If $sOffice16 = "" Or Not FileExists($sOffice16) Then Return
 
-    ; All standard Office 2024 ProPlus executables and their friendly names.
-    ; Apps absent from disk (excluded via ODT config) are silently skipped.
     Local $aApps[7][2]
     $aApps[0][0] = "WINWORD.EXE"
     $aApps[0][1] = "Microsoft Word"
@@ -122,7 +141,6 @@ Func _CreateDesktopShortcuts()
         EndIf
     Next
 EndFunc
-
 
 Func _Log($sMsg)
     Local $sLogPath = $g_sLogPath
