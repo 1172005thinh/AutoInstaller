@@ -1,0 +1,43 @@
+# GRUB2 gfxmenu Linux theme
+# Designed for ratio 16:9 Light style
+
+# Global Property
+title-text: ""
+desktop-image: "light_htc_1600x900.jpg"
+desktop-color: "#3B3B39"
+terminal-font: "Cascadia Code Regular 20"
+terminal-left: "15%"
+terminal-top: "16%"
+terminal-width: "55%"
+terminal-height: "64%"
+terminal-border: "0"
+
+# Show the boot menu
++ boot_menu {
+  left = 18%
+  top = 18%
+  width = 50%
+  height = 64%
+  item_font = "Cascadia Code Regular 28"
+  item_color = "#6C6E70"
+  selected_item_color = "#CDCDCD"
+  icon_width = 76
+  icon_height = 76
+  item_icon_space = 24
+  item_height = 76
+  item_padding = 10
+  item_spacing = 16
+  selected_item_pixmap_style = "select_*.png"
+}
+
+# Show a countdown message using the label component
++ label {
+  top = 11%
+  left = 30%
+  width = 36%
+  align = "left"
+  id = "__timeout__"
+  text = "Booting in %d seconds"
+  color = "#CDCDCD"
+  font = "Cascadia Code Regular 20"
+}
