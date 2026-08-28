@@ -21,7 +21,7 @@ PROMPT.md
 # Will be released later
 AUTOINSTALLER.md
 
-#Keep
+# Keep
 !/.gitignore
 !/README.md
 !/LICENSE.md
@@ -37,6 +37,7 @@ AUTOINSTALLER.md
 !/aea541d7f9574587656dc5125116e548.md5
 !/Antivirus
 !/Browsers
+!/Docs
 !/Drivers
 !/Environment
 !/Socials
@@ -44,3 +45,6 @@ AUTOINSTALLER.md
 !/Unattend
 !/Utilities
 !/ventoy
+
+desktop.ini
+**/[Dd]esktop.ini

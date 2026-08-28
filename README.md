@@ -102,7 +102,7 @@ AutoInstaller/
 └── wallpaper.png                               <-- Example wallpaper image
 ```
 
-For a detailed folder structure, please refer to [Repo Structure](REPO_STRUCTURE.md).
+For a detailed folder structure, please refer to [Repo Structure](Docs/REPO_STRUCTURE.md).
 
 ## 🚀 HOW TO BUILD YOUR OWN BOOTABLE USB DRIVE?
 
@@ -302,7 +302,7 @@ This is the easiest part as you just need to modify the options in [configure-wi
 
 **7. ✅ VALIDATION**
 
-Please have a look at [USB Structure](USB_STRUCTURE.md) to verify if your USB has been set up properly.
+Please have a look at [USB Structure](Docs/USB_STRUCTURE.md) to verify if your USB has been set up properly.
 
 ## 🔮 INCOMING FEATURES
 
