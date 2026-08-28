@@ -5,6 +5,7 @@
     "theme":{
         "file":[
             "/ventoy/theme/1172005thinh/dark_fb_1024x768.txt",
+            "/ventoy/theme/1172005thinh/dark_fb_1152x864.txt",
             "/ventoy/theme/1172005thinh/dark_fb_1280x720.txt",
             "/ventoy/theme/1172005thinh/dark_fb_1366x768.txt",
             "/ventoy/theme/1172005thinh/dark_fb_1600x1200.txt",
@@ -16,6 +17,7 @@
             "/ventoy/theme/1172005thinh/dark_fb_3840x2160.txt",
             "/ventoy/theme/1172005thinh/dark_fb_3840x2400.txt",
             "/ventoy/theme/1172005thinh/dark_gh_1024x768.txt",
+            "/ventoy/theme/1172005thinh/dark_gh_1152x864.txt",
             "/ventoy/theme/1172005thinh/dark_gh_1280x720.txt",
             "/ventoy/theme/1172005thinh/dark_gh_1366x768.txt",
             "/ventoy/theme/1172005thinh/dark_gh_1600x1200.txt",
@@ -39,6 +41,7 @@
             "/ventoy/theme/1172005thinh/dark_htc_3840x2160.txt",
             "/ventoy/theme/1172005thinh/dark_htc_3840x2400.txt",
             "/ventoy/theme/1172005thinh/light_fb_1024x768.txt",
+            "/ventoy/theme/1172005thinh/light_fb_1152x864.txt",
             "/ventoy/theme/1172005thinh/light_fb_1280x720.txt",
             "/ventoy/theme/1172005thinh/light_fb_1366x768.txt",
             "/ventoy/theme/1172005thinh/light_fb_1600x1200.txt",
@@ -50,6 +53,7 @@
             "/ventoy/theme/1172005thinh/light_fb_3840x2160.txt",
             "/ventoy/theme/1172005thinh/light_fb_3840x2400.txt",
             "/ventoy/theme/1172005thinh/light_gh_1024x768.txt",
+            "/ventoy/theme/1172005thinh/light_gh_1152x864.txt",
             "/ventoy/theme/1172005thinh/light_gh_1280x720.txt",
             "/ventoy/theme/1172005thinh/light_gh_1366x768.txt",
             "/ventoy/theme/1172005thinh/light_gh_1600x1200.txt",
