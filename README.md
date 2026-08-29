@@ -32,7 +32,7 @@ Your machine, your own personalized Windows, softwares and configuration in your
 
         | Dark Theme Preview | Light Theme Preview |
         | :---: | :---: |
-        | ![Dark Theme Preview](ventoy/theme/preview_dark43.png) | ![Light Theme Preview](ventoy/theme/preview_light43.png) |
+        | ![Dark Theme Preview](Docs/preview_dark43.png) | ![Light Theme Preview](Docs/preview_light43.png) |
 
     - A custom Ventoy configuration [ventoy/ventoy.json.example](ventoy/ventoy.json.example) with pre-defined `Menu Alias`, `Menu Tips`, `Themes`, `Menu Class`, and `Auto-select` with [unattend scripts](Unattend):
         + **Menu Alias**: Replace the default image name with a custom name.

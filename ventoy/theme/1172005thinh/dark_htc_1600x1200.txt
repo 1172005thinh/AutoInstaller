@@ -6,9 +6,10 @@ title-text: ""
 desktop-image: "dark_htc_1600x1200.jpg"
 desktop-color: "#3B3B39"
 terminal-font: "Cascadia Code Regular 20"
-terminal-left: "6%"
-terminal-top: "18%"
-terminal-width: "60%"
+terminal-box: "terminal_*.png"
+terminal-left: "9%"
+terminal-top: "16%"
+terminal-width: "50%"
 terminal-height: "64%"
 terminal-border: "0"
 
@@ -21,10 +22,10 @@ terminal-border: "0"
   item_font = "Cascadia Code Regular 28"
   item_color = "#6C6E70"
   selected_item_color = "#CDCDCD"
-  icon_width = 84
-  icon_height = 84
+  icon_width = 76
+  icon_height = 76
   item_icon_space = 24
-  item_height = 84
+  item_height = 76
   item_padding = 10
   item_spacing = 16
   selected_item_pixmap_style = "select_*.png"

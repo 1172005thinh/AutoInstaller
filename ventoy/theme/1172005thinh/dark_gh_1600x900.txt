@@ -5,10 +5,11 @@
 title-text: ""
 desktop-image: "dark_gh_1600x900.jpg"
 desktop-color: "#3B3B39"
-terminal-font: "Cascadia Code Regular 20"
-terminal-left: "15%"
+terminal-font: "Cascadia Code Regular 12"
+terminal-box: "terminal_*.png"
+terminal-left: "18%"
 terminal-top: "16%"
-terminal-width: "55%"
+terminal-width: "50%"
 terminal-height: "64%"
 terminal-border: "0"
 
@@ -18,15 +19,15 @@ terminal-border: "0"
   top = 18%
   width = 50%
   height = 64%
-  item_font = "Cascadia Code Regular 28"
+  item_font = "Cascadia Code Regular 20"
   item_color = "#6C6E70"
   selected_item_color = "#CDCDCD"
-  icon_width = 76
-  icon_height = 76
-  item_icon_space = 24
-  item_height = 76
-  item_padding = 10
-  item_spacing = 16
+  icon_width = 56
+  icon_height = 56
+  item_icon_space = 16
+  item_height = 64
+  item_padding = 8
+  item_spacing = 12
   selected_item_pixmap_style = "select_*.png"
 }
 
@@ -39,5 +40,5 @@ terminal-border: "0"
   id = "__timeout__"
   text = "Booting in %d seconds"
   color = "#CDCDCD"
-  font = "Cascadia Code Regular 20"
+  font = "Cascadia Code Regular 12"
 }

@@ -5,10 +5,11 @@
 title-text: ""
 desktop-image: "dark_fb_1600x900.jpg"
 desktop-color: "#3B3B39"
-terminal-font: "Cascadia Code Regular 20"
-terminal-left: "15%"
+terminal-font: "Cascadia Code Regular 16"
+terminal-box: "terminal_*.png"
+terminal-left: "18%"
 terminal-top: "16%"
-terminal-width: "55%"
+terminal-width: "50%"
 terminal-height: "64%"
 terminal-border: "0"
 
@@ -18,7 +19,7 @@ terminal-border: "0"
   top = 18%
   width = 50%
   height = 64%
-  item_font = "Cascadia Code Regular 28"
+  item_font = "Cascadia Code Regular 24"
   item_color = "#6C6E70"
   selected_item_color = "#CDCDCD"
   icon_width = 76
@@ -39,5 +40,5 @@ terminal-border: "0"
   id = "__timeout__"
   text = "Booting in %d seconds"
   color = "#CDCDCD"
-  font = "Cascadia Code Regular 20"
+  font = "Cascadia Code Regular 16"
 }
