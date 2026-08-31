@@ -1,6 +1,6 @@
 # <img src="icon.png" width="32" height="32" valign="middle"  /> AUTOINSTALLER
 
-![Version](https://img.shields.io/badge/version-0.1-blue)
+![Version](https://img.shields.io/badge/version-0.1.1-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Platform](https://img.shields.io/badge/platform-Windows-lightgrey)
 ![DEV](https://img.shields.io/badge/status-in_development-orange)
@@ -66,7 +66,7 @@ This repository is a `collection`, the source tree is not a representation of th
 
 Overall, the tree looks like this:
 
-> Note that some `*.md`, `.gitignore`, `mini-installer directories`, `.git` have been skipped for a better reading volume.
+> Note that some `*.md`, `.gitignore`, `mini-installer directories`, `.git` and `Docs` have been skipped for a better reading volume.
 
 ``` txt
 AutoInstaller/
@@ -75,6 +75,7 @@ AutoInstaller/
 │   └── install_*.au3                           <-- AutoIt script to install a specific app
 ├── Unattend
 │   └── *.xml                                   <-- Unattend scripts for Windows installation
+├── Docs                                        <-- Documentation
 ├── ventoy
 │   ├── font
 │   │   └── cascadia-code
