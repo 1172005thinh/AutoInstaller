@@ -785,24 +785,50 @@ switch -Regex ($cpView) {
 # ==============================================================================
 Write-Log "INFO: [24..25] Configuring Wallpapers..."
 
+# Directory to permanently store local wallpapers on the OS
+$publicWpDir = Join-Path ([Environment]::GetFolderPath('CommonPictures')) 'Wallpaper'
+if (-not (Test-Path -LiteralPath $publicWpDir)) {
+    try {
+        New-Item -ItemType Directory -Path $publicWpDir -Force | Out-Null
+    } catch {
+        $publicWpDir = 'C:\Users\Public\Pictures\Wallpaper'
+        New-Item -ItemType Directory -Path $publicWpDir -Force | Out-Null
+    }
+}
+
 # 24. Desktop Wallpaper
 $desktopWp = Get-IniValue -Ini $iniConfig -Section 'wallpaper' -Key 'desktop' -Default 'Default'
 $wpPath = 'C:\Windows\Web\Wallpaper\Windows\img0.jpg'
 
 if ($desktopWp.ToLowerInvariant() -ne 'default') {
+    $srcWp = $null
     if ($desktopWp.StartsWith('http://') -or $desktopWp.StartsWith('https://')) {
         try {
-            $destWp = 'C:\Auto-installer\wallpaper.jpg'
+            $destWp = Join-Path $publicWpDir 'wallpaper.jpg'
             Invoke-WebRequest -Uri $desktopWp -OutFile $destWp -UseBasicParsing -TimeoutSec 30
             $wpPath = $destWp
-            Write-Log "INFO: [24] Downloaded desktop wallpaper from $desktopWp."
+            Write-Log "INFO: [24] Downloaded desktop wallpaper from $desktopWp to $destWp."
         } catch {
             Write-Log "WARN: [24] Failed to download wallpaper URL: $($_.Exception.Message)"
         }
     } elseif (Test-Path -LiteralPath $desktopWp) {
-        $wpPath = (Resolve-Path -LiteralPath $desktopWp).Path
+        $srcWp = (Resolve-Path -LiteralPath $desktopWp).Path
     } elseif (Test-Path -LiteralPath (Join-Path $PSScriptRoot $desktopWp)) {
-        $wpPath = (Join-Path $PSScriptRoot $desktopWp)
+        $srcWp = (Join-Path $PSScriptRoot $desktopWp)
+    }
+
+    if ($srcWp -and (Test-Path -LiteralPath $srcWp)) {
+        try {
+            $ext = [System.IO.Path]::GetExtension($srcWp)
+            if (-not $ext) { $ext = '.jpg' }
+            $destWp = Join-Path $publicWpDir "wallpaper$ext"
+            Copy-Item -LiteralPath $srcWp -Destination $destWp -Force
+            $wpPath = $destWp
+            Write-Log "INFO: [24] Copied desktop wallpaper to $destWp."
+        } catch {
+            $wpPath = $srcWp
+            Write-Log "WARN: [24] Failed to copy desktop wallpaper to Public folder: $($_.Exception.Message)"
+        }
     }
 }
 
@@ -829,26 +855,71 @@ public class WPSetter {
 $lockscreenWp = Get-IniValue -Ini $iniConfig -Section 'wallpaper' -Key 'lockscreen' -Default 'Default'
 if ($lockscreenWp.ToLowerInvariant() -ne 'default') {
     $lockPath = $null
+    $srcLock = $null
     if ($lockscreenWp.StartsWith('http://') -or $lockscreenWp.StartsWith('https://')) {
         try {
-            $destLock = 'C:\Auto-installer\lockscreen.jpg'
+            $destLock = Join-Path $publicWpDir 'lockscreen.jpg'
             Invoke-WebRequest -Uri $lockscreenWp -OutFile $destLock -UseBasicParsing -TimeoutSec 30
             $lockPath = $destLock
+            Write-Log "INFO: [25] Downloaded lockscreen wallpaper from $lockscreenWp to $destLock."
         } catch {
             Write-Log "WARN: [25] Failed to download lockscreen URL: $($_.Exception.Message)"
         }
     } elseif (Test-Path -LiteralPath $lockscreenWp) {
-        $lockPath = (Resolve-Path -LiteralPath $lockscreenWp).Path
+        $srcLock = (Resolve-Path -LiteralPath $lockscreenWp).Path
     } elseif (Test-Path -LiteralPath (Join-Path $PSScriptRoot $lockscreenWp)) {
-        $lockPath = (Join-Path $PSScriptRoot $lockscreenWp)
+        $srcLock = (Join-Path $PSScriptRoot $lockscreenWp)
+    }
+
+    if ($srcLock -and (Test-Path -LiteralPath $srcLock)) {
+        try {
+            $ext = [System.IO.Path]::GetExtension($srcLock)
+            if (-not $ext) { $ext = '.jpg' }
+            $destLock = Join-Path $publicWpDir "lockscreen$ext"
+            Copy-Item -LiteralPath $srcLock -Destination $destLock -Force
+            $lockPath = $destLock
+            Write-Log "INFO: [25] Copied lock screen wallpaper to $destLock."
+        } catch {
+            $lockPath = $srcLock
+            Write-Log "WARN: [25] Failed to copy lock screen wallpaper to Public folder: $($_.Exception.Message)"
+        }
     }
 
     if ($lockPath -and (Test-Path -LiteralPath $lockPath)) {
-        Set-RegValue 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Personalization' 'LockScreenImage' $lockPath 'String'
-        Set-RegValue 'HKLM:\Software\Microsoft\Windows\CurrentVersion\PersonalizationCSP' 'LockScreenImagePath' $lockPath 'String'
-        Write-Log "INFO: [25] Lock screen wallpaper set: $lockPath."
+        try {
+            Add-Type -AssemblyName System.Runtime.WindowsRuntime -ErrorAction SilentlyContinue
+            [Windows.Storage.StorageFile, Windows.Storage, ContentType=WindowsRuntime] | Out-Null
+            [Windows.System.UserProfile.LockScreen, Windows.System.UserProfile, ContentType=WindowsRuntime] | Out-Null
+
+            $asTaskGeneric = [System.WindowsRuntimeSystemExtensions].GetMethods() | Where-Object { 
+                $_.Name -eq 'AsTask' -and $_.GetParameters().Count -eq 1 -and $_.DeclaringType.Name -eq 'WindowsRuntimeSystemExtensions' -and $_.ContainsGenericParameters 
+            } | Select-Object -First 1
+
+            $asTaskAction = ([System.WindowsRuntimeSystemExtensions].GetMethods() | Where-Object { 
+                $_.Name -eq 'AsTask' -and $_.GetParameters().Count -eq 1 -and -not $_.ContainsGenericParameters -and $_.GetParameters()[0].ParameterType.Name -eq 'IAsyncAction' 
+            })[0]
+
+            $getFileOp = [Windows.Storage.StorageFile]::GetFileFromPathAsync($lockPath)
+            $netTask = $asTaskGeneric.MakeGenericMethod([Windows.Storage.StorageFile]).Invoke($null, @($getFileOp))
+            $netTask.Wait(10000) | Out-Null
+            $storageFile = $netTask.Result
+
+            $setLockOp = [Windows.System.UserProfile.LockScreen]::SetImageFileAsync($storageFile)
+            $netActionTask = $asTaskAction.Invoke($null, @($setLockOp))
+            $netActionTask.Wait(10000) | Out-Null
+
+            Write-Log "INFO: [25] Lock screen wallpaper set via WinRT: $lockPath."
+        } catch {
+            Write-Log "WARN: [25] WinRT LockScreen API failed: $($_.Exception.Message)"
+        }
     }
 }
+
+# Ensure policy keys are removed so Settings app remains fully personalizable
+Remove-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Personalization' -Name 'LockScreenImage' -ErrorAction SilentlyContinue
+Remove-ItemProperty -Path 'HKLM:\Software\Microsoft\Windows\CurrentVersion\PersonalizationCSP' -Name 'LockScreenImagePath' -ErrorAction SilentlyContinue
+Remove-ItemProperty -Path 'HKLM:\Software\Microsoft\Windows\CurrentVersion\PersonalizationCSP' -Name 'LockScreenImageUrl' -ErrorAction SilentlyContinue
+Remove-ItemProperty -Path 'HKLM:\Software\Microsoft\Windows\CurrentVersion\PersonalizationCSP' -Name 'LockScreenImageStatus' -ErrorAction SilentlyContinue
 
 # ==============================================================================
 # 29. Region & Format Settings
