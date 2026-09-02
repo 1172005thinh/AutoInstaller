@@ -1,5 +1,7 @@
 # REPO STRUCTURE
 
+> *I do not update this file regularly, so this file may not be up to date.*
+
 A complete structure of AutoInstaller repository:
 
 ``` txt
@@ -7,18 +9,35 @@ AutoInstaller/
 ├── .git
 │   └── ...
 ├── Antivirus
+│   ├── .gitignore
 │   ├── install_kaspersky.au3
 │   └── README.md
 ├── Browsers
+│   ├── .gitignore
 │   ├── install_chrome-standalone.au3
 │   └── README.md
+├── Docs
+│   ├── .gitignore
+│   ├── preview_dark1610.png
+│   ├── preview_dark169.png
+│   ├── preview_dark219.png
+│   ├── preview_dark43.png
+│   ├── preview_light1610.png
+│   ├── preview_light169.png
+│   ├── preview_light219.png
+│   ├── preview_light43.png
+│   ├── REPO_STRUCTURE.md
+│   └── USB_STRUCTURE.md
 ├── Drivers
 │   ├── SDIO
+│   │   └── ...
+│   ├── .gitignore
 │   └── README.md
 ├── Environment
 │   ├── IDEs
 │   │   ├── install_vs.au3
-│   │   └── README.md
+│   │   ├── README.md
+│   │   └── vs.exe
 │   ├── Java
 │   │   ├── install_java.au3
 │   │   └── README.md
@@ -26,43 +45,53 @@ AutoInstaller/
 │   │   ├── install_python.au3
 │   │   └── README.md
 │   ├── VCRedist
-│   │   ├── install_vcredist.au3
-│   │   └── README.md
+│   │   └── install_vcredist.au3
+│   ├── .gitignore
 │   └── README.md
 ├── Office
 │   ├── LibreOffice
 │   │   ├── install_libreoffice.au3
-│   │   └── README.md      
+│   │   └── README.md
 │   ├── Office2024
 │   │   ├── full_en.xml
 │   │   ├── full_vi.xml
-│   │   ├── wepa_en.xml
-│   │   ├── we_en.xml
-│   │   ├── wep_en.xml
 │   │   ├── install_office2024.au3
-│   │   └── README.md
+│   │   ├── README.md
+│   │   ├── we_en.xml
+│   │   ├── we_vi.xml
+│   │   ├── wep_en.xml
+│   │   ├── wep_vi.xml
+│   │   ├── wepa_en.xml
+│   │   └── wepa_vi.xml
+│   ├── .gitignore
 │   └── README.md
 ├── Socials
+│   ├── .gitignore
 │   ├── install_discord.au3
 │   ├── install_zalo.au3
-│   └── README.md
+│   ├── README.md
 ├── Tools
 │   ├── Archivers
 │   │   ├── .gitignore
 │   │   ├── install_7z.au3
 │   │   ├── install_winrar.au3
-│   │   └── README.md
+│   │   ├── rarreg.key.example
+│   │   ├── README.md
 │   ├── DesktopSupporters
 │   │   ├── install_teamviewer.au3
 │   │   ├── install_ultraviewer.au3
-│   │   └── README.md
+│   │   ├── README.md
 │   ├── Editors
 │   │   ├── install_notepadpp.au3
 │   │   ├── install_vscode.au3
+│   │   ├── README.md
+│   ├── ScreenRecorders
+│   │   ├── install_obs.au3
 │   │   └── README.md
-│   └── ScreenRecorders
-│       ├── install_obs.au3
-│       └── README.md
+│   ├── Torrents
+│   │   └── README.md
+│   ├── .gitignore
+│   └── README.md
 ├── Unattend
 │   ├── .gitignore
 │   ├── full_C.xml
@@ -90,10 +119,11 @@ AutoInstaller/
 │   ├── MediaPlayers
 │   │   ├── install_mpc.au3
 │   │   └── README.md
-│   └── VietnameseKeyboards
-│       ├── install_unikey.au3
-│       ├── unikey.reg
-│       └── README.md
+│   ├── VietnameseKeyboards
+│   │   ├── install_unikey.au3
+│   │   └── unikey.reg
+│   ├── .gitignore
+│   └── README.md
 ├── ventoy
 │   ├── font
 │   │   └── cascadia-code
@@ -190,66 +220,190 @@ AutoInstaller/
 │   │   │   │   ├── windows.png
 │   │   │   │   ├── xubuntu.png
 │   │   │   │   └── zorin.png
-│   │   │   ├── background_dark1610_fb.jpg
-│   │   │   ├── background_dark1610_gh.jpg
-│   │   │   ├── background_dark1610_htc.jpg
-│   │   │   ├── background_dark169_fb.jpg
-│   │   │   ├── background_dark169_gh.jpg
-│   │   │   ├── background_dark169_htc.jpg
-│   │   │   ├── background_dark43_fb.jpg
-│   │   │   ├── background_dark43_gh.jpg
-│   │   │   ├── background_dark43_htc.jpg
-│   │   │   ├── background_light1610_fb.jpg
-│   │   │   ├── background_light1610_gh.jpg
-│   │   │   ├── background_light1610_htc.jpg
-│   │   │   ├── background_light169_fb.jpg
-│   │   │   ├── background_light169_gh.jpg
-│   │   │   ├── background_light169_htc.jpg
-│   │   │   ├── background_light43_fb.jpg
-│   │   │   ├── background_light43_gh.jpg
-│   │   │   ├── background_light43_htc.jpg
-│   │   │   ├── cascadia-code_16.pf2
-│   │   │   ├── cascadia-code_28.pf2
+│   │   │   ├── dark_fb_1024x768.jpg
+│   │   │   ├── dark_fb_1024x768.txt
+│   │   │   ├── dark_fb_1152x864.jpg
+│   │   │   ├── dark_fb_1152x864.txt
+│   │   │   ├── dark_fb_1280x720.jpg
+│   │   │   ├── dark_fb_1280x720.txt
+│   │   │   ├── dark_fb_1366x768.jpg
+│   │   │   ├── dark_fb_1366x768.txt
+│   │   │   ├── dark_fb_1600x1200.jpg
+│   │   │   ├── dark_fb_1600x1200.txt
+│   │   │   ├── dark_fb_1600x900.jpg
+│   │   │   ├── dark_fb_1600x900.txt
+│   │   │   ├── dark_fb_1920x1080.jpg
+│   │   │   ├── dark_fb_1920x1080.txt
+│   │   │   ├── dark_fb_1920x1200.jpg
+│   │   │   ├── dark_fb_1920x1200.txt
+│   │   │   ├── dark_fb_2560x1080.jpg
+│   │   │   ├── dark_fb_2560x1080.txt
+│   │   │   ├── dark_fb_2560x1440.jpg
+│   │   │   ├── dark_fb_2560x1440.txt
+│   │   │   ├── dark_fb_2560x1600.jpg
+│   │   │   ├── dark_fb_2560x1600.txt
+│   │   │   ├── dark_fb_3440x1440.jpg
+│   │   │   ├── dark_fb_3440x1440.txt
+│   │   │   ├── dark_fb_3840x2160.jpg
+│   │   │   ├── dark_fb_3840x2160.txt
+│   │   │   ├── dark_fb_3840x2400.jpg
+│   │   │   ├── dark_fb_3840x2400.txt
+│   │   │   ├── dark_gh_1024x768.jpg
+│   │   │   ├── dark_gh_1024x768.txt
+│   │   │   ├── dark_gh_1152x864.jpg
+│   │   │   ├── dark_gh_1152x864.txt
+│   │   │   ├── dark_gh_1280x720.jpg
+│   │   │   ├── dark_gh_1280x720.txt
+│   │   │   ├── dark_gh_1366x768.jpg
+│   │   │   ├── dark_gh_1366x768.txt
+│   │   │   ├── dark_gh_1600x1200.jpg
+│   │   │   ├── dark_gh_1600x1200.txt
+│   │   │   ├── dark_gh_1600x900.jpg
+│   │   │   ├── dark_gh_1600x900.txt
+│   │   │   ├── dark_gh_1920x1080.jpg
+│   │   │   ├── dark_gh_1920x1080.txt
+│   │   │   ├── dark_gh_1920x1200.jpg
+│   │   │   ├── dark_gh_1920x1200.txt
+│   │   │   ├── dark_gh_2560x1080.jpg
+│   │   │   ├── dark_gh_2560x1080.txt
+│   │   │   ├── dark_gh_2560x1440.jpg
+│   │   │   ├── dark_gh_2560x1440.txt
+│   │   │   ├── dark_gh_2560x1600.jpg
+│   │   │   ├── dark_gh_2560x1600.txt
+│   │   │   ├── dark_gh_3440x1440.jpg
+│   │   │   ├── dark_gh_3440x1440.txt
+│   │   │   ├── dark_gh_3840x2160.jpg
+│   │   │   ├── dark_gh_3840x2160.txt
+│   │   │   ├── dark_gh_3840x2400.jpg
+│   │   │   ├── dark_gh_3840x2400.txt
+│   │   │   ├── dark_htc_1024x768.jpg
+│   │   │   ├── dark_htc_1024x768.txt
+│   │   │   ├── dark_htc_1152x864.jpg
+│   │   │   ├── dark_htc_1152x864.txt
+│   │   │   ├── dark_htc_1280x720.jpg
+│   │   │   ├── dark_htc_1280x720.txt
+│   │   │   ├── dark_htc_1366x768.jpg
+│   │   │   ├── dark_htc_1366x768.txt
+│   │   │   ├── dark_htc_1600x1200.jpg
+│   │   │   ├── dark_htc_1600x1200.txt
+│   │   │   ├── dark_htc_1600x900.jpg
+│   │   │   ├── dark_htc_1600x900.txt
+│   │   │   ├── dark_htc_1920x1080.jpg
+│   │   │   ├── dark_htc_1920x1080.txt
+│   │   │   ├── dark_htc_1920x1200.jpg
+│   │   │   ├── dark_htc_1920x1200.txt
+│   │   │   ├── dark_htc_2560x1080.jpg
+│   │   │   ├── dark_htc_2560x1080.txt
+│   │   │   ├── dark_htc_2560x1440.jpg
+│   │   │   ├── dark_htc_2560x1440.txt
+│   │   │   ├── dark_htc_2560x1600.jpg
+│   │   │   ├── dark_htc_2560x1600.txt
+│   │   │   ├── dark_htc_3440x1440.jpg
+│   │   │   ├── dark_htc_3440x1440.txt
+│   │   │   ├── dark_htc_3840x2160.jpg
+│   │   │   ├── dark_htc_3840x2160.txt
+│   │   │   ├── dark_htc_3840x2400.jpg
+│   │   │   ├── dark_htc_3840x2400.txt
+│   │   │   ├── light_fb_1024x768.jpg
+│   │   │   ├── light_fb_1024x768.txt
+│   │   │   ├── light_fb_1152x864.jpg
+│   │   │   ├── light_fb_1152x864.txt
+│   │   │   ├── light_fb_1280x720.jpg
+│   │   │   ├── light_fb_1280x720.txt
+│   │   │   ├── light_fb_1366x768.jpg
+│   │   │   ├── light_fb_1366x768.txt
+│   │   │   ├── light_fb_1600x1200.jpg
+│   │   │   ├── light_fb_1600x1200.txt
+│   │   │   ├── light_fb_1600x900.jpg
+│   │   │   ├── light_fb_1600x900.txt
+│   │   │   ├── light_fb_1920x1080.jpg
+│   │   │   ├── light_fb_1920x1080.txt
+│   │   │   ├── light_fb_1920x1200.jpg
+│   │   │   ├── light_fb_1920x1200.txt
+│   │   │   ├── light_fb_2560x1080.jpg
+│   │   │   ├── light_fb_2560x1080.txt
+│   │   │   ├── light_fb_2560x1440.jpg
+│   │   │   ├── light_fb_2560x1440.txt
+│   │   │   ├── light_fb_2560x1600.jpg
+│   │   │   ├── light_fb_2560x1600.txt
+│   │   │   ├── light_fb_3440x1440.jpg
+│   │   │   ├── light_fb_3440x1440.txt
+│   │   │   ├── light_fb_3840x2160.jpg
+│   │   │   ├── light_fb_3840x2160.txt
+│   │   │   ├── light_fb_3840x2400.jpg
+│   │   │   ├── light_fb_3840x2400.txt
+│   │   │   ├── light_gh_1024x768.jpg
+│   │   │   ├── light_gh_1024x768.txt
+│   │   │   ├── light_gh_1152x864.jpg
+│   │   │   ├── light_gh_1152x864.txt
+│   │   │   ├── light_gh_1280x720.jpg
+│   │   │   ├── light_gh_1280x720.txt
+│   │   │   ├── light_gh_1366x768.jpg
+│   │   │   ├── light_gh_1366x768.txt
+│   │   │   ├── light_gh_1600x1200.jpg
+│   │   │   ├── light_gh_1600x1200.txt
+│   │   │   ├── light_gh_1600x900.jpg
+│   │   │   ├── light_gh_1600x900.txt
+│   │   │   ├── light_gh_1920x1080.jpg
+│   │   │   ├── light_gh_1920x1080.txt
+│   │   │   ├── light_gh_1920x1200.jpg
+│   │   │   ├── light_gh_1920x1200.txt
+│   │   │   ├── light_gh_2560x1080.jpg
+│   │   │   ├── light_gh_2560x1080.txt
+│   │   │   ├── light_gh_2560x1440.jpg
+│   │   │   ├── light_gh_2560x1440.txt
+│   │   │   ├── light_gh_2560x1600.jpg
+│   │   │   ├── light_gh_2560x1600.txt
+│   │   │   ├── light_gh_3440x1440.jpg
+│   │   │   ├── light_gh_3440x1440.txt
+│   │   │   ├── light_gh_3840x2160.jpg
+│   │   │   ├── light_gh_3840x2160.txt
+│   │   │   ├── light_gh_3840x2400.jpg
+│   │   │   ├── light_gh_3840x2400.txt
+│   │   │   ├── light_htc_1024x768.jpg
+│   │   │   ├── light_htc_1024x768.txt
+│   │   │   ├── light_htc_1152x864.jpg
+│   │   │   ├── light_htc_1152x864.txt
+│   │   │   ├── light_htc_1280x720.jpg
+│   │   │   ├── light_htc_1280x720.txt
+│   │   │   ├── light_htc_1366x768.jpg
+│   │   │   ├── light_htc_1366x768.txt
+│   │   │   ├── light_htc_1600x1200.jpg
+│   │   │   ├── light_htc_1600x1200.txt
+│   │   │   ├── light_htc_1600x900.jpg
+│   │   │   ├── light_htc_1600x900.txt
+│   │   │   ├── light_htc_1920x1080.jpg
+│   │   │   ├── light_htc_1920x1080.txt
+│   │   │   ├── light_htc_1920x1200.jpg
+│   │   │   ├── light_htc_1920x1200.txt
+│   │   │   ├── light_htc_2560x1080.jpg
+│   │   │   ├── light_htc_2560x1080.txt
+│   │   │   ├── light_htc_2560x1440.jpg
+│   │   │   ├── light_htc_2560x1440.txt
+│   │   │   ├── light_htc_2560x1600.jpg
+│   │   │   ├── light_htc_2560x1600.txt
+│   │   │   ├── light_htc_3440x1440.jpg
+│   │   │   ├── light_htc_3440x1440.txt
+│   │   │   ├── light_htc_3840x2160.jpg
+│   │   │   ├── light_htc_3840x2160.txt
+│   │   │   ├── light_htc_3840x2400.jpg
+│   │   │   ├── light_htc_3840x2400.txt
 │   │   │   ├── select_c.png
 │   │   │   ├── select_e.png
-│   │   │   ├── select_w.png
-│   │   │   ├── theme_dark1610_fb.txt
-│   │   │   ├── theme_dark1610_gh.txt
-│   │   │   ├── theme_dark1610_htc.txt
-│   │   │   ├── theme_dark169_fb.txt
-│   │   │   ├── theme_dark169_gh.txt
-│   │   │   ├── theme_dark169_htc.txt
-│   │   │   ├── theme_dark43_fb.txt
-│   │   │   ├── theme_dark43_gh.txt
-│   │   │   ├── theme_dark43_htc.txt
-│   │   │   ├── theme_light1610_fb.txt
-│   │   │   ├── theme_light1610_gh.txt
-│   │   │   ├── theme_light1610_htc.txt
-│   │   │   ├── theme_light169_fb.txt
-│   │   │   ├── theme_light169_gh.txt
-│   │   │   ├── theme_light169_htc.txt
-│   │   │   ├── theme_light43_fb.txt
-│   │   │   ├── theme_light43_gh.txt
-│   │   │   └── theme_light43_htc.txt
-│   │   ├── .gitignore
-│   │   ├── preview_dark1610.png
-│   │   ├── preview_dark169.png
-│   │   ├── preview_dark43.png
-│   │   ├── preview_light1610.png
-│   │   ├── preview_light169.png
-│   │   ├── preview_light43.png
-│   │   └── README.md
+│   │   │   └── select_w.png
+│   │   └── .gitignore
+│   ├── .gitignore
 │   ├── README.md
-│   ├── ventoy.1610.json.example
-│   ├── ventoy.169.json.example
-│   ├── ventoy.43.json.example
+│   ├── ventoy.json
 │   └── ventoy.json.example
 ├── .gitignore
+├── 5b512ee8a59deb284ad0a6a035ba10b1.md5
+├── aea541d7f9574587656dc5125116e548.md5
 ├── compile-au2exe.ps1
-├── extract.ps1
 ├── configure-windows.au3
 ├── configure-windows.ini
 ├── configure-windows.ps1
+├── extract.ps1
 ├── icon.ico
 ├── icon.png
 ├── install-apps.au3
@@ -259,10 +413,7 @@ AutoInstaller/
 ├── LICENSE.md
 ├── README.md
 ├── report.au3
-├── report.exe
 ├── report.ps1
-├── REPO_STRUCTRE.md
-├── USB_STRUCTRE.md
 ├── update_logs.ps1
 └── wallpaper.png
 ```

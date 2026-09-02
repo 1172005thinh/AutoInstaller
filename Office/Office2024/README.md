@@ -22,13 +22,23 @@ Basically it runs:
 
 There are two ways to manually install Office, by either:
 
+**MAKE SURE OFFICE DATA IS DOWNLOADED BEFORE RUNNING THE INSTALLER**
+
 1. Run the following `command-line` to manually install Office 2024:
 
     ``` powershell
+    # Make sure you are at the Office2024 directory /Office/Office2024
+
     # If sudo is enabled
+    # Download Office (the script.xml should be a full version)
+    sudo .\office2024.exe /download script.xml
+
+    # Install Office
     sudo .\office2024.exe /configure script.xml
 
     # Else runs PowerShell as Administrator
+    .\office2024.exe /download script.xml
+
     .\office2024.exe /configure script.xml
     ```
     > *`script.xml` is an example filename, you may use your own XML script. Please view the table below to know which pre-configured scripts you might use:*

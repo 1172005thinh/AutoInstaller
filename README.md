@@ -76,6 +76,9 @@ AutoInstaller/
 ├── Unattend
 │   └── *.xml                                   <-- Unattend scripts for Windows installation
 ├── Docs                                        <-- Documentation
+│   ├── REPO_STRUCTURE.md                       <-- Repository structure
+│   ├── USB_STRUCTURE.md                        <-- USB structure
+│   └── *.png                                   <-- Preview images
 ├── ventoy
 │   ├── font
 │   │   └── cascadia-code
@@ -330,6 +333,13 @@ This is a scratchpad for incoming features, not all of them will be implemented:
     - *Expected*: A desktop shortcut for WinRAR will be created at `C:\Users\Public\Desktop\WinRAR.lnk`
     - *Got*: Nothing created.
     - *Current workaround*: Manually create the desktop shortcut.
+5. **SDIO DRIVER INSTALLATION UNSTABLE**: Currently, the SDIO driver installation process might fail completely/partially to detect and install all the required drivers accordingly.
+    - *Expected*: Silently detect and install all required drivers.
+    - *Got*: Some drivers did get installed (such as `ACPI Device`, `monitor` and `audio`) but some others failed or unrecognized on the first run. *Note*: For some reason, launching SDIO automatically prompt UAC (accessing private and public network) and open SDIO GUI, selecting `YES` outcomes a closed window, but the installation still proceed (partially).
+    - *Workaround*: Launch SDIO after running the script, you may need to start the driver installation again.
+6. **UNIKEY GUI CONFIGURATION DOES NOT WORK**: Currently, the UniKey configuration via GUI does not apply after running the script. The script successfully creates the registry key, but the GUI settings are not synced properly.
+    - *Expected*: The UniKey configuration via GUI should be synced with Registry key.
+    - *Got*: Unexpected behaviour of toggling the configuration.
 
 ## 📚 REFERENCES
 
