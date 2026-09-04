@@ -7,6 +7,7 @@ Currently, support:
 - **DESKTOPSUPPORTERS**: TeamViewer, UltraViewer
 - **EDITORS**: VSCode, Notepad++
 - **SCREENRECORDERS**: OBS
+- **TORRENTS**: qBittorrent
 
 ## ARCHIVERS
 

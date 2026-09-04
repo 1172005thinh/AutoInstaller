@@ -371,4 +371,27 @@ This is a `hobby project`, I am the only developer and I am still in school so I
 
 ---
 
-> *Last Updated:* ![GitHub last commit](https://img.shields.io/github/last-commit/1172005thinh/AutoInstaller?label=&style=flat-square)
+## 📝 UPDATE STATUS
+
+| **Last Updated** | **Date** |
+|---|---|
+| [*This README.md*](README.md) | ![GitHub last commit](https://img.shields.io/github/last-commit/1172005thinh/AutoInstaller?path=README.md&label=&style=flat) |
+| [*Antivirus*](Antivirus/) | ![GitHub last commit](https://img.shields.io/github/last-commit/1172005thinh/AutoInstaller?path=/Antivirus&label=&style=flat) |
+| [*Browsers*](Browsers/) | ![GitHub last commit](https://img.shields.io/github/last-commit/1172005thinh/AutoInstaller?path=/Browsers&label=&style=flat) |
+| [*IDEs*](Environment/IDEs/) | ![GitHub last commit](https://img.shields.io/github/last-commit/1172005thinh/AutoInstaller?path=/Environment/IDEs&label=&style=flat) |
+| [*Java*](Environment/Java/) | ![GitHub last commit](https://img.shields.io/github/last-commit/1172005thinh/AutoInstaller?path=/Environment/Java&label=&style=flat) |
+| [*Python*](Environment/Python/) | ![GitHub last commit](https://img.shields.io/github/last-commit/1172005thinh/AutoInstaller?path=/Environment/Python&label=&style=flat) |
+| [*VCRedist*](Environment/VCRedist/) | ![GitHub last commit](https://img.shields.io/github/last-commit/1172005thinh/AutoInstaller?path=/Environment/VCRedist&label=&style=flat) |
+| [*LibreOffice*](Office/LibreOffice/) | ![GitHub last commit](https://img.shields.io/github/last-commit/1172005thinh/AutoInstaller?path=/Office/LibreOffice&label=&style=flat) |
+| [*Office2024*](Office/Office2024/) | ![GitHub last commit](https://img.shields.io/github/last-commit/1172005thinh/AutoInstaller?path=/Office/Office2024&label=&style=flat) |
+| [*Socials*](Socials/) | ![GitHub last commit](https://img.shields.io/github/last-commit/1172005thinh/AutoInstaller?path=/Socials&label=&style=flat) |
+| [*Archivers*](Tools/Archivers/) | ![GitHub last commit](https://img.shields.io/github/last-commit/1172005thinh/AutoInstaller?path=/Tools/Archivers&label=&style=flat) |
+| [*DesktopSupporters*](Tools/DesktopSupporters/) | ![GitHub last commit](https://img.shields.io/github/last-commit/1172005thinh/AutoInstaller?path=/Tools/DesktopSupporters&label=&style=flat) |
+| [*Editors*](Tools/Editors/) | ![GitHub last commit](https://img.shields.io/github/last-commit/1172005thinh/AutoInstaller?path=/Tools/Editors&label=&style=flat) |
+| [*ScreenRecorders*](Tools/ScreenRecorders/) | ![GitHub last commit](https://img.shields.io/github/last-commit/1172005thinh/AutoInstaller?path=/Tools/ScreenRecorders&label=&style=flat) |
+| [*Torrents*](Tools/Torrents/) | ![GitHub last commit](https://img.shields.io/github/last-commit/1172005thinh/AutoInstaller?path=/Tools/Torrents&label=&style=flat) |
+| [*FileExplorer*](Utilities/FileExplorer/) | ![GitHub last commit](https://img.shields.io/github/last-commit/1172005thinh/AutoInstaller?path=/Utilities/FileExplorer&label=&style=flat) |
+| [*Fonts*](Utilities/Fonts/) | ![GitHub last commit](https://img.shields.io/github/last-commit/1172005thinh/AutoInstaller?path=/Utilities/Fonts&label=&style=flat) |
+| [*MediaPlayers*](Utilities/MediaPlayers/) | ![GitHub last commit](https://img.shields.io/github/last-commit/1172005thinh/AutoInstaller?path=/Utilities/MediaPlayers&label=&style=flat) |
+| [*VietnameseKeyboards*](Utilities/VietnameseKeyboards/) | ![GitHub last commit](https://img.shields.io/github/last-commit/1172005thinh/AutoInstaller?path=/Utilities/VietnameseKeyboards&label=&style=flat) |
+
