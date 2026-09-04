@@ -1,4 +1,7 @@
-﻿#RequireAdmin
+﻿; Version: v0.1.2
+; Author: 1172005thinh
+
+#RequireAdmin
 #AutoIt3Wrapper_UseX64=y
 #include <AutoItConstants.au3>
 #include <FileConstants.au3>

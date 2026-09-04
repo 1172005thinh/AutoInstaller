@@ -1,3 +1,6 @@
+# Version: v0.1.2
+# Author: 1172005thinh
+
 <#
 .SYNOPSIS
     Ventoy USB Automated Deployment & Extraction Tool for AutoInstaller.
@@ -23,7 +26,7 @@
     (-l, --log) Streams detailed live log output to the console during execution.
 
 .PARAMETER Version
-    (-v, --version) Displays tool version (v1.0.0) and author information.
+    (-v, --version) Displays tool version (v0.1.2) and author information.
 
 .PARAMETER Help
     (-h, --help) Displays help documentation and usage examples.
@@ -107,7 +110,7 @@ if ($RemainingArgs -and $RemainingArgs.Count -gt 0) {
 }
 
 $TOOL_NAME    = 'extract'
-$TOOL_VERSION = '1.0.0'
+$TOOL_VERSION = '0.1.2'
 $TOOL_AUTHOR  = '1172005thinh'
 
 # ------------------------------------------------------------------------------
@@ -137,7 +140,7 @@ OPTIONS:
     -i,  --input <ISO:SOFT> Explicitly specify target partition drive letters or volume labels (e.g. -i I:S).
     -d,  --dry-run          Simulate extraction & show planned copy operations.
     -l,  --log              Stream live verbose log messages in the console.
-    -v,  --version          Display tool version (v1.0.0) and author info.
+    -v,  --version          Display tool version (v0.1.2) and author info.
     -h,  --help             Show this help screen.
     --no-prompt             Skip the 'Press Enter to exit' prompt upon completion.
 

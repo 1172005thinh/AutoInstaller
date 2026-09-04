@@ -1,6 +1,6 @@
 # <img src="icon.png" width="32" height="32" valign="middle"  /> AUTOINSTALLER
 
-![Version](https://img.shields.io/badge/version-0.1.1-blue)
+![Version](https://img.shields.io/badge/version-0.1.2-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Platform](https://img.shields.io/badge/platform-Windows-lightgrey)
 ![DEV](https://img.shields.io/badge/status-in_development-orange)
@@ -255,17 +255,20 @@ This repo does not ship any binary executables, all the required `setup_file` sh
     | 7 | Tools/Editors/notepadpp.exe | [Notepad++ 8.9.8](https://github.com/notepad-plus-plus/notepad-plus-plus/releases/download/v8.9.8/npp.8.9.8.Installer.x64.exe) |
     | 8 | Tools/Editors/vscode.exe | [VSCode 1.134](https://code.visualstudio.com/download?_exp_download=fb315fc982#) |
     | 9 | Utilities/MediaPlayers/mpc.exe | [MPC Mega 1995](https://files2.codecguide.com/K-Lite_Codec_Pack_1995_Mega.exe) |
-    | 10 | Utilities/VietnameseKeyboards/unikey.exe | [Unikey 4.6RC2](https://www.unikey.org/assets/release/unikey46RC2-230919-win64.zip) |
-    | 11 | Tools/ScreenRecorders/obs.exe | [OBS Studio 32.2.2](https://cdn-fastly.obsproject.com/downloads/OBS-Studio-32.2.2-Windows-x64-Installer.exe) |
-    | 12 | Tools/DesktopSupporters/ultraviewer.exe | [UltraViewer vi 6.6.133](https://dl2.ultraviewer.net/UltraViewer_setup_6.6.133_vi.exe) |
-    | 13 | Tools/DesktopSupporters/teamviewer.exe | [TeamViewer Latest Version](https://download.teamviewer.com/download/TeamViewer_Setup_x64.exe) |
-    | 14 | Office/Office2024/office2024.exe | [Office 2024 Deployment Tool](https://download.microsoft.com/download/6c1eeb25-cf8b-41d9-8d0d-cc1dbc032140/officedeploymenttool_20228-20124.exe) *Refer to [ODT Setup](Office/Office2024/README.md)* |
-    | 15 | Office/LibreOffice/libreoffice.msi | [LibreOffice 26.2.5](https://download.documentfoundation.org/libreoffice/stable/26.2.5/win/x86_64/LibreOffice_26.2.5_Win_x86-64.msi) |
-    | 16 | Socials/discord.exe | [Discord Latest Version](https://discord.com/api/downloads/distributions/app/installers/latest?channel=stable&platform=win&arch=x64) |
-    | 17 | Socials/zalo.exe | [Zalo Latest Version](https://zalo.me/download/zalo-pc?utm=90000) |
-    | 18 | Antivirus/kaspersky.exe | [Kaspersky Latest Version](https://www.kaspersky.com.vn/downloads/antivirus) |
-    | 19 | Utilities/FileExplorer/shell.msi | [NileSoft Shell 1.9.18](https://nilesoft.org/download/shell/1.9.18/setup-x64.msi) |
-    | 20 | Utilities/Fonts | [HungThinhCloud Shared Fonts](https://drive.hungthinhcloud.freeddns.org/share/yZzCuQ9e/Fonts/) |
+    | 10 | Utilities/MediaPlayers/potplayer.exe | [PotPlayer Latest Version](https://t1.kakaocdn.net/potplayer/PotPlayer/Version/Latest/PotPlayerSetup64.exe) |
+    | 11 | Utilities/MediaPlayers/vlc.exe | [VLC Latest Version](https://get.videolan.org/vlc/3.0.12/win64/vlc-3.0.12-win64.exe) |
+    | 12 | Utilities/VietnameseKeyboards/unikey.exe | [Unikey 4.6RC2](https://www.unikey.org/assets/release/unikey46RC2-230919-win64.zip) |
+    | 13 | Tools/ScreenRecorders/obs.exe | [OBS Studio 32.2.2](https://cdn-fastly.obsproject.com/downloads/OBS-Studio-32.2.2-Windows-x64-Installer.exe) |
+    | 14 | Tools/DesktopSupporters/ultraviewer.exe | [UltraViewer vi 6.6.133](https://dl2.ultraviewer.net/UltraViewer_setup_6.6.133_vi.exe) |
+    | 15 | Tools/DesktopSupporters/teamviewer.exe | [TeamViewer Latest Version](https://download.teamviewer.com/download/TeamViewer_Setup_x64.exe) |
+    | 16 | Office/Office2024/office2024.exe | [Office 2024 Deployment Tool](https://download.microsoft.com/download/6c1eeb25-cf8b-41d9-8d0d-cc1dbc032140/officedeploymenttool_20228-20124.exe) *Refer to [ODT Setup](Office/Office2024/README.md)* |
+    | 17 | Office/LibreOffice/libreoffice.msi | [LibreOffice 26.2.5](https://download.documentfoundation.org/libreoffice/stable/26.2.5/win/x86_64/LibreOffice_26.2.5_Win_x86-64.msi) |
+    | 18 | Tools/Torrents/qbittorrent.exe | [qBittorrent Latest Version](https://sourceforge.net/projects/qbittorrent/files/latest/download) |
+    | 19 | Socials/discord.exe | [Discord Latest Version](https://discord.com/api/downloads/distributions/app/installers/latest?channel=stable&platform=win&arch=x64) |
+    | 20 | Socials/zalo.exe | [Zalo Latest Version](https://zalo.me/download/zalo-pc?utm=90000) |
+    | 21 | Antivirus/kaspersky.exe | [Kaspersky Latest Version](https://www.kaspersky.com.vn/downloads/antivirus) |
+    | 22 | Utilities/FileExplorer/shell.msi | [NileSoft Shell 1.9.18](https://nilesoft.org/download/shell/1.9.18/setup-x64.msi) |
+    | 23 | Utilities/Fonts | [HungThinhCloud Shared Fonts](https://drive.hungthinhcloud.freeddns.org/share/yZzCuQ9e/Fonts/) |
 
     > *This is painfully slow, I know. I'm working on a solution. Please stay tuned.*
 
@@ -372,6 +375,8 @@ This is a `hobby project`, I am the only developer and I am still in school so I
 ---
 
 ## 📝 UPDATE STATUS
+
+> Version: 0.1.2
 
 | **Last Updated** | **Date** |
 |---|---|

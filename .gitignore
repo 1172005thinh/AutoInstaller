@@ -13,6 +13,7 @@ PROMPT.md
 /windows
 /source
 /temp
+/tool
 /.claude
 /.agents
 /.github

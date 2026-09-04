@@ -1,3 +1,6 @@
+# Version: v0.1.2
+# Author: 1172005thinh
+
 <#
 .SYNOPSIS
     Au2exe Batch & Single-Target Compiler Utility for AutoInstaller.
@@ -146,7 +149,7 @@ if ($RemainingArgs -and $RemainingArgs.Count -gt 0) {
 }
 
 $TOOL_NAME    = 'compile-au2exe'
-$TOOL_VERSION = '1.2.0'
+$TOOL_VERSION = '0.1.2'
 $TOOL_AUTHOR  = '1172005thinh'
 
 # If no flags/parameters were parsed, display the help screen by default

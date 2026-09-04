@@ -1,3 +1,6 @@
+# Version: v0.1.2
+# Author: 1172005thinh
+
 [CmdletBinding()]
 param(
     [string] $LogDirectory = 'C:\Auto-installer',
