@@ -126,7 +126,7 @@ This repo depends on the following tools:
 **OPTIONAL**
 
 1. `ffmpeg` for converting images into icons, please visit [official website](https://www.ffmpeg.org/download.html) or download the [latest version](https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl-shared.zip).
-2. `VMware Workstation Pro` for testing USB without the need of real hardware, please visit [official website](https://www.vmware.com/products/workstation-pro.html). **NOTE*: You have to signup a Broadcom account to get the installer.
+2. `VMware Workstation Pro` for testing USB without the need of real hardware, please visit [official website](https://www.vmware.com/products/workstation-pro.html). **NOTE**: You have to signup a Broadcom account to get the installer.
 3. `git` if you are interested in contributing to this project, please visit [official website](https://git-scm.com/downloads) or download the version [2.55.0.5](https://github.com/git-for-windows/git/releases/download/v2.55.0.windows.5/Git-2.55.0.5-64-bit.exe).
 4. `vs-code` if you want to edit the source code more efficiently, please visit [official website](https://code.visualstudio.com/download).
 5. `AI Agents` if you don't understand what the hecks I am writing. **However, the AI Agents are not guaranteed to provide a correct answer, so please double-check the answer.**
@@ -135,7 +135,7 @@ This repo depends on the following tools:
 
 **1. 💾 PREPARING USB DRIVE WITH VENTOY**
 
-Ensure you have Ventoy installed on you host machine, your USB drive is plugged in and add data is backed up:
+Ensure you have Ventoy installed on you host machine, your USB drive is plugged in and all data is backed up:
 
 1. Run `Ventoy2Disk.exe` from the extracted Ventoy folder with ` Administrator` privileges.
 2. Click the dropdown menu `Device` to select your USB drive.
@@ -241,7 +241,7 @@ This repo does not ship any binary executables, all the required `setup_file` sh
 
 1. Download URL of each setup file supported in this current version:
 
-    > *Note that `only 64-bit versions` are supported. `URL might be 404` due to version update*
+    > *Note that `only 64-bit versions` are supported. `URL might be 404` due to version update*. You `DOES NOT NEED` to download all, just the ones you want to install.
     
     | Index | `setup_file` | `download_url` |
     |---|---|---|
@@ -256,7 +256,7 @@ This repo does not ship any binary executables, all the required `setup_file` sh
     | 8 | Tools/Editors/vscode.exe | [VSCode 1.134](https://code.visualstudio.com/download?_exp_download=fb315fc982#) |
     | 9 | Utilities/MediaPlayers/mpc.exe | [MPC Mega 1995](https://files2.codecguide.com/K-Lite_Codec_Pack_1995_Mega.exe) |
     | 10 | Utilities/MediaPlayers/potplayer.exe | [PotPlayer Latest Version](https://t1.kakaocdn.net/potplayer/PotPlayer/Version/Latest/PotPlayerSetup64.exe) |
-    | 11 | Utilities/MediaPlayers/vlc.exe | [VLC Latest Version](https://get.videolan.org/vlc/3.0.12/win64/vlc-3.0.12-win64.exe) |
+    | 11 | Utilities/MediaPlayers/vlc.exe | [VLC 3.0.23](https://get.videolan.org/vlc/3.0.23/win64/vlc-3.0.23-win64.exe) |
     | 12 | Utilities/VietnameseKeyboards/unikey.exe | [Unikey 4.6RC2](https://www.unikey.org/assets/release/unikey46RC2-230919-win64.zip) |
     | 13 | Tools/ScreenRecorders/obs.exe | [OBS Studio 32.2.2](https://cdn-fastly.obsproject.com/downloads/OBS-Studio-32.2.2-Windows-x64-Installer.exe) |
     | 14 | Tools/DesktopSupporters/ultraviewer.exe | [UltraViewer vi 6.6.133](https://dl2.ultraviewer.net/UltraViewer_setup_6.6.133_vi.exe) |
@@ -338,11 +338,16 @@ This is a scratchpad for incoming features, not all of them will be implemented:
     - *Current workaround*: Manually create the desktop shortcut.
 5. **SDIO DRIVER INSTALLATION UNSTABLE**: Currently, the SDIO driver installation process might fail completely/partially to detect and install all the required drivers accordingly.
     - *Expected*: Silently detect and install all required drivers.
-    - *Got*: Some drivers did get installed (such as `ACPI Device`, `monitor` and `audio`) but some others failed or unrecognized on the first run. *Note*: For some reason, launching SDIO automatically prompt UAC (accessing private and public network) and open SDIO GUI, selecting `YES` outcomes a closed window, but the installation still proceed (partially).
-    - *Workaround*: Launch SDIO after running the script, you may need to start the driver installation again.
+    - *Got*: UAC prompted during the installation asking for public and private network access. Althought the installation will still proceed and finish installing no matter the UAC prompt. However, by selecting `Yes` to the UAC within the first 60 seconds after launching SDIO, it kills the process.
+    - *Workaround*: Do not select `Yes` or interact with the UAC prompt at the first 60 seconds. After 60 seconds, the UAC prompt can be interacted.
 6. **UNIKEY GUI CONFIGURATION DOES NOT WORK**: Currently, the UniKey configuration via GUI does not apply after running the script. The script successfully creates the registry key, but the GUI settings are not synced properly.
     - *Expected*: The UniKey configuration via GUI should be synced with Registry key.
     - *Got*: Unexpected behaviour of toggling the configuration.
+    - *Workaround*: Open Registry Editor and manually configure the UniKey settings.
+7. **POTPLAYER INSTALLATION HANGS DUE TO OPENCODEC PROMPT**: Currently, the silent installation of PotPlayer hangs indefinitely when it encounters the "OpenCodec" or "Additional Codec" installation prompt. The script is fixed (untested) to dismiss these dialogs automatically, preventing the installation from completing.
+    - *Expected*: PotPlayer should install silently without user interaction, and any codec installation prompts should be automatically dismissed or skipped.
+    - *Got*: The installation `might` hang on the OpenCodec prompt, never reaching completion.
+    - *Workaround*: Launch Task Manager and end task `install_potplayer.exe`. Once the auto-installation is finished, you may want to install manually with the downloaded PotPlayer setup file.
 
 ## 📚 REFERENCES
 
@@ -378,25 +383,25 @@ This is a `hobby project`, I am the only developer and I am still in school so I
 
 > Version: 0.1.2
 
-| **Last Updated** | **Date** |
-|---|---|
-| [*This README.md*](README.md) | ![GitHub last commit](https://img.shields.io/github/last-commit/1172005thinh/AutoInstaller?path=README.md&label=&style=flat) |
-| [*Antivirus*](Antivirus/) | ![GitHub last commit](https://img.shields.io/github/last-commit/1172005thinh/AutoInstaller?path=/Antivirus&label=&style=flat) |
-| [*Browsers*](Browsers/) | ![GitHub last commit](https://img.shields.io/github/last-commit/1172005thinh/AutoInstaller?path=/Browsers&label=&style=flat) |
-| [*IDEs*](Environment/IDEs/) | ![GitHub last commit](https://img.shields.io/github/last-commit/1172005thinh/AutoInstaller?path=/Environment/IDEs&label=&style=flat) |
-| [*Java*](Environment/Java/) | ![GitHub last commit](https://img.shields.io/github/last-commit/1172005thinh/AutoInstaller?path=/Environment/Java&label=&style=flat) |
-| [*Python*](Environment/Python/) | ![GitHub last commit](https://img.shields.io/github/last-commit/1172005thinh/AutoInstaller?path=/Environment/Python&label=&style=flat) |
-| [*VCRedist*](Environment/VCRedist/) | ![GitHub last commit](https://img.shields.io/github/last-commit/1172005thinh/AutoInstaller?path=/Environment/VCRedist&label=&style=flat) |
-| [*LibreOffice*](Office/LibreOffice/) | ![GitHub last commit](https://img.shields.io/github/last-commit/1172005thinh/AutoInstaller?path=/Office/LibreOffice&label=&style=flat) |
-| [*Office2024*](Office/Office2024/) | ![GitHub last commit](https://img.shields.io/github/last-commit/1172005thinh/AutoInstaller?path=/Office/Office2024&label=&style=flat) |
-| [*Socials*](Socials/) | ![GitHub last commit](https://img.shields.io/github/last-commit/1172005thinh/AutoInstaller?path=/Socials&label=&style=flat) |
-| [*Archivers*](Tools/Archivers/) | ![GitHub last commit](https://img.shields.io/github/last-commit/1172005thinh/AutoInstaller?path=/Tools/Archivers&label=&style=flat) |
-| [*DesktopSupporters*](Tools/DesktopSupporters/) | ![GitHub last commit](https://img.shields.io/github/last-commit/1172005thinh/AutoInstaller?path=/Tools/DesktopSupporters&label=&style=flat) |
-| [*Editors*](Tools/Editors/) | ![GitHub last commit](https://img.shields.io/github/last-commit/1172005thinh/AutoInstaller?path=/Tools/Editors&label=&style=flat) |
-| [*ScreenRecorders*](Tools/ScreenRecorders/) | ![GitHub last commit](https://img.shields.io/github/last-commit/1172005thinh/AutoInstaller?path=/Tools/ScreenRecorders&label=&style=flat) |
-| [*Torrents*](Tools/Torrents/) | ![GitHub last commit](https://img.shields.io/github/last-commit/1172005thinh/AutoInstaller?path=/Tools/Torrents&label=&style=flat) |
-| [*FileExplorer*](Utilities/FileExplorer/) | ![GitHub last commit](https://img.shields.io/github/last-commit/1172005thinh/AutoInstaller?path=/Utilities/FileExplorer&label=&style=flat) |
-| [*Fonts*](Utilities/Fonts/) | ![GitHub last commit](https://img.shields.io/github/last-commit/1172005thinh/AutoInstaller?path=/Utilities/Fonts&label=&style=flat) |
-| [*MediaPlayers*](Utilities/MediaPlayers/) | ![GitHub last commit](https://img.shields.io/github/last-commit/1172005thinh/AutoInstaller?path=/Utilities/MediaPlayers&label=&style=flat) |
-| [*VietnameseKeyboards*](Utilities/VietnameseKeyboards/) | ![GitHub last commit](https://img.shields.io/github/last-commit/1172005thinh/AutoInstaller?path=/Utilities/VietnameseKeyboards&label=&style=flat) |
+| **Last Updated** | **Date** | **Description** |
+|---|---|---|
+| [*This README.md*](README.md) | ![GitHub last commit](https://img.shields.io/github/last-commit/1172005thinh/AutoInstaller?path=README.md&label=&style=flat) | Update [Known Issues](#known-issues) and fix typos |
+| [*Antivirus*](Antivirus/) | ![GitHub last commit](https://img.shields.io/github/last-commit/1172005thinh/AutoInstaller?path=/Antivirus&label=&style=flat) | |
+| [*Browsers*](Browsers/) | ![GitHub last commit](https://img.shields.io/github/last-commit/1172005thinh/AutoInstaller?path=/Browsers&label=&style=flat) | |
+| [*IDEs*](Environment/IDEs/) | ![GitHub last commit](https://img.shields.io/github/last-commit/1172005thinh/AutoInstaller?path=/Environment/IDEs&label=&style=flat) | |
+| [*Java*](Environment/Java/) | ![GitHub last commit](https://img.shields.io/github/last-commit/1172005thinh/AutoInstaller?path=/Environment/Java&label=&style=flat) | |
+| [*Python*](Environment/Python/) | ![GitHub last commit](https://img.shields.io/github/last-commit/1172005thinh/AutoInstaller?path=/Environment/Python&label=&style=flat) | |
+| [*VCRedist*](Environment/VCRedist/) | ![GitHub last commit](https://img.shields.io/github/last-commit/1172005thinh/AutoInstaller?path=/Environment/VCRedist&label=&style=flat) | |
+| [*LibreOffice*](Office/LibreOffice/) | ![GitHub last commit](https://img.shields.io/github/last-commit/1172005thinh/AutoInstaller?path=/Office/LibreOffice&label=&style=flat) | |
+| [*Office2024*](Office/Office2024/) | ![GitHub last commit](https://img.shields.io/github/last-commit/1172005thinh/AutoInstaller?path=/Office/Office2024&label=&style=flat) | |
+| [*Socials*](Socials/) | ![GitHub last commit](https://img.shields.io/github/last-commit/1172005thinh/AutoInstaller?path=/Socials&label=&style=flat) | |
+| [*Archivers*](Tools/Archivers/) | ![GitHub last commit](https://img.shields.io/github/last-commit/1172005thinh/AutoInstaller?path=/Tools/Archivers&label=&style=flat) | |
+| [*DesktopSupporters*](Tools/DesktopSupporters/) | ![GitHub last commit](https://img.shields.io/github/last-commit/1172005thinh/AutoInstaller?path=/Tools/DesktopSupporters&label=&style=flat) | |
+| [*Editors*](Tools/Editors/) | ![GitHub last commit](https://img.shields.io/github/last-commit/1172005thinh/AutoInstaller?path=/Tools/Editors&label=&style=flat) | |
+| [*ScreenRecorders*](Tools/ScreenRecorders/) | ![GitHub last commit](https://img.shields.io/github/last-commit/1172005thinh/AutoInstaller?path=/Tools/ScreenRecorders&label=&style=flat) | |
+| [*Torrents*](Tools/Torrents/) | ![GitHub last commit](https://img.shields.io/github/last-commit/1172005thinh/AutoInstaller?path=/Tools/Torrents&label=&style=flat) | Add `qBittorrent` |
+| [*FileExplorer*](Utilities/FileExplorer/) | ![GitHub last commit](https://img.shields.io/github/last-commit/1172005thinh/AutoInstaller?path=/Utilities/FileExplorer&label=&style=flat) | |
+| [*Fonts*](Utilities/Fonts/) | ![GitHub last commit](https://img.shields.io/github/last-commit/1172005thinh/AutoInstaller?path=/Utilities/Fonts&label=&style=flat) | |
+| [*MediaPlayers*](Utilities/MediaPlayers/) | ![GitHub last commit](https://img.shields.io/github/last-commit/1172005thinh/AutoInstaller?path=/Utilities/MediaPlayers&label=&style=flat) | Add `PotPlayer`, `VLC` |
+| [*VietnameseKeyboards*](Utilities/VietnameseKeyboards/) | ![GitHub last commit](https://img.shields.io/github/last-commit/1172005thinh/AutoInstaller?path=/Utilities/VietnameseKeyboards&label=&style=flat) | |
 
