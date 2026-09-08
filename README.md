@@ -344,10 +344,10 @@ This is a scratchpad for incoming features, not all of them will be implemented:
     - *Expected*: The UniKey configuration via GUI should be synced with Registry key.
     - *Got*: Unexpected behaviour of toggling the configuration.
     - *Workaround*: Open Registry Editor and manually configure the UniKey settings.
-7. **POTPLAYER INSTALLATION HANGS DUE TO OPENCODEC PROMPT**: Currently, the silent installation of PotPlayer hangs indefinitely when it encounters the "OpenCodec" or "Additional Codec" installation prompt. The script is fixed (untested) to dismiss these dialogs automatically, preventing the installation from completing.
-    - *Expected*: PotPlayer should install silently without user interaction, and any codec installation prompts should be automatically dismissed or skipped.
-    - *Got*: The installation `might` hang on the OpenCodec prompt, never reaching completion.
-    - *Workaround*: Launch Task Manager and end task `install_potplayer.exe`. Once the auto-installation is finished, you may want to install manually with the downloaded PotPlayer setup file.
+7. **POTPLAYER DESKTOP SHORTCUT NOT CREATED**: Currently, even if the `desktop_shortcut_flag` is true, PotPlayer failed to add its shortcut to the desktop.
+    - *Expected*: A desktop shortcut for PotPlayer will be created at `C:\Users\Public\Desktop\PotPlayer.lnk`
+    - *Got*: Nothing created.
+    - *Current workaround*: Manually create the desktop shortcut.
 
 ## 📚 REFERENCES
 

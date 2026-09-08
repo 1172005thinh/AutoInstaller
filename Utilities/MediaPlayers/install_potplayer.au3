@@ -35,11 +35,28 @@ If _IsPotPlayerInstalled() Then
     Exit 10
 EndIf
 
-; Register popup handler to automatically dismiss any prompt dialogs (e.g. OpenCodec, extra offers)
+; Ensure working directories exist
+If Not FileExists("C:\Auto-installer") Then DirCreate("C:\Auto-installer")
+If Not FileExists(@TempDir) Then DirCreate(@TempDir)
+
+; Register popup handler to automatically detect, log, and dismiss any prompt/error dialogs
 AdlibRegister("_HandlePotPlayerPopups", 250)
 
-_Log("INFO: Starting installation of PotPlayer: " & $g_sSetupPath)
-Local $iPID = Run('"' & $g_sSetupPath & '" /S', @ScriptDir, @SW_HIDE)
+; PotPlayer NSIS installer command line switches:
+;   /S               : Standard NSIS silent install
+;   /SkipLang=1      : Bypasses the LangDLL.dll language prompt in .onInit
+;   /NoUAC           : Bypasses UAC.dll::RunElevated in .onInit (process is already elevated)
+;   /NoRun           : Prevents auto-launching PotPlayer.exe upon completion
+;   /NoHomePage      : Prevents modifying browser start page
+;   /NoPPI           : Prevents installing promotional partner software/adware
+;   /NoFLink         : Prevents creating desktop promotional links
+;   /LOG=...         : Requests NSIS install log output if supported
+Local $sNSISLog = "C:\Auto-installer\install_potplayer_nsis.log"
+Local $sArgs = '/S /SkipLang=1 /NoUAC /NoRun /NoHomePage /NoPPI /NoFLink /LOG="' & $sNSISLog & '"'
+_Log("INFO: Starting installation of PotPlayer: " & $g_sSetupPath & " with switches: " & $sArgs)
+
+; Launch with @SW_SHOW so dialogs remain accessible to automation, and capture standard I/O streams
+Local $iPID = Run('"' & $g_sSetupPath & '" ' & $sArgs, "C:\Auto-installer", @SW_SHOW, $STDERR_CHILD + $STDOUT_CHILD)
 If @error Or Not $iPID Then 
     _Log("ERROR: Run failed with AutoIt error: " & @error)
     AdlibUnRegister("_HandlePotPlayerPopups")
@@ -52,12 +69,16 @@ Local $iMaxTimeoutMs = 120 * 1000 ; 120 seconds max timeout
 Local $bFilesFound = False
 
 While TimerDiff($hTimer) < $iMaxTimeoutMs
+    ; Stream live stdout/stderr from the installer into common log
+    _ReadProcessOutput($iPID)
+
     ; Check if PotPlayer files and executables have been installed to disk
     If _IsPotPlayerInstalled() Then
         $bFilesFound = True
         ; Give 5 seconds for any auxiliary registry writes to complete
         Sleep(5000)
-        ; If installer process is still lingering (e.g. stuck on hidden prompt/OpenCodec), close it
+        _ReadProcessOutput($iPID)
+        ; If installer process is still lingering (e.g. stuck on OpenCodec download), close it
         If ProcessExists($iPID) Then
             _Log("INFO: PotPlayer files detected on disk. Terminating lingering installer process.")
             ProcessClose($iPID)
@@ -67,6 +88,7 @@ While TimerDiff($hTimer) < $iMaxTimeoutMs
 
     ; If installer process finished naturally
     If Not ProcessExists($iPID) Then
+        _ReadProcessOutput($iPID)
         _Log("INFO: Installer process exited naturally.")
         ExitLoop
     EndIf
@@ -74,7 +96,24 @@ While TimerDiff($hTimer) < $iMaxTimeoutMs
     Sleep(500)
 WEnd
 
+; Final flush of process output
+_ReadProcessOutput($iPID)
+
+; If timed out while installer process is still running without installing files, close it
+If Not $bFilesFound And ProcessExists($iPID) Then
+    _Log("WARNING: Installer process exceeded timeout without installing files. Terminating installer PID: " & $iPID)
+    ProcessClose($iPID)
+EndIf
+
 AdlibUnRegister("_HandlePotPlayerPopups")
+
+; Throw any generated NSIS install logs into the common log file (like install_mpc.au3)
+_LogNSISFile($sNSISLog, "[PotPlayer]")
+_LogNSISFile(@TempDir & "\install.log", "[PotPlayer]")
+_LogNSISFile(@TempDir & "\potplayer.log", "[PotPlayer]")
+_LogNSISFile(@ProgramFilesDir & "\DAUM\PotPlayer\install.log", "[PotPlayer]")
+Local $sW64Dir = EnvGet("ProgramW6432")
+If $sW64Dir <> "" Then _LogNSISFile($sW64Dir & "\DAUM\PotPlayer\install.log", "[PotPlayer]")
 
 ; Close any PotPlayer media player processes if auto-launched post-install
 If ProcessExists("PotPlayer64.exe") Then ProcessClose("PotPlayer64.exe")
@@ -92,13 +131,80 @@ EndIf
 _Log("ERROR: PotPlayer installation validation timed out.")
 Exit 22
 
+Func _ReadProcessOutput($iPID)
+    If Not $iPID Then Return
+    Local $sStdout = StdoutRead($iPID)
+    If $sStdout <> "" Then
+        Local $aOutLines = StringSplit(StringStripCR($sStdout), @LF)
+        For $j = 1 To $aOutLines[0]
+            Local $sLine = StringStripWS($aOutLines[$j], 3)
+            If $sLine <> "" Then _Log("[NSIS-STDOUT] " & $sLine)
+        Next
+    EndIf
+    Local $sStderr = StderrRead($iPID)
+    If $sStderr <> "" Then
+        Local $aErrLines = StringSplit(StringStripCR($sStderr), @LF)
+        For $k = 1 To $aErrLines[0]
+            Local $sErrLine = StringStripWS($aErrLines[$k], 3)
+            If $sErrLine <> "" Then _Log("[NSIS-STDERR] " & $sErrLine)
+        Next
+    EndIf
+EndFunc
+
+Func _LogNSISFile($sNSISPath, $sTag)
+    If Not FileExists($sNSISPath) Then Return
+    Local $hNSIS = FileOpen($sNSISPath, 0)
+    If $hNSIS = -1 Then Return
+    Local $sLogPath = $g_sLogPath
+    Local $hLog = FileOpen($sLogPath, 1 + 256)
+    If $hLog <> -1 Then
+        While True
+            Local $sLine = FileReadLine($hNSIS)
+            If @error Then ExitLoop
+            Local $sClean = StringStripWS($sLine, 3)
+            If $sClean <> "" Then
+                FileWriteLine($hLog, "[" & @YEAR & "-" & StringFormat("%02d", @MON) & "-" & StringFormat("%02d", @MDAY) & " " & @HOUR & ":" & @MIN & ":" & @SEC & "] " & $sTag & " [NSIS] " & $sClean)
+            EndIf
+        WEnd
+        FileClose($hLog)
+    EndIf
+    FileClose($hNSIS)
+    FileDelete($sNSISPath)
+EndFunc
+
 Func _HandlePotPlayerPopups()
-    ; Checks and dismisses common dialog popups that cause silent install to hang
-    Local $aTitles[5] = ["[CLASS:#32770; TITLE:PotPlayer]", "[CLASS:#32770; TITLE:Daum PotPlayer]", "OpenCodec", "Additional Codec", "PotPlayer"]
-    For $i = 0 To UBound($aTitles) - 1
-        If WinExists($aTitles[$i]) Then
-            Local $hWnd = WinGetHandle($aTitles[$i])
-            If $hWnd Then
+    ; Checks, logs, and dismisses any modal or popup dialogs that cause the installer to hang
+    Local $aWinList = WinList("[CLASS:#32770]")
+    For $i = 1 To $aWinList[0][0]
+        Local $hWnd = $aWinList[$i][1]
+        If WinExists($hWnd) Then
+            Local $sTitle = WinGetTitle($hWnd)
+            Local $sText = WinGetText($hWnd)
+            Local $sCleanText = StringReplace(StringReplace(StringStripWS($sText, 3), @CR, " "), @LF, " ")
+            If StringLen($sCleanText) > 150 Then $sCleanText = StringLeft($sCleanText, 150) & "..."
+            
+            ; Do NOT dismiss the installer's active file extraction/progress window
+            If StringInStr($sCleanText, "being installed") > 0 Or _
+               StringInStr($sCleanText, "Please wait") > 0 Or _
+               StringInStr($sCleanText, "Copy core files") > 0 Or _
+               StringInStr($sCleanText, "Extract:") > 0 Then
+                ContinueLoop
+            EndIf
+            
+            _Log("DEBUG: Popup Dialog Detected: Title='" & $sTitle & "', Text='" & $sCleanText & "'")
+            
+            If StringInStr($sTitle, "Language") > 0 Then
+                _Log("ACTION: Language dialog detected. Clicking OK.")
+                ControlClick($hWnd, "", "[TEXT:OK]")
+                ControlClick($hWnd, "", "Button1")
+            ElseIf StringInStr($sCleanText, "admin right") > 0 Or StringInStr($sCleanText, "plug-ins") > 0 Or StringInStr($sTitle, "Error") > 0 Then
+                _Log("ACTION: Error dialog detected: '" & $sCleanText & "'. Clicking OK / Close.")
+                ControlClick($hWnd, "", "[TEXT:OK]")
+                ControlClick($hWnd, "", "Button1")
+                WinClose($hWnd)
+            Else
+                ; For OpenCodec, partner offers, or completion dialogs
+                _Log("ACTION: Dismissing prompt window: '" & $sTitle & "'")
                 ControlClick($hWnd, "", "[TEXT:Close]")
                 ControlClick($hWnd, "", "[TEXT:&Close]")
                 ControlClick($hWnd, "", "[TEXT:Cancel]")
@@ -115,7 +221,7 @@ Func _HandlePotPlayerPopups()
 EndFunc
 
 Func _GetPotPlayerExe()
-    Local $aRoots[2] = ["HKLM64", "HKLM"]
+    Local $aRoots[3] = ["HKLM64", "HKLM", "HKCU"]
     For $iR = 0 To UBound($aRoots) - 1
         ; 1. Check Uninstall InstallLocation
         Local $sInstallPath = RegRead($aRoots[$iR] & "\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\PotPlayer64", "InstallLocation")
@@ -153,7 +259,7 @@ Func _GetPotPlayerExe()
         EndIf
 
         ; 4. Check App Paths
-        Local $aAppNames[3] = ["PotPlayer64.exe", "PotPlayerMini64.exe", "PotPlayerMini.exe"]
+        Local $aAppNames[4] = ["PotPlayer64.exe", "PotPlayerMini64.exe", "PotPlayerMini.exe", "PotPlayer.exe"]
         For $iA = 0 To UBound($aAppNames) - 1
             Local $sAppPath = RegRead($aRoots[$iR] & "\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\" & $aAppNames[$iA], "")
             If Not @error And $sAppPath <> "" Then
@@ -163,16 +269,28 @@ Func _GetPotPlayerExe()
         Next
     Next
 
-    ; 5. Standard Filesystem Paths
-    If FileExists(@ProgramFilesDir & "\DAUM\PotPlayer\PotPlayer64.exe") Then Return @ProgramFilesDir & "\DAUM\PotPlayer\PotPlayer64.exe"
-    If FileExists(@ProgramFilesDir & "\DAUM\PotPlayer\PotPlayerMini64.exe") Then Return @ProgramFilesDir & "\DAUM\PotPlayer\PotPlayerMini64.exe"
-    If FileExists(@ProgramFilesDir & "\DAUM\PotPlayer\PotPlayer.exe") Then Return @ProgramFilesDir & "\DAUM\PotPlayer\PotPlayer.exe"
-    If FileExists(@ProgramFilesDir & " (x86)\DAUM\PotPlayer\PotPlayer.exe") Then Return @ProgramFilesDir & " (x86)\DAUM\PotPlayer\PotPlayer.exe"
-    If FileExists(@ProgramFilesDir & " (x86)\DAUM\PotPlayer\PotPlayerMini.exe") Then Return @ProgramFilesDir & " (x86)\DAUM\PotPlayer\PotPlayerMini.exe"
-    If FileExists(@ProgramFilesDir & "\PotPlayer\PotPlayer64.exe") Then Return @ProgramFilesDir & "\PotPlayer\PotPlayer64.exe"
-    If FileExists(@ProgramFilesDir & "\PotPlayer\PotPlayerMini64.exe") Then Return @ProgramFilesDir & "\PotPlayer\PotPlayerMini64.exe"
-    If FileExists(@ProgramFilesDir & "\PotPlayer\PotPlayer.exe") Then Return @ProgramFilesDir & "\PotPlayer\PotPlayer.exe"
-    If FileExists(@ProgramFilesDir & " (x86)\PotPlayer\PotPlayer.exe") Then Return @ProgramFilesDir & " (x86)\PotPlayer\PotPlayer.exe"
+    ; 5. Standard Filesystem Paths (64-bit and 32-bit Program Files)
+    Local $aDirs[4] = [ _
+        @ProgramFilesDir, _
+        EnvGet("ProgramW6432"), _
+        @ProgramFilesDir & " (x86)", _
+        EnvGet("ProgramFiles(x86)") _
+    ]
+    For $iD = 0 To UBound($aDirs) - 1
+        Local $sBase = $aDirs[$iD]
+        If $sBase = "" Then ContinueLoop
+        If FileExists($sBase & "\DAUM\PotPlayer\PotPlayer64.exe") Then Return $sBase & "\DAUM\PotPlayer\PotPlayer64.exe"
+        If FileExists($sBase & "\DAUM\PotPlayer\PotPlayerMini64.exe") Then Return $sBase & "\DAUM\PotPlayer\PotPlayerMini64.exe"
+        If FileExists($sBase & "\DAUM\PotPlayer\PotPlayer.exe") Then Return $sBase & "\DAUM\PotPlayer\PotPlayer.exe"
+        If FileExists($sBase & "\DAUM\PotPlayer\PotPlayerMini.exe") Then Return $sBase & "\DAUM\PotPlayer\PotPlayerMini.exe"
+        If FileExists($sBase & "\DAUM\PotPlayer 64 bit\PotPlayer64.exe") Then Return $sBase & "\DAUM\PotPlayer 64 bit\PotPlayer64.exe"
+        If FileExists($sBase & "\Daum\PotPlayer 64 bit\PotPlayer64.exe") Then Return $sBase & "\Daum\PotPlayer 64 bit\PotPlayer64.exe"
+        If FileExists($sBase & "\PotPlayer\PotPlayer64.exe") Then Return $sBase & "\PotPlayer\PotPlayer64.exe"
+        If FileExists($sBase & "\PotPlayer\PotPlayerMini64.exe") Then Return $sBase & "\PotPlayer\PotPlayerMini64.exe"
+        If FileExists($sBase & "\PotPlayer\PotPlayer.exe") Then Return $sBase & "\PotPlayer\PotPlayer.exe"
+        If FileExists($sBase & "\PotPlayer\PotPlayerMini.exe") Then Return $sBase & "\PotPlayer\PotPlayerMini.exe"
+    Next
+
     Return ""
 EndFunc
 
