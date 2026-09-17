@@ -1,0 +1,9 @@
+# IGNORE
+
+*
+
+# KEEP
+
+!/AutoInstaller
+!.gitignore
+!README.md

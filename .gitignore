@@ -1,7 +1,14 @@
-*.exe
-*.msi
-*.md5
-/Office/Office2024/Office
-/source
-/temp
+# IGNORE
+
+/.agents
 AGENTS.md
+CLAUDE.md
+GEMINI.md
+PROMPT.md
+[Dd]esktop.ini
+*.exe
+
+# KEEP
+
+!.gitignore
+!README.md

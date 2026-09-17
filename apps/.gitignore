@@ -1,0 +1,20 @@
+# IGNORE
+
+*.exe
+*.msi
+*.gz
+*.rar
+*.7z
+*.iso
+*.zip
+*.tar
+*.tar.gz
+*.tar.rar
+*.tar.7z
+*.tar.iso
+*.tar.zip
+
+# KEEP
+
+!.gitignore
+!README.md

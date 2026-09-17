@@ -1,0 +1,136 @@
+﻿{
+    "control": [
+        {
+            "VTOY_DEFAULT_SEARCH_ROOT": "/"
+        }
+    ],
+    "theme": {
+        "file": [
+            "/ventoy/theme/1172005thinh/dark_fb_1024x768.txt",
+            "/ventoy/theme/1172005thinh/dark_fb_1152x864.txt",
+            "/ventoy/theme/1172005thinh/dark_fb_1280x720.txt",
+            "/ventoy/theme/1172005thinh/dark_fb_1366x768.txt",
+            "/ventoy/theme/1172005thinh/dark_fb_1600x1200.txt",
+            "/ventoy/theme/1172005thinh/dark_fb_1600x900.txt",
+            "/ventoy/theme/1172005thinh/dark_fb_1920x1080.txt",
+            "/ventoy/theme/1172005thinh/dark_fb_1920x1200.txt",
+            "/ventoy/theme/1172005thinh/dark_fb_2560x1080.txt",
+            "/ventoy/theme/1172005thinh/dark_fb_2560x1440.txt",
+            "/ventoy/theme/1172005thinh/dark_fb_2560x1600.txt",
+            "/ventoy/theme/1172005thinh/dark_fb_3840x2160.txt",
+            "/ventoy/theme/1172005thinh/dark_fb_3840x2400.txt",
+            "/ventoy/theme/1172005thinh/dark_gh_1024x768.txt",
+            "/ventoy/theme/1172005thinh/dark_gh_1152x864.txt",
+            "/ventoy/theme/1172005thinh/dark_gh_1280x720.txt",
+            "/ventoy/theme/1172005thinh/dark_gh_1366x768.txt",
+            "/ventoy/theme/1172005thinh/dark_gh_1600x1200.txt",
+            "/ventoy/theme/1172005thinh/dark_gh_1600x900.txt",
+            "/ventoy/theme/1172005thinh/dark_gh_1920x1080.txt",
+            "/ventoy/theme/1172005thinh/dark_gh_1920x1200.txt",
+            "/ventoy/theme/1172005thinh/dark_gh_2560x1080.txt",
+            "/ventoy/theme/1172005thinh/dark_gh_2560x1440.txt",
+            "/ventoy/theme/1172005thinh/dark_gh_2560x1600.txt",
+            "/ventoy/theme/1172005thinh/dark_gh_3840x2160.txt",
+            "/ventoy/theme/1172005thinh/dark_gh_3840x2400.txt",
+            "/ventoy/theme/1172005thinh/dark_htc_1024x768.txt",
+            "/ventoy/theme/1172005thinh/dark_htc_1152x864.txt",
+            "/ventoy/theme/1172005thinh/dark_htc_1280x720.txt",
+            "/ventoy/theme/1172005thinh/dark_htc_1366x768.txt",
+            "/ventoy/theme/1172005thinh/dark_htc_1600x1200.txt",
+            "/ventoy/theme/1172005thinh/dark_htc_1600x900.txt",
+            "/ventoy/theme/1172005thinh/dark_htc_1920x1080.txt",
+            "/ventoy/theme/1172005thinh/dark_htc_1920x1200.txt",
+            "/ventoy/theme/1172005thinh/dark_htc_2560x1080.txt",
+            "/ventoy/theme/1172005thinh/dark_htc_2560x1440.txt",
+            "/ventoy/theme/1172005thinh/dark_htc_2560x1600.txt",
+            "/ventoy/theme/1172005thinh/dark_htc_3840x2160.txt",
+            "/ventoy/theme/1172005thinh/dark_htc_3840x2400.txt",
+            "/ventoy/theme/1172005thinh/light_fb_1024x768.txt",
+            "/ventoy/theme/1172005thinh/light_fb_1152x864.txt",
+            "/ventoy/theme/1172005thinh/light_fb_1280x720.txt",
+            "/ventoy/theme/1172005thinh/light_fb_1366x768.txt",
+            "/ventoy/theme/1172005thinh/light_fb_1600x1200.txt",
+            "/ventoy/theme/1172005thinh/light_fb_1600x900.txt",
+            "/ventoy/theme/1172005thinh/light_fb_1920x1080.txt",
+            "/ventoy/theme/1172005thinh/light_fb_1920x1200.txt",
+            "/ventoy/theme/1172005thinh/light_fb_2560x1080.txt",
+            "/ventoy/theme/1172005thinh/light_fb_2560x1440.txt",
+            "/ventoy/theme/1172005thinh/light_fb_2560x1600.txt",
+            "/ventoy/theme/1172005thinh/light_fb_3840x2160.txt",
+            "/ventoy/theme/1172005thinh/light_fb_3840x2400.txt",
+            "/ventoy/theme/1172005thinh/light_gh_1024x768.txt",
+            "/ventoy/theme/1172005thinh/light_gh_1152x864.txt",
+            "/ventoy/theme/1172005thinh/light_gh_1280x720.txt",
+            "/ventoy/theme/1172005thinh/light_gh_1366x768.txt",
+            "/ventoy/theme/1172005thinh/light_gh_1600x1200.txt",
+            "/ventoy/theme/1172005thinh/light_gh_1600x900.txt",
+            "/ventoy/theme/1172005thinh/light_gh_1920x1080.txt",
+            "/ventoy/theme/1172005thinh/light_gh_1920x1200.txt",
+            "/ventoy/theme/1172005thinh/light_gh_2560x1080.txt",
+            "/ventoy/theme/1172005thinh/light_gh_2560x1440.txt",
+            "/ventoy/theme/1172005thinh/light_gh_2560x1600.txt",
+            "/ventoy/theme/1172005thinh/light_gh_3840x2160.txt",
+            "/ventoy/theme/1172005thinh/light_gh_3840x2400.txt",
+            "/ventoy/theme/1172005thinh/light_htc_1024x768.txt",
+            "/ventoy/theme/1172005thinh/light_htc_1152x864.txt",
+            "/ventoy/theme/1172005thinh/light_htc_1280x720.txt",
+            "/ventoy/theme/1172005thinh/light_htc_1366x768.txt",
+            "/ventoy/theme/1172005thinh/light_htc_1600x1200.txt",
+            "/ventoy/theme/1172005thinh/light_htc_1600x900.txt",
+            "/ventoy/theme/1172005thinh/light_htc_1920x1080.txt",
+            "/ventoy/theme/1172005thinh/light_htc_1920x1200.txt",
+            "/ventoy/theme/1172005thinh/light_htc_2560x1080.txt",
+            "/ventoy/theme/1172005thinh/light_htc_2560x1440.txt",
+            "/ventoy/theme/1172005thinh/light_htc_2560x1600.txt",
+            "/ventoy/theme/1172005thinh/light_htc_3840x2160.txt",
+            "/ventoy/theme/1172005thinh/light_htc_3840x2400.txt"
+        ],
+        "gfxmode": "max",
+        "resolution_fit": 1,
+        "ventoy_left": "72%",
+        "ventoy_top": "95%",
+        "ventoy_color": "#6F6F6F",
+        "fonts": [
+            "/ventoy/font/cascadia-code/cascadia-code_12.pf2",
+            "/ventoy/font/cascadia-code/cascadia-code_16.pf2",
+            "/ventoy/font/cascadia-code/cascadia-code_20.pf2",
+            "/ventoy/font/cascadia-code/cascadia-code_24.pf2",
+            "/ventoy/font/cascadia-code/cascadia-code_28.pf2",
+            "/ventoy/font/cascadia-code/cascadia-code_32.pf2"
+        ]
+    },
+    "menu_alias": [
+        {
+            "image": "/Windows/Windows11/w11.iso",
+            "alias": "Windows 11"
+        }
+    ],
+    "menu_tip": {
+        "left": "30%",
+        "top": "11%",
+        "color": "#CDCDCD",
+        "tips": [
+            {
+                "image": "/Windows/Windows11/w11.iso",
+                "tip": "Windows 11 Installation"
+            }
+        ]
+    },
+    "menu_class": [
+        {
+            "key": "w11",
+            "class": "windows"
+        }
+    ],
+    "auto_install": [
+        {
+            "image": "/Windows/Windows11/w11.iso",
+            "template": [
+                "/AutoInstaller.xml",
+                "/Manual.xml"
+            ],
+            "timeout": 10,
+            "autosel": 1
+        }
+    ]
+}

@@ -1,0 +1,9 @@
+# IGNORE
+
+*.exe
+[Tt]est*.ps1
+
+# KEEP
+
+!.gitignore
+!README.md

@@ -1,0 +1,7 @@
+# IGNORE
+
+*.pptx
+
+# KEEP
+
+!.gitignore

@@ -1,0 +1,9 @@
+# IGNORE
+
+[Tt]est*.au3
+*.exe
+
+# KEEP
+
+!.gitignore
+!README.md
