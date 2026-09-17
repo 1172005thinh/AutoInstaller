@@ -26,36 +26,36 @@
 
 ---
 
-## 💡 WHY AUTOINSTALLER?
+## <a id="why-autoinstaller"></a>💡 WHY AUTOINSTALLER?
 
-## ✨ MAIN FEATURES
+## <a id="main-features"></a>✨ MAIN FEATURES
 
-## 📁 PROJECT STRUCTURE
-
-<br clear="left"/>
-
----
-
-## 🚀 GETTING START
-
-### 📋 REQUIREMENTS
-
-### 🛠️ STEP-BY-STEP
-
-### ✅ VERIFICATION
+## <a id="project-structure"></a>📁 PROJECT STRUCTURE
 
 <br clear="left"/>
 
 ---
 
-## 🔮 INCOMING FEATURES
+## <a id="getting-start"></a>🚀 GETTING START
 
-## ⏳ CHANGELOG
+### <a id="requirements"></a>📋 REQUIREMENTS
 
-## ⚠️ KNOWN ISSUES
+### <a id="step-by-step"></a>🛠️ STEP-BY-STEP
 
-## 📚 REFERENCES
+### <a id="verification"></a>✅ VERIFICATION
 
-## ⚖️ LICENSE
+<br clear="left"/>
 
-## 🤝 CONTRIBUTION
+---
+
+## <a id="incoming-features"></a>🔮 INCOMING FEATURES
+
+## <a id="changelog"></a>⏳ CHANGELOG
+
+## <a id="known-issues"></a>⚠️ KNOWN ISSUES
+
+## <a id="references"></a>📚 REFERENCES
+
+## <a id="license"></a>⚖️ LICENSE
+
+## <a id="contribution"></a>🤝 CONTRIBUTION
