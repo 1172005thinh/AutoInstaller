@@ -1,0 +1,55 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Run AutoInstaller",
+      "type": "shell",
+      "command": "tools\\AutoIt\\AutoIt3_x64.exe",
+      "args": ["AutoInstaller.au3"],
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Execute AutoInstaller",
+      "type": "shell",
+      "command": "./AutoInstaller.exe",
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Build AutoInstaller",
+      "type": "shell",
+      "command": "tools\\AutoIt\\Aut2exe\\Aut2exe.exe",
+      "args": [
+        "/in",
+        "AutoInstaller.au3",
+        "/out",
+        "AutoInstaller.exe",
+        "/x64"
+      ],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    }
+  ]
+}

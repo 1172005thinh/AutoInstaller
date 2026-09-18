@@ -1,0 +1,14 @@
+{
+  "main.bg": "0x1E1E1E",
+  "main.view.bg": "0x2D2D30",
+  "text.primary": "0xF1F1F1",
+  "text.secondary": "0x999999",
+  "btn.bg": "0x2D2D30",
+  "btn.pressed": "0x3E3E42",
+  "btn.border": "0x4F4F54",
+  "btn.text": "0xF1F1F1",
+  "btn.primary.bg": "0x0078D7",
+  "btn.primary.pressed": "0x005A9E",
+  "btn.primary.border": "0x2B88D8",
+  "btn.primary.text": "0xFFFFFF"
+}
