@@ -67,6 +67,7 @@ Global $iX = 0
 Global $iY = 0
 Global $iW = 0
 Global $iH = 0
+Global $g_hCurrentView = 0
 
 ; 1. Load stored configuration
 $aConfig = configLoad()
@@ -165,6 +166,7 @@ _GUICtrlStatusBar_Resize($hStatusBar)
 
 ; 8. Central App State Controllers
 Func appApplyLanguage()
+    WinSetTitle($hMain, "", i18nGet("main.title"))
     GUICtrlSetData($hNavGroup, i18nGet("main.nav.title"))
     GUICtrlSetData($hToolBar, i18nGet("main.tool.title"))
     GUICtrlSetData($hCtrlGroup, i18nGet("main.ctrl.title"))
@@ -225,14 +227,18 @@ Func appView($hTargetPage)
     GUISetState(@SW_HIDE, $hViewSettings)
     GUISetState(@SW_HIDE, $hViewHelp)
     GUISetState(@SW_SHOW, $hTargetPage)
+    $g_hCurrentView = $hTargetPage
 
     ; Update Tool Bar Buttons based on current page
     ; Assign this local variable to get the current page
-    Local $hView = ; Function()
+    Local $hView = $hTargetPage
+
+    ; Reset toolbar: hide all buttons by default
+    For $i = 0 To $iToolBarBtnCol - 1
+        GUICtrlSetState($a_idToolBarBtn[$i], $GUI_HIDE)
+    Next
 
     Switch $hView
-        Case ; default
-            ; Do something
         Case $hViewHome
             ; No tool bar buttons shown
         Case $hViewUnattend
@@ -248,13 +254,12 @@ Func appView($hTargetPage)
         Case $hViewExtract
             ; Decide later
         Case $hViewSettings
-            ; Cancel - last right button
-            ; Save - left next to Cancel
+            viewSettingsToolBar()
         Case $hViewHelp
             ; Decide later
+        Case Else
+            ; Default
     EndSwitch
-    
-    
 EndFunc
 
 ; 9. Render Default State
@@ -320,13 +325,22 @@ While 1
             appSetStatus(i18nGet("status.title") & i18nGet("help.btn.title"))
     EndSwitch
 
-    ;viewUnattendHandleEvent($iMsg)
-    ;viewAppsHandleEvent($iMsg)
-    ;viewDriversHandleEvent($iMsg)
-    ;viewConfwinHandleEvent($iMsg)
-    ;viewExtractHandleEvent($iMsg)
-    viewSettingsHandleEvent($iMsg)
-    ;viewHelpHandleEvent($iMsg)
+    Switch $g_hCurrentView
+        ;Case $hViewUnattend
+        ;    viewUnattendHandleEvent($iMsg)
+        ;Case $hViewApps
+        ;    viewAppsHandleEvent($iMsg)
+        ;Case $hViewDrivers
+        ;    viewDriversHandleEvent($iMsg)
+        ;Case $hViewConfwin
+        ;    viewConfwinHandleEvent($iMsg)
+        ;Case $hViewExtract
+        ;    viewExtractHandleEvent($iMsg)
+        Case $hViewSettings
+            viewSettingsHandleEvent($iMsg)
+        ;Case $hViewHelp
+        ;    viewHelpHandleEvent($iMsg)
+    EndSwitch
 WEnd
 
 GUIDelete($hMain)

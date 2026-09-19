@@ -31,7 +31,6 @@ Global $g_hSettingsGUI = 0
 Global $hViewSettingsTitle = 0
 Global $hViewSettingsLangLabel = 0, $hViewSettingsLangCombo = 0
 Global $hViewSettingsThemeLabel = 0, $hViewSettingsThemeCombo = 0
-Global $hViewSettingsBtnSave = 0
 
 Func viewSettingsCreate($hParentGUI, $iX, $iY, $iW, $iH)
     Global $hViewSettings = GUICreate("", $iW, $iH, $iX, $iY, $WS_CHILD, -1, $hParentGUI)
@@ -53,9 +52,6 @@ Func viewSettingsCreate($hParentGUI, $iX, $iY, $iW, $iH)
     Global $hViewSettingsThemeCombo = GUICtrlCreateCombo("", 160, 92, 180, 25)
     GUICtrlSetData($hViewSettingsThemeCombo, "Light|Dark", ($sCurrentTheme = "dark" ? "Dark" : "Light"))
     
-    ; Save Button
-    Global $hViewSettingsBtnSave = GUICtrlCreateButton("", 15, 145, 130, 32)
-    
     viewSettingsApplyLang()
     viewSettingsApplyTheme()
     Return $hViewSettings
@@ -65,7 +61,20 @@ Func viewSettingsApplyLang()
     GUICtrlSetData($hViewSettingsTitle, i18nGet("settings.title"))
     GUICtrlSetData($hViewSettingsLangLabel, i18nGet("settings.lang.label"))
     GUICtrlSetData($hViewSettingsThemeLabel, i18nGet("settings.theme.label"))
-    GUICtrlSetData($hViewSettingsBtnSave, i18nGet("save.btn.title"))
+    If $g_hCurrentView = $hViewSettings Then
+        GUICtrlSetData($a_idToolBarBtn[$iToolBarBtnCol - 1], i18nGet("cancel.btn.title", "Cancel"))
+        GUICtrlSetData($a_idToolBarBtn[$iToolBarBtnCol - 2], i18nGet("save.btn.title", "Save"))
+    EndIf
+EndFunc
+
+Func viewSettingsToolBar()
+    ; Cancel - last right button
+    GUICtrlSetData($a_idToolBarBtn[$iToolBarBtnCol - 1], i18nGet("cancel.btn.title", "Cancel"))
+    GUICtrlSetState($a_idToolBarBtn[$iToolBarBtnCol - 1], $GUI_SHOW)
+    
+    ; Save - left next to Cancel
+    GUICtrlSetData($a_idToolBarBtn[$iToolBarBtnCol - 2], i18nGet("save.btn.title", "Save"))
+    GUICtrlSetState($a_idToolBarBtn[$iToolBarBtnCol - 2], $GUI_SHOW)
 EndFunc
 
 Func viewSettingsApplyTheme()
@@ -83,7 +92,7 @@ EndFunc
 
 Func viewSettingsHandleEvent($idMsg)
     Switch $idMsg
-        Case $hViewSettingsBtnSave
+        Case $a_idToolBarBtn[$iToolBarBtnCol - 2]
             ; Resolve selected language
             Local $sSelectedLang = StringInStr(GUICtrlRead($hViewSettingsLangCombo), "vi-vn") ? "vi-vn" : "en-us"
             ; Resolve selected theme
@@ -96,5 +105,12 @@ Func viewSettingsHandleEvent($idMsg)
             appSetLanguage($sSelectedLang)
             appSetTheme($sSelectedTheme)
             appSetStatus(i18nGet("status.title") & i18nGet("status.saved"))
+
+        Case $a_idToolBarBtn[$iToolBarBtnCol - 1]
+            ; Discard changes / reset to saved configuration
+            Local $aConfig = configLoad()
+            GUICtrlSetData($hViewSettingsLangCombo, ($aConfig[0] = "vi-vn" ? "Tiếng Việt (vi-vn)" : "English (en-us)"))
+            GUICtrlSetData($hViewSettingsThemeCombo, ($aConfig[1] = "dark" ? "Dark" : "Light"))
+            appSetStatus(i18nGet("status.title") & i18nGet("status.ready"))
     EndSwitch
 EndFunc

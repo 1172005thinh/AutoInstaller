@@ -18,6 +18,7 @@
     "extract.btn.title": "Extract",
     "extract.title": "Extract to USB",
     "save.btn.title": "Save",
+    "cancel.btn.title": "Cancel",
     "settings.btn.title": "Settings",
     "settings.lang.label": "Language: ",
     "settings.theme.label": "Theme (Experimental): ",
