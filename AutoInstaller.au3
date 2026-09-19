@@ -10,14 +10,20 @@
 
 Global Const $rMainIconPath = @ScriptDir & "/gui/assets/icons/AutoInstaller.ico"
 
-Global Const $iP = 10
 Global Const $iMainW = 800
 Global Const $iMainH = 600
+Global Const $iP = $iMainH * 125 / 10000
 Global Const $iNavW = $iMainW * 20 / 100
 Global Const $iNavH = $iMainH * 70 / 100
-Global Const $iStatusBarH = 24
-Global Const $iBtnH = 32
-Global Const $iLblH = 16
+Global Const $iStatusBarH = $iMainH * 4 / 100
+Global Const $iBtnH = $iMainH * 100 / 1875
+Global Const $iLblH = $iMainH * 10 / 375
+Global Const $iHeader = 16
+Global Const $iBullet = 12
+Global Const $iPrimary = 8
+Global Const $iSmall = 7
+
+Global Const $iNavViewBtnRow = 9
 Global Const $iToolBarBtnCol = 10
 Global Const $iCtrlBtnCol = 3
 Global Const $iCtrlBtnRow = 2
@@ -62,12 +68,12 @@ Global Const $iCtrlBtnRow = 2
 ; AutoInstaller
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-Global $a_iPos[4]
 Global $iX = 0
 Global $iY = 0
 Global $iW = 0
 Global $iH = 0
 Global $g_hCurrentView = 0
+Global $a_iPos[4] = 0
 
 ; 1. Load stored configuration
 $aConfig = configLoad()
@@ -84,13 +90,17 @@ Global $hMain = GUICreate(i18nGet("main.title"), $iW, $iH, -1, -1)
 GUISetIcon($rMainIconPath, -1, $hMain)
 
 ; 3. Initialize Navigation Panel
-Global $hNavGroup = GUICtrlCreateGroup(i18nGet("main.nav.title"), $iP, $iP, $iNavW, $iNavH)
+$iX = $iP
+$iY = $iP
+$iW = $iNavW
+$iH = $iNavH
+Global $hNavGroup = GUICtrlCreateGroup(i18nGet("main.nav.title"), $iX, $iY, $iW, $iH)
 ; Navigation View Button
 $iX = $iP * 2
 $iY = $iP * 3
 $iW = $iNavW - $iP * 2
 $iH = $iBtnH
-Global $a_idNavViewBtn[9]
+Global $a_idNavViewBtn[$iNavViewBtnRow]
 For $i = 0 To 6
     $a_idNavViewBtn[$i] = GUICtrlCreateButton("", $iX, $iY + ($iH + $iP) * $i, $iW, $iH)
 Next
@@ -143,13 +153,13 @@ Global $hCtrlGroup = GUICtrlCreateGroup(i18nGet("main.ctrl.title"), $iX, $iY, $i
 ; Log Edit
 $iX = $a_iPos[0] + $iP
 $iY = $a_iPos[1] + $a_iPos[3] + $iP * 3
-$iW = ($iMainW - $iP * 5) / 2
+$iW = ($iMainW - $iP * 5) * 50 / 100
 $iH = $iMainH - $iNavH - $iStatusBarH - $iP * 6
-Global $hCtrlLogEdit = GUICtrlCreateEdit("", $iX, $iY, $iW, $iH, BitOR($ES_AUTOVSCROLL, $ES_READONLY, $WS_VSCROLL, $WS_HSCROLL))
+Global $idCtrlLogEdit = GUICtrlCreateEdit("", $iX, $iY, $iW, $iH, BitOR($ES_AUTOVSCROLL, $ES_READONLY, $WS_VSCROLL, $WS_HSCROLL))
 ; Control Buttons
 $iX = $a_iPos[0] + ($iMainW - $iP * 5) / 2 + $iP * 2
 $iY = $a_iPos[1] + $a_iPos[3] + $iP * 3
-$iW = (($iMainW - $iP * 5) / 2 - $iP * ($iCtrlBtnCol - 1)) / $iCtrlBtnCol
+$iW = (($iMainW - $iP * 5) * 50 / 100 - $iP * ($iCtrlBtnCol - 1)) / $iCtrlBtnCol
 $iH = ($iMainH - $iNavH - $iStatusBarH - $iP * ($iCtrlBtnRow + 5)) / $iCtrlBtnRow
 Global $a_idCtrlBtn[$iCtrlBtnCol][$iCtrlBtnRow]
 For $i = 0 to $iCtrlBtnCol - 1
@@ -191,8 +201,15 @@ Func appApplyLanguage()
 EndFunc
 
 Func appApplyTheme()
+    ; Set BKColor
     GUISetBkColor(themeColor("main.bg"), $hMain)
+    GUICtrlSetBkColor($idCtrlLogEdit, themeColor("main.view.bg"))
+
+    ; Set Text Color
     GUICtrlSetColor($hNavGroup, themeColor("text.primary"))
+    GUICtrlSetColor($hToolBar, themeColor("text.primary"))
+    GUICtrlSetColor($hCtrlGroup, themeColor("text.primary"))
+    GUICtrlSetColor($idCtrlLogEdit, themeColor("text.primary"))
     viewHomeApplyTheme()
     viewUnattendApplyTheme()
     viewAppsApplyTheme()

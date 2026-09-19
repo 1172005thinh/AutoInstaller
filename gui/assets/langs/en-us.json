@@ -20,6 +20,7 @@
     "save.btn.title": "Save",
     "cancel.btn.title": "Cancel",
     "settings.btn.title": "Settings",
+    "settings.prefer.title": "Preferences",
     "settings.lang.label": "Language: ",
     "settings.theme.label": "Theme (Experimental): ",
     "settings.title": "Settings",

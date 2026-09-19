@@ -1,5 +1,5 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; File:     AutoInstaller.au3
+; File:     gui/views/settings.au3
 ; Author:   1172005thinh
 ; Repo:     github.com/1172005thinh/AutoInstaller
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -17,6 +17,10 @@
 ; Libraries
 #include <GUIConstantsEx.au3>
 #include <WindowsConstants.au3>
+#include <MsgBoxConstants.au3>
+
+; Controls
+#include "../controls/button.au3"
 
 ; Modules
 #include "../modules/i18n.au3"
@@ -27,30 +31,64 @@
 ; Views/Settings
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-Global $g_hSettingsGUI = 0
+Global $hViewSettings = 0
 Global $hViewSettingsTitle = 0
-Global $hViewSettingsLangLabel = 0, $hViewSettingsLangCombo = 0
-Global $hViewSettingsThemeLabel = 0, $hViewSettingsThemeCombo = 0
+Global $hViewSettingsLangLabel = 0
+Global $hViewSettingsLangCombo = 0
+Global $hViewSettingsThemeLabel = 0
+Global $hViewSettingsThemeCombo = 0
 
 Func viewSettingsCreate($hParentGUI, $iX, $iY, $iW, $iH)
-    Global $hViewSettings = GUICreate("", $iW, $iH, $iX, $iY, $WS_CHILD, -1, $hParentGUI)
-    
+    Local $iViewX = $iX
+    Local $iViewY = $iY
+    Local $iViewW = $iW
+    Local $iViewH = $iH
+    Local $iLblW = ($iW - $iP * 2) * 30 / 100
+    Local $iCmbW = ($iW - $iP * 2) * 30 / 100 - $iP * 3
+    Local $iPx = $iLblH * 20 / 100
+
+    ; View Settings Title
+    Global $hViewSettings = GUICreate("", $iViewW, $iViewH, $iViewX, $iViewY, $WS_CHILD, -1, $hParentGUI)    
     $iX = $iP
     $iY = $iP
-    $iW = $iW - $iP * 2
-    $iH = $iLblH * 2 
+    $iW = $iViewW - $iP * 2
+    $iH = $iLblH * 2
     Global $hViewSettingsTitle = GUICtrlCreateLabel("", $iX, $iY, $iW, $iH)
-    GUICtrlSetFont(-1, 16, 800)
+    GUICtrlSetFont(-1, $iHeader, 800)
+    
+    ; Initialize Preferences Group
+    $iX = $iP
+    $iY = $iLblH * 2 + $iP
+    $iW = $iViewW - $iP * 2
+    $iH = $iLblH * 2 + $iP * (3 * 2 + 1)
+    Global $hViewSettingsPreferGroup = GUICtrlCreateGroup(i18nGet("settings.prefer.title"), $iX, $iY, $iW, $iH)
     
     ; Language Selector
-    Global $hViewSettingsLangLabel = GUICtrlCreateLabel("", 15, 55, 140, 20)
-    Global $hViewSettingsLangCombo = GUICtrlCreateCombo("", 160, 52, 180, 25)
+    $iX = $iP * 3
+    $iY = $iLblH * 2 + $iP * 4
+    $iW = $iLblW
+    $iH = $iLblH
+    Global $hViewSettingsLangLabel = GUICtrlCreateLabel("", $iX, $iY, $iW, $iH)
+    $iX = $iLblW + $iP * 3
+    $iY = $iLblH * 2 + $iP * 4 - $iPx
+    $iW = $iCmbW
+    $iH = $iLblH
+    $hViewSettingsLangCombo = GUICtrlCreateCombo("", $iX, $iY, $iW, $iH)
     GUICtrlSetData($hViewSettingsLangCombo, "English (en-us)|Tiếng Việt (vi-vn)", ($sCurrentLang = "vi-vn" ? "Tiếng Việt (vi-vn)" : "English (en-us)"))
     
     ; Theme Selector
-    Global $hViewSettingsThemeLabel = GUICtrlCreateLabel("", 15, 95, 140, 20)
-    Global $hViewSettingsThemeCombo = GUICtrlCreateCombo("", 160, 92, 180, 25)
+    $iX = $iP * 3
+    $iY = $iLblH * 2 + $iP * 8
+    $iW = $iLblW
+    $iH = $iLblH
+    Global $hViewSettingsThemeLabel = GUICtrlCreateLabel("", $iX, $iY, $iW, $iH)
+    $iX = $iLblW + $iP * 3
+    $iY = $iLblH * 2 + $iP * 8 - $iPx
+    $iW = $iCmbW
+    $iH = $iLblH
+    $hViewSettingsThemeCombo = GUICtrlCreateCombo("", $iX, $iY, $iW, $iH)
     GUICtrlSetData($hViewSettingsThemeCombo, "Light|Dark", ($sCurrentTheme = "dark" ? "Dark" : "Light"))
+    GUICtrlCreateGroup("", -99, -99, -99, -99)
     
     viewSettingsApplyLang()
     viewSettingsApplyTheme()
@@ -59,6 +97,7 @@ EndFunc
 
 Func viewSettingsApplyLang()
     GUICtrlSetData($hViewSettingsTitle, i18nGet("settings.title"))
+    GUICtrlSetData($hViewSettingsPreferGroup, i18nGet("settings.prefer.title"))
     GUICtrlSetData($hViewSettingsLangLabel, i18nGet("settings.lang.label"))
     GUICtrlSetData($hViewSettingsThemeLabel, i18nGet("settings.theme.label"))
     If $g_hCurrentView = $hViewSettings Then
