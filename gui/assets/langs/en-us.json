@@ -13,6 +13,8 @@
     "drivers.title": "Customize Driver Installation",
     "confwin.btn.title": "Configure",
     "confwin.title": "Customize Windows Settings",
+    "ventoy.btn.title": "Ventoy",
+    "ventoy.title": "Customize Ventoy",
     "extract.btn.title": "Extract",
     "extract.title": "Extract to USB",
     "save.btn.title": "Save",
