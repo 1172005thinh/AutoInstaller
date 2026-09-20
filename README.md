@@ -22,7 +22,7 @@
 | 5 | [Changelog](#changelog) |
 | 6 | [Known Issues](#known-issues) |
 | 7 | [References](#references) |
-| 8 | [License](#license) |
+| 8 | [License & Disclaimer](#license) |
 | 9 | [Contribution](#contribution) |
 
 <br clear="left"/>
@@ -35,11 +35,13 @@
 
 It is an "old school" solution to `clone` a machine to another one. A clone image might have Windows pre-installed, all the applications, drivers, and configurations you need. Easy to deploy, fast to restore, just a USB and you are good to go. However, if you are installing a fresh Windows from an shared image, think about it:
 
-1. How about the `hardware configuration` is not the same? The drivers might *not be compatible* with the new machine. Good luck with `BSOD`!
-2. Or, you don't like the idea of *sharing a cloned OS* with someone else? How about the `personalization`? How about the `privacy`? How about the `bloatware`? You may not want to share your custom configuration with others.
-3. Or, the `corrupted` image that includes a `funny virus/malware`? You might not know *what has been added* in the image.
+|**Potential Risks**|
+|---|
+|How about the `hardware configuration` is not the same? The drivers might *not be compatible* with the new machine. Good luck with `BSOD`!|
+|Or, you don't like the idea of *sharing a cloned OS* with someone else? How about the `personalization`? How about the `privacy`? How about the `bloatware`? You may not want to share your custom configuration with others.|
+|Or, the `corrupted` image that includes a `funny virus/malware`? You might not know *what has been added* in the image.|
 
-    ***Do you really trust the distributor?***
+***Do you really trust the distributor?***
 
 > **Here comes `AutoInstaller`**
 
@@ -135,6 +137,32 @@ These below are my `ideas`, `not promises`:
 ## <a id="license"></a>⚖️ LICENSE
 
 Please refer to [LICENSE.md](LICENSE.md) for more information.
+
+### **🚨 DISCLAIMER & COMPLIANCE STATEMENT**
+
+> **Notice:** The software demonstrated and provided in this repository is completely clean and does not contain, facilitate, or execute any unauthorized activation scripts, crack tools, bypasses, or unlawful modification mechanisms.
+
+1. **Windows Licensing & Activation:**
+   - The tool strictly supports standard product key injection for users possessing legitimate, officially purchased volume/retail licenses (e.g., physical product keys from authorized distributors, digital licenses directly purchased from official channels), or automatic detection of genuine OEM digital product keys embedded within system BIOS/firmware.
+   - If no valid license key is provided or detected, the operating system remains entirely **unactivated** in its default evaluation state. *Note: Product keys must strictly correspond to their respective Windows editions.*
+
+2. **Microsoft Office Deployment:**
+   - Office installation is handled exclusively via the official Microsoft Office Deployment Tool (ODT) using genuine, unaltered sources downloaded directly from Microsoft content delivery networks (CDNs).
+   - The tool solely orchestrates deployment according to predetermined XML configuration files—specifying application components (Word, Excel, PowerPoint, Access), language packs (e.g., `vi-vn`, `en-us`), and user-provided volume product keys (or BIOS-detected credentials).
+   - In the absence of a user-provided license key, Microsoft Office installs in an **unlicensed** state, awaiting official user activation, Microsoft 365 credential login, or product key entry. *Note: Product keys are strictly valid only for their corresponding software suites.*
+   - The tool functions solely as a deployment orchestrator. **Misuse of an unlicensed installation (such as unauthorized commercial usage without a valid Microsoft 365 subscription or failure to procure proper licensing) is strictly outside the scope and responsibility of this tool and its author.**
+
+3. **Third-Party Applications:**
+   - All third-party applications deployed by this tool are strictly freeware (e.g., Google Chrome Standalone), open-source software (e.g., LibreOffice, OBS Studio), or products offering an official free tier (e.g., TeamViewer).
+   - For proprietary software providing trial evaluation periods (e.g., WinRAR), users are explicitly encouraged to purchase a valid commercial license from the respective vendor.
+
+4. **Open-Source Derivatives & Liability Waiver:**
+   - This project is published under the open-source [**MIT License**](https://en.wikipedia.org/wiki/MIT_License).
+   - The original author ([1172005thinh](https://github.com/1172005thinh)) assumes **no responsibility or liability** for any third-party forks, redistributions, or modified versions that may inject, modify, or append unauthorized activation scripts, cracks, or malicious payloads.
+
+> **Absolute Prohibition:** This tool does **not** contain, distribute, or promote any illegal cracking methods, KMS emulators, keygens, or license tampering mechanisms under any circumstances or by any means.
+
+> **NOTE**: I am *not a lawyer*. This disclaimer is based on ***`my understanding`*** and ***`translated with AI`***.
 
 ## <a id="contribution"></a>🤝 CONTRIBUTION
 
