@@ -5,6 +5,44 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Includes
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+; Libraries
+#include <GUIConstantsEx.au3>
+#include <WindowsConstants.au3>
+#include <GuiStatusBar.au3>
+#include <StatusBarConstants.au3>
+#include <EditConstants.au3>
+#include <GuiEdit.au3>
+#include <MsgBoxConstants.au3>
+#include <FileConstants.au3>
+
+; Controls
+#include "gui/controls/button.au3"
+
+; Modules
+#include "gui/modules/config.au3"
+#include "gui/modules/i18n.au3"
+#include "gui/modules/theme.au3"
+#include "gui/modules/scroll.au3"
+
+; Pages
+#include "gui/views/home.au3"
+#include "gui/views/unattend.au3"
+#include "gui/views/apps.au3"
+#include "gui/views/drivers.au3"
+#include "gui/views/confwin.au3"
+#include "gui/views/ventoy.au3"
+#include "gui/views/extract.au3"
+#include "gui/views/settings.au3"
+#include "gui/views/help.au3"
+#include <FileConstants.au3>
+
+; Compile
+#pragma compile(Icon, $rMainIconPath)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Const
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -29,42 +67,6 @@ Global Const $iCtrlBtnCol = 3
 Global Const $iCtrlBtnRow = 2
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; Includes
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-; Libraries
-#include <GUIConstantsEx.au3>
-#include <WindowsConstants.au3>
-#include <GuiStatusBar.au3>
-#include <StatusBarConstants.au3>
-#include <EditConstants.au3>
-#include <GuiEdit.au3>
-#include <MsgBoxConstants.au3>
-
-; Controls
-#include "gui/controls/button.au3"
-
-; Modules
-#include "gui/modules/config.au3"
-#include "gui/modules/i18n.au3"
-#include "gui/modules/theme.au3"
-
-; Pages
-#include "gui/views/home.au3"
-#include "gui/views/unattend.au3"
-#include "gui/views/apps.au3"
-#include "gui/views/drivers.au3"
-#include "gui/views/confwin.au3"
-#include "gui/views/ventoy.au3"
-#include "gui/views/extract.au3"
-#include "gui/views/settings.au3"
-#include "gui/views/help.au3"
-#include <FileConstants.au3>
-
-; Compile
-#pragma compile(Icon, $rMainIconPath)
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; AutoInstaller
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -73,7 +75,7 @@ Global $iY = 0
 Global $iW = 0
 Global $iH = 0
 Global $g_hCurrentView = 0
-Global $a_iPos[4] = 0
+Global $a_iPos[4]
 
 ; 1. Load stored configuration
 $aConfig = configLoad()
@@ -86,7 +88,7 @@ $iX = 0
 $iY = 0
 $iW = $iMainW
 $iH = $iMainH
-Global $hMain = GUICreate(i18nGet("main.title"), $iW, $iH, -1, -1)
+Global $hMain = GUICreate(i18nGet("main.title"), $iW, $iH, -1, -1, BitOR($GUI_SS_DEFAULT_GUI, $WS_CLIPCHILDREN))
 GUISetIcon($rMainIconPath, -1, $hMain)
 
 ; 3. Initialize Navigation Panel
@@ -114,15 +116,18 @@ $iX = $a_iPos[0] + $a_iPos[2] + $iP
 $iY = $a_iPos[0]
 $iW = $iMainW - $a_iPos[0] - $a_iPos[2] - $iP * 2
 $iH = $a_iPos[3] - $iBtnH - $iP * 4
-Global $hViewHome = viewHomeCreate($hMain, $iX, $iY, $iW, $iH)
-Global $hViewUnattend = viewUnattendCreate($hMain, $iX, $iY, $iW, $iH)
-Global $hViewApps = viewAppsCreate($hMain, $iX, $iY, $iW, $iH)
-Global $hViewDrivers = viewDriversCreate($hMain, $iX, $iY, $iW, $iH)
-Global $hViewConfwin = viewConfwinCreate($hMain, $iX, $iY, $iW, $iH)
-Global $hViewVentoy = viewVentoyCreate($hMain, $iX, $iY, $iW, $iH)
-Global $hViewExtract = viewExtractCreate($hMain, $iX, $iY, $iW, $iH)
-Global $hViewSettings = viewSettingsCreate($hMain, $iX, $iY, $iW, $iH)
-Global $hViewHelp = viewHelpCreate($hMain, $iX, $iY, $iW, $iH)
+
+Global $hViewport = scrollInitViewport($hMain, $iX, $iY, $iW, $iH)
+
+Global $hViewHome = viewHomeCreate($hViewport, $iW, $iH)
+Global $hViewUnattend = viewUnattendCreate($hViewport, $iW, $iH)
+Global $hViewApps = viewAppsCreate($hViewport, $iW, $iH)
+Global $hViewDrivers = viewDriversCreate($hViewport, $iW, $iH)
+Global $hViewConfwin = viewConfwinCreate($hViewport, $iW, $iH)
+Global $hViewVentoy = viewVentoyCreate($hViewport, $iW, $iH)
+Global $hViewExtract = viewExtractCreate($hViewport, $iW, $iH)
+Global $hViewSettings = viewSettingsCreate($hViewport, $iW, $iH)
+Global $hViewHelp = viewHelpCreate($hViewport, $iW, $iH)
 GUISwitch($hMain)
 
 ; 5. Instantiate Tool Bar
@@ -204,6 +209,7 @@ Func appApplyTheme()
     ; Set BKColor
     GUISetBkColor(themeColor("main.bg"), $hMain)
     GUICtrlSetBkColor($idCtrlLogEdit, themeColor("main.view.bg"))
+    scrollSetViewportBkColor(themeColor("main.view.bg"))
 
     ; Set Text Color
     GUICtrlSetColor($hNavGroup, themeColor("text.primary"))
@@ -234,16 +240,17 @@ Func appSetStatus($sText)
 EndFunc
 
 Func appView($hTargetPage)
-    GUISetState(@SW_HIDE, $hViewHome)
-    GUISetState(@SW_HIDE, $hViewUnattend)
-    GUISetState(@SW_HIDE, $hViewApps)
-    GUISetState(@SW_HIDE, $hViewDrivers)
-    GUISetState(@SW_HIDE, $hViewConfwin)
-    GUISetState(@SW_HIDE, $hViewVentoy)
-    GUISetState(@SW_HIDE, $hViewExtract)
-    GUISetState(@SW_HIDE, $hViewSettings)
-    GUISetState(@SW_HIDE, $hViewHelp)
-    GUISetState(@SW_SHOW, $hTargetPage)
+    ;GUISetState(@SW_HIDE, $hViewHome)
+    ;GUISetState(@SW_HIDE, $hViewUnattend)
+    ;GUISetState(@SW_HIDE, $hViewApps)
+    ;GUISetState(@SW_HIDE, $hViewDrivers)
+    ;GUISetState(@SW_HIDE, $hViewConfwin)
+    ;GUISetState(@SW_HIDE, $hViewVentoy)
+    ;GUISetState(@SW_HIDE, $hViewExtract)
+    ;GUISetState(@SW_HIDE, $hViewSettings)
+    ;GUISetState(@SW_HIDE, $hViewHelp)
+    ;GUISetState(@SW_SHOW, $hTargetPage)
+    scrollActivateCanvas($hTargetPage)
     $g_hCurrentView = $hTargetPage
 
     ; Update Tool Bar Buttons based on current page
@@ -257,25 +264,23 @@ Func appView($hTargetPage)
 
     Switch $hView
         Case $hViewHome
-            ; No tool bar buttons shown
+            viewHomeToolBar()
         Case $hViewUnattend
-            ; Decide later
+            viewUnattendToolBar()
         Case $hViewApps
-            ; Decide later
+            viewAppsToolBar()
         Case $hViewDrivers
-            ; Decide later
+            viewDriversToolBar()
         Case $hViewConfwin
-            ; Decide later
+            viewConfwinToolBar()
         Case $hViewVentoy
-            ; Decide later
+            viewVentoyToolBar()
         Case $hViewExtract
-            ; Decide later
+            viewExtractToolBar()
         Case $hViewSettings
             viewSettingsToolBar()
         Case $hViewHelp
-            ; Decide later
-        Case Else
-            ; Default
+            viewHelpToolBar()
     EndSwitch
 EndFunc
 
@@ -343,20 +348,24 @@ While 1
     EndSwitch
 
     Switch $g_hCurrentView
-        ;Case $hViewUnattend
-        ;    viewUnattendHandleEvent($iMsg)
-        ;Case $hViewApps
-        ;    viewAppsHandleEvent($iMsg)
-        ;Case $hViewDrivers
-        ;    viewDriversHandleEvent($iMsg)
-        ;Case $hViewConfwin
-        ;    viewConfwinHandleEvent($iMsg)
-        ;Case $hViewExtract
-        ;    viewExtractHandleEvent($iMsg)
+        Case $hViewHome
+            viewHomeHandleEvent($iMsg)
+        Case $hViewUnattend
+            viewUnattendHandleEvent($iMsg)
+        Case $hViewApps
+            viewAppsHandleEvent($iMsg)
+        Case $hViewDrivers
+            viewDriversHandleEvent($iMsg)
+        Case $hViewConfwin
+            viewConfwinHandleEvent($iMsg)
+        Case $hViewExtract
+            viewExtractHandleEvent($iMsg)
+        Case $hViewVentoy
+            viewVentoyHandleEvent($iMsg)
         Case $hViewSettings
             viewSettingsHandleEvent($iMsg)
-        ;Case $hViewHelp
-        ;    viewHelpHandleEvent($iMsg)
+        Case $hViewHelp
+            viewHelpHandleEvent($iMsg)
     EndSwitch
 WEnd
 

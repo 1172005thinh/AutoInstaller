@@ -33,7 +33,7 @@
     {
       "label": "Build AutoInstaller",
       "type": "shell",
-      "command": "tools\\AutoIt\\Aut2exe\\Aut2exe.exe",
+      "command": "tools\\AutoIt\\Aut2Exe\\Aut2exe.exe",
       "args": [
         "/in",
         "AutoInstaller.au3",

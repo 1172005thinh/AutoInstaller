@@ -5,10 +5,6 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; Const
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Includes
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -26,37 +22,55 @@
 #include "../modules/i18n.au3"
 #include "../modules/theme.au3"
 #include "../modules/config.au3"
+#include "../modules/scroll.au3"
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Const
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Views/Extract
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-Func viewExtractCreate($hParent, $iX, $iY, $iW, $iH)
-    Global $hviewExtract = GUICreate("", $iW, $iH, $iX, $iY, $WS_CHILD, -1, $hParent)
-    Local $iViewX = $iX
-    Local $iViewY = $iY
-    Local $iViewW = $iW
-    Local $iViewH = $iH
-    
-    $iX = $iP
-    $iY = $iP
-    $iW = $iViewW - $iP * 2
-    $iH = $iLblH * 2
-    Global $idviewExtractTitle = GUICtrlCreateLabel("", $iX, $iY, $iW, $iH)
+Global $hViewExtract = 0
+Global $idviewExtractTitle = 0
+
+Func viewExtractCreate($hViewport, $iW, $iH)
+    #forceref $iW, $iH
+    Local $iContentW = scrollGetContentWidth($iP)
+    Local $iContentH = $iH
+    If $iContentH < 360 Then $iContentH = 360
+
+    Global $hViewExtract = scrollCreateCanvas($hViewport, $iContentH)
+    GUISwitch($hViewExtract)
+
+    Local $iX = $iP
+    Local $iY = $iP
+    Local $iCtrlW = $iContentW
+    Local $iCtrlH = $iLblH * 2
+    Global $idViewExtractTitle = GUICtrlCreateLabel("", $iX, $iY, $iCtrlW, $iCtrlH)
     GUICtrlSetFont(-1, $iHeader, 800)
     
     viewExtractApplyLang()
     viewExtractApplyTheme()
-    Return $hviewExtract
+    Return $hViewExtract
 EndFunc
 
 Func viewExtractApplyLang()
-    GUICtrlSetData($idviewExtractTitle, i18nGet("extract.title"))
+    GUICtrlSetData($idViewExtractTitle, i18nGet("extract.title"))
+EndFunc
+
+Func viewExtractToolBar()
+    
 EndFunc
 
 Func viewExtractApplyTheme()
-    GUISetBkColor(themeColor("main.view.bg"), $hviewExtract)
+    GUISetBkColor(themeColor("main.view.bg"), $hViewExtract)
     
-    GUICtrlSetColor($idviewExtractTitle, themeColor("text.primary"))
-    GUICtrlSetBkColor($idviewExtractTitle, themeColor("main.view.bg"))
+    GUICtrlSetColor($idViewExtractTitle, themeColor("text.primary"))
+    GUICtrlSetBkColor($idViewExtractTitle, themeColor("main.view.bg"))
+EndFunc
+
+Func viewExtractHandleEvent($idMsg)
+
 EndFunc

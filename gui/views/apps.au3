@@ -5,10 +5,6 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; Const
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Includes
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -26,37 +22,55 @@
 #include "../modules/i18n.au3"
 #include "../modules/theme.au3"
 #include "../modules/config.au3"
+#include "../modules/scroll.au3"
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Const
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Views/Apps
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-Func viewAppsCreate($hParent, $iX, $iY, $iW, $iH)
-    Global $hviewApps = GUICreate("", $iW, $iH, $iX, $iY, $WS_CHILD, -1, $hParent)
-    Local $iViewX = $iX
-    Local $iViewY = $iY
-    Local $iViewW = $iW
-    Local $iViewH = $iH
-    
-    $iX = $iP
-    $iY = $iP
-    $iW = $iViewW - $iP * 2
-    $iH = $iLblH * 2
-    Global $idviewAppsTitle = GUICtrlCreateLabel("", $iX, $iY, $iW, $iH)
+Global $hViewApps = 0
+Global $idViewAppsTitle = 0
+
+Func viewAppsCreate($hViewport, $iW, $iH)
+    #forceref $iW, $iH
+    Local $iContentW = scrollGetContentWidth($iP)
+    Local $iContentH = $iH
+    If $iContentH < 360 Then $iContentH = 360
+
+    Global $hViewApps = scrollCreateCanvas($hViewport, $iContentH)
+    GUISwitch($hViewApps)
+
+    Local $iX = $iP
+    Local $iY = $iP
+    Local $iCtrlW = $iContentW
+    Local $iCtrlH = $iLblH * 2
+    Global $idViewAppsTitle = GUICtrlCreateLabel("", $iX, $iY, $iCtrlW, $iCtrlH)
     GUICtrlSetFont(-1, $iHeader, 800)
     
     viewAppsApplyLang()
     viewAppsApplyTheme()
-    Return $hviewApps
+    Return $hViewApps
 EndFunc
 
 Func viewAppsApplyLang()
-    GUICtrlSetData($idviewAppsTitle, i18nGet("apps.title"))
+    GUICtrlSetData($idViewAppsTitle, i18nGet("apps.title"))
+EndFunc
+
+Func viewAppsToolBar()
+    
 EndFunc
 
 Func viewAppsApplyTheme()
-    GUISetBkColor(themeColor("main.view.bg"), $hviewApps)
+    GUISetBkColor(themeColor("main.view.bg"), $hViewApps)
     
-    GUICtrlSetColor($idviewAppsTitle, themeColor("text.primary"))
-    GUICtrlSetBkColor($idviewAppsTitle, themeColor("main.view.bg"))
+    GUICtrlSetColor($idViewAppsTitle, themeColor("text.primary"))
+    GUICtrlSetBkColor($idViewAppsTitle, themeColor("main.view.bg"))
+EndFunc
+
+Func viewAppsHandleEvent($idMsg)
+
 EndFunc

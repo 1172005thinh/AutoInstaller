@@ -5,10 +5,6 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; Const
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Includes
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -26,37 +22,55 @@
 #include "../modules/i18n.au3"
 #include "../modules/theme.au3"
 #include "../modules/config.au3"
+#include "../modules/scroll.au3"
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Const
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Views/Confwin
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-Func viewConfwinCreate($hParent, $iX, $iY, $iW, $iH)
-    Global $hviewConfwin = GUICreate("", $iW, $iH, $iX, $iY, $WS_CHILD, -1, $hParent)
-    Local $iViewX = $iX
-    Local $iViewY = $iY
-    Local $iViewW = $iW
-    Local $iViewH = $iH
-    
-    $iX = $iP
-    $iY = $iP
-    $iW = $iViewW - $iP * 2
-    $iH = $iLblH * 2
-    Global $idviewConfwinTitle = GUICtrlCreateLabel("", $iX, $iY, $iW, $iH)
+Global $hViewConfwin = 0
+Global $idviewConfwinTitle = 0
+
+Func viewConfwinCreate($hViewport, $iW, $iH)
+    #forceref $iW, $iH
+    Local $iContentW = scrollGetContentWidth($iP)
+    Local $iContentH = $iH
+    If $iContentH < 360 Then $iContentH = 360
+
+    Global $hViewConfwin = scrollCreateCanvas($hViewport, $iContentH)
+    GUISwitch($hViewConfwin)
+
+    Local $iX = $iP
+    Local $iY = $iP
+    Local $iCtrlW = $iContentW
+    Local $iCtrlH = $iLblH * 2
+    Global $idViewConfwinTitle = GUICtrlCreateLabel("", $iX, $iY, $iCtrlW, $iCtrlH)
     GUICtrlSetFont(-1, $iHeader, 800)
     
     viewConfwinApplyLang()
     viewConfwinApplyTheme()
-    Return $hviewConfwin
+    Return $hViewConfwin
 EndFunc
 
 Func viewConfwinApplyLang()
-    GUICtrlSetData($idviewConfwinTitle, i18nGet("confwin.title"))
+    GUICtrlSetData($idViewConfwinTitle, i18nGet("confwin.title"))
+EndFunc
+
+Func viewConfwinToolBar()
+    
 EndFunc
 
 Func viewConfwinApplyTheme()
-    GUISetBkColor(themeColor("main.view.bg"), $hviewConfwin)
+    GUISetBkColor(themeColor("main.view.bg"), $hViewConfwin)
     
-    GUICtrlSetColor($idviewConfwinTitle, themeColor("text.primary"))
-    GUICtrlSetBkColor($idviewConfwinTitle, themeColor("main.view.bg"))
+    GUICtrlSetColor($idViewConfwinTitle, themeColor("text.primary"))
+    GUICtrlSetBkColor($idViewConfwinTitle, themeColor("main.view.bg"))
+EndFunc
+
+Func viewConfwinHandleEvent($idMsg)
+
 EndFunc

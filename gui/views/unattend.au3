@@ -5,10 +5,6 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; Const
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Includes
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -26,37 +22,55 @@
 #include "../modules/i18n.au3"
 #include "../modules/theme.au3"
 #include "../modules/config.au3"
+#include "../modules/scroll.au3"
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Const
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Views/Unattend
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-Func viewUnattendCreate($hParent, $iX, $iY, $iW, $iH)
-    Global $hviewUnattend = GUICreate("", $iW, $iH, $iX, $iY, $WS_CHILD, -1, $hParent)
-    Local $iViewX = $iX
-    Local $iViewY = $iY
-    Local $iViewW = $iW
-    Local $iViewH = $iH
-    
-    $iX = $iP
-    $iY = $iP
-    $iW = $iViewW - $iP * 2
-    $iH = $iLblH * 2
-    Global $idviewUnattendTitle = GUICtrlCreateLabel("", $iX, $iY, $iW, $iH)
+Global $hViewUnattend = 0
+Global $idViewUnattendTitle = 0
+
+Func viewUnattendCreate($hViewPort, $iW, $iH)
+    #forceref $iW, $iH
+    Local $iContentW = scrollGetContentWidth($iP)
+    Local $iContentH = $iH
+    If $iContentH < 360 Then $iContentH = 360
+
+    Global $hViewUnattend = scrollCreateCanvas($hViewport, $iContentH)
+    GUISwitch($hViewUnattend)
+
+    Local $iX = $iP
+    Local $iY = $iP
+    Local $iCtrlW = $iContentW
+    Local $iCtrlH = $iLblH * 2
+    Global $idViewUnattendTitle = GUICtrlCreateLabel("", $iX, $iY, $iCtrlW, $iCtrlH)
     GUICtrlSetFont(-1, $iHeader, 800)
     
     viewUnattendApplyLang()
     viewUnattendApplyTheme()
-    Return $hviewUnattend
+    Return $hViewUnattend
 EndFunc
 
 Func viewUnattendApplyLang()
-    GUICtrlSetData($idviewUnattendTitle, i18nGet("unattend.title"))
+    GUICtrlSetData($idViewUnattendTitle, i18nGet("unattend.title"))
+EndFunc
+
+Func viewUnattendToolBar()
+    
 EndFunc
 
 Func viewUnattendApplyTheme()
-    GUISetBkColor(themeColor("main.view.bg"), $hviewUnattend)
+    GUISetBkColor(themeColor("main.view.bg"), $hViewUnattend)
     
-    GUICtrlSetColor($idviewUnattendTitle, themeColor("text.primary"))
-    GUICtrlSetBkColor($idviewUnattendTitle, themeColor("main.view.bg"))
+    GUICtrlSetColor($idViewUnattendTitle, themeColor("text.primary"))
+    GUICtrlSetBkColor($idViewUnattendTitle, themeColor("main.view.bg"))
+EndFunc
+
+Func viewUnattendHandleEvent($idMsg)
+
 EndFunc

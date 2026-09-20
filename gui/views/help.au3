@@ -5,10 +5,6 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; Const
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Includes
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -26,37 +22,55 @@
 #include "../modules/i18n.au3"
 #include "../modules/theme.au3"
 #include "../modules/config.au3"
+#include "../modules/scroll.au3"
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Const
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Views/Help
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-Func viewHelpCreate($hParent, $iX, $iY, $iW, $iH)
-    Global $hviewHelp = GUICreate("", $iW, $iH, $iX, $iY, $WS_CHILD, -1, $hParent)
-    Local $iViewX = $iX
-    Local $iViewY = $iY
-    Local $iViewW = $iW
-    Local $iViewH = $iH
-    
-    $iX = $iP
-    $iY = $iP
-    $iW = $iViewW - $iP * 2
-    $iH = $iLblH * 2
-    Global $idviewHelpTitle = GUICtrlCreateLabel("", $iX, $iY, $iW, $iH)
+Global $hViewHelp = 0
+Global $idViewHelpTitle = 0
+
+Func viewHelpCreate($hViewport, $iW, $iH)
+    #forceref $iW, $iH
+    Local $iContentW = scrollGetContentWidth($iP)
+    Local $iContentH = $iH
+    If $iContentH < 360 Then $iContentH = 360
+
+    Global $hViewHelp = scrollCreateCanvas($hViewport, $iContentH)
+    GUISwitch($hViewHelp)
+
+    Local $iX = $iP
+    Local $iY = $iP
+    Local $iCtrlW = $iContentW
+    Local $iCtrlH = $iLblH * 2
+    Global $idViewHelpTitle = GUICtrlCreateLabel("", $iX, $iY, $iCtrlW, $iCtrlH)
     GUICtrlSetFont(-1, $iHeader, 800)
     
     viewHelpApplyLang()
     viewHelpApplyTheme()
-    Return $hviewHelp
+    Return $hViewHelp
 EndFunc
 
 Func viewHelpApplyLang()
-    GUICtrlSetData($idviewHelpTitle, i18nGet("help.title"))
+    GUICtrlSetData($idViewHelpTitle, i18nGet("help.title"))
+EndFunc
+
+Func viewHelpToolBar()
+    
 EndFunc
 
 Func viewHelpApplyTheme()
-    GUISetBkColor(themeColor("main.view.bg"), $hviewHelp)
+    GUISetBkColor(themeColor("main.view.bg"), $hViewHelp)
     
-    GUICtrlSetColor($idviewHelpTitle, themeColor("text.primary"))
-    GUICtrlSetBkColor($idviewHelpTitle, themeColor("main.view.bg"))
+    GUICtrlSetColor($idViewHelpTitle, themeColor("text.primary"))
+    GUICtrlSetBkColor($idViewHelpTitle, themeColor("main.view.bg"))
+EndFunc
+
+Func viewHelpHandleEvent($idMsg)
+
 EndFunc

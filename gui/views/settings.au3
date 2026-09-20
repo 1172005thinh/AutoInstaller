@@ -5,10 +5,6 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; Const
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Includes
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -26,6 +22,11 @@
 #include "../modules/i18n.au3"
 #include "../modules/theme.au3"
 #include "../modules/config.au3"
+#include "../modules/scroll.au3"
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Const
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Views/Settings
@@ -33,60 +34,64 @@
 
 Global $hViewSettings = 0
 Global $hViewSettingsTitle = 0
+Global $hViewSettingsPreferGroup = 0
 Global $hViewSettingsLangLabel = 0
 Global $hViewSettingsLangCombo = 0
 Global $hViewSettingsThemeLabel = 0
 Global $hViewSettingsThemeCombo = 0
 
-Func viewSettingsCreate($hParentGUI, $iX, $iY, $iW, $iH)
-    Local $iViewX = $iX
-    Local $iViewY = $iY
-    Local $iViewW = $iW
-    Local $iViewH = $iH
+Func viewSettingsCreate($hViewport, $iW, $iH)
+    #forceref $iW, $iH
+    Local $iContentW = scrollGetContentWidth($iP)
+    Local $iContentH = $iH
+    If $iContentH < 360 Then $iContentH = 360
+
+    Global $hViewSettings = scrollCreateCanvas($hViewport, $iContentH)
+    GUISwitch($hViewSettings)
+
     Local $iLblW = ($iW - $iP * 2) * 30 / 100
     Local $iCmbW = ($iW - $iP * 2) * 30 / 100 - $iP * 3
     Local $iPx = $iLblH * 20 / 100
 
     ; View Settings Title
-    Global $hViewSettings = GUICreate("", $iViewW, $iViewH, $iViewX, $iViewY, $WS_CHILD, -1, $hParentGUI)    
-    $iX = $iP
-    $iY = $iP
-    $iW = $iViewW - $iP * 2
-    $iH = $iLblH * 2
-    Global $hViewSettingsTitle = GUICtrlCreateLabel("", $iX, $iY, $iW, $iH)
+    Local $iX = $iP
+    Local $iY = $iP
+    Local $iCtrlW = $iContentW
+    Local $iCtrlH = $iLblH * 2
+    Global $hViewSettingsTitle = GUICtrlCreateLabel("", $iX, $iY, $iCtrlW, $iCtrlH)
     GUICtrlSetFont(-1, $iHeader, 800)
     
     ; Initialize Preferences Group
     $iX = $iP
     $iY = $iLblH * 2 + $iP
-    $iW = $iViewW - $iP * 2
-    $iH = $iLblH * 2 + $iP * (3 * 2 + 1)
-    Global $hViewSettingsPreferGroup = GUICtrlCreateGroup(i18nGet("settings.prefer.title"), $iX, $iY, $iW, $iH)
+    $iCtrlW = $iContentW
+    $iCtrlH = $iLblH * 2 + $iP * (3 * 2 + 1)
+    Global $hViewSettingsPreferGroup = GUICtrlCreateGroup(i18nGet("settings.prefer.title"), $iX, $iY, $iCtrlW, $iCtrlH)
     
     ; Language Selector
     $iX = $iP * 3
     $iY = $iLblH * 2 + $iP * 4
-    $iW = $iLblW
-    $iH = $iLblH
-    Global $hViewSettingsLangLabel = GUICtrlCreateLabel("", $iX, $iY, $iW, $iH)
+    $iCtrlW = $iLblW
+    $iCtrlH = $iLblH
+    Global $hViewSettingsLangLabel = GUICtrlCreateLabel("", $iX, $iY, $iCtrlW, $iCtrlH)
     $iX = $iLblW + $iP * 3
     $iY = $iLblH * 2 + $iP * 4 - $iPx
-    $iW = $iCmbW
-    $iH = $iLblH
-    $hViewSettingsLangCombo = GUICtrlCreateCombo("", $iX, $iY, $iW, $iH)
+    $iCtrlW = $iCmbW
+    $iCtrlH = $iLblH
+    $hViewSettingsLangCombo = GUICtrlCreateCombo("", $iX, $iY, $iCtrlW, $iCtrlH)
     GUICtrlSetData($hViewSettingsLangCombo, "English (en-us)|Tiếng Việt (vi-vn)", ($sCurrentLang = "vi-vn" ? "Tiếng Việt (vi-vn)" : "English (en-us)"))
     
     ; Theme Selector
     $iX = $iP * 3
     $iY = $iLblH * 2 + $iP * 8
-    $iW = $iLblW
-    $iH = $iLblH
-    Global $hViewSettingsThemeLabel = GUICtrlCreateLabel("", $iX, $iY, $iW, $iH)
+    $iCtrlW = $iLblW
+    $iCtrlH = $iLblH
+    Global $hViewSettingsThemeLabel = GUICtrlCreateLabel("", $iX, $iY, $iCtrlW, $iCtrlH)
     $iX = $iLblW + $iP * 3
     $iY = $iLblH * 2 + $iP * 8 - $iPx
-    $iW = $iCmbW
-    $iH = $iLblH
-    $hViewSettingsThemeCombo = GUICtrlCreateCombo("", $iX, $iY, $iW, $iH)
+    $iCtrlW = $iCmbW
+    $iCtrlH = $iLblH
+    $hViewSettingsThemeCombo = GUICtrlCreateCombo("", $iX, $iY, $iCtrlW, $iCtrlH)
     GUICtrlSetData($hViewSettingsThemeCombo, "Light|Dark", ($sCurrentTheme = "dark" ? "Dark" : "Light"))
     GUICtrlCreateGroup("", -99, -99, -99, -99)
     
