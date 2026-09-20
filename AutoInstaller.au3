@@ -17,6 +17,7 @@
 #include <GuiEdit.au3>
 #include <MsgBoxConstants.au3>
 #include <FileConstants.au3>
+#include <WinAPI.au3>
 
 ; Controls
 #include "gui/controls/button.au3"
@@ -27,20 +28,8 @@
 #include "gui/modules/theme.au3"
 #include "gui/modules/scroll.au3"
 
-; Pages
-#include "gui/views/home.au3"
-#include "gui/views/unattend.au3"
-#include "gui/views/apps.au3"
-#include "gui/views/drivers.au3"
-#include "gui/views/confwin.au3"
-#include "gui/views/ventoy.au3"
-#include "gui/views/extract.au3"
-#include "gui/views/settings.au3"
-#include "gui/views/help.au3"
-#include <FileConstants.au3>
-
 ; Compile
-#pragma compile(Icon, $rMainIconPath)
+#pragma compile(Icon, gui/assets/icons/AutoInstaller.ico)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Const
@@ -66,6 +55,20 @@ Global Const $iToolBarBtnCol = 10
 Global Const $iCtrlBtnCol = 3
 Global Const $iCtrlBtnRow = 2
 
+Global $g_hCurrentView = 0
+Global $a_idToolBarBtn[$iToolBarBtnCol]
+
+; Pages
+#include "gui/views/home.au3"
+#include "gui/views/unattend.au3"
+#include "gui/views/apps.au3"
+#include "gui/views/drivers.au3"
+#include "gui/views/confwin.au3"
+#include "gui/views/ventoy.au3"
+#include "gui/views/extract.au3"
+#include "gui/views/settings.au3"
+#include "gui/views/help.au3"
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; AutoInstaller
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -74,7 +77,6 @@ Global $iX = 0
 Global $iY = 0
 Global $iW = 0
 Global $iH = 0
-Global $g_hCurrentView = 0
 Global $a_iPos[4]
 
 ; 1. Load stored configuration
@@ -88,7 +90,7 @@ $iX = 0
 $iY = 0
 $iW = $iMainW
 $iH = $iMainH
-Global $hMain = GUICreate(i18nGet("main.title"), $iW, $iH, -1, -1, BitOR($GUI_SS_DEFAULT_GUI, $WS_CLIPCHILDREN))
+Global $hMain = GUICreate(i18nGet("main.title"), $iW, $iH, -1, -1)
 GUISetIcon($rMainIconPath, -1, $hMain)
 
 ; 3. Initialize Navigation Panel
@@ -141,7 +143,6 @@ $iX = $a_iPos[0] + $a_iPos[2] + $iP * 2
 $iY = $a_iPos[3] - $iBtnH
 $iW = ($iMainW - $a_iPos[0] - $a_iPos[2] - $iP * ($iToolBarBtnCol + 3)) / $iToolBarBtnCol
 $iH = $iBtnH
-Global $a_idToolBarBtn[$iToolBarBtnCol]
 For $i = 0 to $iToolBarBtnCol - 1
     $a_idToolBarBtn[$i] = GUICtrlCreateButton("", $iX + ($iW + $iP) * $i, $iY, $iW, $iH)
     ; Hide by default
@@ -240,16 +241,6 @@ Func appSetStatus($sText)
 EndFunc
 
 Func appView($hTargetPage)
-    ;GUISetState(@SW_HIDE, $hViewHome)
-    ;GUISetState(@SW_HIDE, $hViewUnattend)
-    ;GUISetState(@SW_HIDE, $hViewApps)
-    ;GUISetState(@SW_HIDE, $hViewDrivers)
-    ;GUISetState(@SW_HIDE, $hViewConfwin)
-    ;GUISetState(@SW_HIDE, $hViewVentoy)
-    ;GUISetState(@SW_HIDE, $hViewExtract)
-    ;GUISetState(@SW_HIDE, $hViewSettings)
-    ;GUISetState(@SW_HIDE, $hViewHelp)
-    ;GUISetState(@SW_SHOW, $hTargetPage)
     scrollActivateCanvas($hTargetPage)
     $g_hCurrentView = $hTargetPage
 
@@ -261,6 +252,7 @@ Func appView($hTargetPage)
     For $i = 0 To $iToolBarBtnCol - 1
         GUICtrlSetState($a_idToolBarBtn[$i], $GUI_HIDE)
     Next
+    _WinAPI_RedrawWindow(GUICtrlGetHandle($hToolBar), 0, 0, BitOR($RDW_INVALIDATE, $RDW_UPDATENOW, $RDW_ERASE))
 
     Switch $hView
         Case $hViewHome
@@ -289,14 +281,6 @@ appApplyLanguage()
 appApplyTheme()
 appSetStatus(i18nGet("status.welcome"))
 appView($hViewHome)
-;appView($hViewUnattend)
-;appView($hViewApps)
-;appView($hViewDrivers)
-;appView($hViewConfwin)
-;appView($hViewVentoy)
-;appView($hViewExtract)
-;appView($hViewSettings)
-;appView($hViewHelp)
 GUISetState(@SW_SHOW, $hMain)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

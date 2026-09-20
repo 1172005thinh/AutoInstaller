@@ -1,12 +1,19 @@
 # IGNORE
 
 /.agents
+/[Tt]emp
+/[Tt]mp
+/[Ll]og
+/[Ll]ogs
+/[Oo]utput
+/[Oo]ut
 AGENTS.md
 CLAUDE.md
 GEMINI.md
 PROMPT.md
 [Dd]esktop.ini
 *.exe
+*.txt
 
 # KEEP
 
