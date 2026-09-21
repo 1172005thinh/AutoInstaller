@@ -56,6 +56,19 @@ Func viewUnattendCreate($hViewPort, $iW, $iH)
     Return $hViewUnattend
 EndFunc
 
+Func viewUnattendLoadValues($sSourceFile)
+    Local $oData = xmlLoadValues($sSourceFile)
+    If Not IsObj($oData) Or $oData.Count = 0 Then Return False
+    
+    Return True
+EndFunc
+
+Func viewUnattendSaveValues($sTargetFile)
+    Local $oData = ObjCreate("Scripting.Dictionary")
+    
+    Return xmlSaveValues($sTargetFile, $oData)
+EndFunc
+
 Func viewUnattendApplyLang()
     GUICtrlSetData($idViewUnattendTitle, i18nGet("unattend.title"))
 EndFunc
