@@ -61,7 +61,17 @@ Func viewUnattendApplyLang()
 EndFunc
 
 Func viewUnattendToolBar()
-    
+    ; Button Index 0: [Clear]
+    GUICtrlSetData($a_idToolBarBtn[0], i18nGet("clear.btn.title", "Clear"))
+    GUICtrlSetState($a_idToolBarBtn[0], $GUI_SHOW)
+
+    ; Button Index 8: [Save]
+    GUICtrlSetData($a_idToolBarBtn[$iToolBarBtnCol - 2], i18nGet("save.btn.title", "Save"))
+    GUICtrlSetState($a_idToolBarBtn[$iToolBarBtnCol - 2], $GUI_SHOW)
+
+    ; Button Index 9: [Cancel]
+    GUICtrlSetData($a_idToolBarBtn[$iToolBarBtnCol - 1], i18nGet("cancel.btn.title", "Cancel"))
+    GUICtrlSetState($a_idToolBarBtn[$iToolBarBtnCol - 1], $GUI_SHOW)    
 EndFunc
 
 Func viewUnattendApplyTheme()
@@ -72,5 +82,23 @@ Func viewUnattendApplyTheme()
 EndFunc
 
 Func viewUnattendHandleEvent($idMsg)
+    Switch $idMsg
+        Case $a_idToolBarBtn[0]
+            ; [Clear] - Reset all fields to default template values from sample.xml
+            viewUnattendLoadValues($rUnattendSampleXml)
+            appSetStatus(i18nGet("status.title") & i18nGet("status.cleared"))
 
+        Case $a_idToolBarBtn[$iToolBarBtnCol - 2]
+            ; [Save] - Write current form values to AutoInstaller.xml
+            If viewUnattendSaveValues($rUnattendAutoXml) Then
+                appSetStatus(i18nGet("status.title") & i18nGet("status.saved"))
+            Else
+                appSetStatus(i18nGet("status.title") & i18nGet("status.error"))
+            EndIf
+
+        Case $a_idToolBarBtn[$iToolBarBtnCol - 1]
+            ; [Cancel] - Discard changes & restore saved AutoInstaller.xml values
+            viewUnattendLoadValues($rUnattendAutoXml)
+            appSetStatus(i18nGet("status.title") & i18nGet("status.ready"))
+    EndSwitch
 EndFunc

@@ -111,14 +111,14 @@ Func viewSettingsApplyLang()
     EndIf
 EndFunc
 
-Func viewSettingsToolBar()
-    ; Cancel - last right button
-    GUICtrlSetData($a_idToolBarBtn[$iToolBarBtnCol - 1], i18nGet("cancel.btn.title", "Cancel"))
-    GUICtrlSetState($a_idToolBarBtn[$iToolBarBtnCol - 1], $GUI_SHOW)
-    
-    ; Save - left next to Cancel
+Func viewSettingsToolBar()    
+    ; Button Index 8: [Save]
     GUICtrlSetData($a_idToolBarBtn[$iToolBarBtnCol - 2], i18nGet("save.btn.title", "Save"))
     GUICtrlSetState($a_idToolBarBtn[$iToolBarBtnCol - 2], $GUI_SHOW)
+    
+    ; Button Index 9: [Cancel]
+    GUICtrlSetData($a_idToolBarBtn[$iToolBarBtnCol - 1], i18nGet("cancel.btn.title", "Cancel"))
+    GUICtrlSetState($a_idToolBarBtn[$iToolBarBtnCol - 1], $GUI_SHOW)
 EndFunc
 
 Func viewSettingsApplyTheme()
@@ -137,21 +137,20 @@ EndFunc
 Func viewSettingsHandleEvent($idMsg)
     Switch $idMsg
         Case $a_idToolBarBtn[$iToolBarBtnCol - 2]
+            ; [Save] - Save settings to config.ini and apply live changes
             ; Resolve selected language
             Local $sSelectedLang = StringInStr(GUICtrlRead($hViewSettingsLangCombo), "vi-vn") ? "vi-vn" : "en-us"
             ; Resolve selected theme
             Local $sSelectedTheme = (GUICtrlRead($hViewSettingsThemeCombo) = "Dark") ? "dark" : "light"
-            
-            ; Save to config.ini
-            configSave($sSelectedLang, $sSelectedTheme)
-            
+            configSave($sSelectedLang, $sSelectedTheme)   
+                     
             ; Apply live changes
             appSetLanguage($sSelectedLang)
             appSetTheme($sSelectedTheme)
             appSetStatus(i18nGet("status.title") & i18nGet("status.saved"))
 
         Case $a_idToolBarBtn[$iToolBarBtnCol - 1]
-            ; Discard changes / reset to saved configuration
+            ; [Cancel] - Discard changes & restore saved configuration
             Local $aConfig = configLoad()
             GUICtrlSetData($hViewSettingsLangCombo, ($aConfig[0] = "vi-vn" ? "Tiếng Việt (vi-vn)" : "English (en-us)"))
             GUICtrlSetData($hViewSettingsThemeCombo, ($aConfig[1] = "dark" ? "Dark" : "Light"))
