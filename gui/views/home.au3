@@ -57,7 +57,7 @@ Func viewHomeCreate($hViewPort, $iW, $iH)
 EndFunc
 
 Func viewHomeApplyLang()
-    GUICtrlSetData($idViewHomeTitle, i18nGet("home.title"))
+    GUICtrlSetData($idViewHomeTitle, i18nGet("home.title", "Welcome to AutoInstaller"))
 EndFunc
 
 Func viewHomeToolBar()

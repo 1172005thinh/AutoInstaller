@@ -66,7 +66,7 @@ Func viewSettingsCreate($hViewport, $iW, $iH)
     $iY = $iLblH * 2 + $iP
     $iCtrlW = $iContentW
     $iCtrlH = $iLblH * 2 + $iP * (3 * 2 + 1)
-    Global $hViewSettingsPreferGroup = GUICtrlCreateGroup(i18nGet("settings.prefer.title"), $iX, $iY, $iCtrlW, $iCtrlH)
+    Global $hViewSettingsPreferGroup = GUICtrlCreateGroup(i18nGet("settings.prefer.title", "Preferences"), $iX, $iY, $iCtrlW, $iCtrlH)
     
     ; Language Selector
     $iX = $iP * 3
@@ -101,10 +101,10 @@ Func viewSettingsCreate($hViewport, $iW, $iH)
 EndFunc
 
 Func viewSettingsApplyLang()
-    GUICtrlSetData($hViewSettingsTitle, i18nGet("settings.title"))
-    GUICtrlSetData($hViewSettingsPreferGroup, i18nGet("settings.prefer.title"))
-    GUICtrlSetData($hViewSettingsLangLabel, i18nGet("settings.lang.label"))
-    GUICtrlSetData($hViewSettingsThemeLabel, i18nGet("settings.theme.label"))
+    GUICtrlSetData($hViewSettingsTitle, i18nGet("settings.title", "Settings"))
+    GUICtrlSetData($hViewSettingsPreferGroup, i18nGet("settings.prefer.title", "Preferences"))
+    GUICtrlSetData($hViewSettingsLangLabel, i18nGet("settings.lang.label", "Language: "))
+    GUICtrlSetData($hViewSettingsThemeLabel, i18nGet("settings.theme.label", "Theme (Experimental): "))
     If $g_hCurrentView = $hViewSettings Then
         GUICtrlSetData($a_idToolBarBtn[$iToolBarBtnCol - 1], i18nGet("cancel.btn.title", "Cancel"))
         GUICtrlSetData($a_idToolBarBtn[$iToolBarBtnCol - 2], i18nGet("save.btn.title", "Save"))
@@ -147,13 +147,13 @@ Func viewSettingsHandleEvent($idMsg)
             ; Apply live changes
             appSetLanguage($sSelectedLang)
             appSetTheme($sSelectedTheme)
-            appSetStatus(i18nGet("status.title") & i18nGet("status.saved"))
+            appSetStatus(i18nGet("status.title", "Status: ") & i18nGet("status.saved", "Saved"))
 
         Case $a_idToolBarBtn[$iToolBarBtnCol - 1]
             ; [Cancel] - Discard changes & restore saved configuration
             Local $aConfig = configLoad()
             GUICtrlSetData($hViewSettingsLangCombo, ($aConfig[0] = "vi-vn" ? "Tiếng Việt (vi-vn)" : "English (en-us)"))
             GUICtrlSetData($hViewSettingsThemeCombo, ($aConfig[1] = "dark" ? "Dark" : "Light"))
-            appSetStatus(i18nGet("status.title") & i18nGet("status.ready"))
+            appSetStatus(i18nGet("status.title", "Status: ") & i18nGet("status.ready", "Ready"))
     EndSwitch
 EndFunc

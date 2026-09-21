@@ -57,7 +57,7 @@ Func viewConfwinCreate($hViewport, $iW, $iH)
 EndFunc
 
 Func viewConfwinApplyLang()
-    GUICtrlSetData($idViewConfwinTitle, i18nGet("confwin.title"))
+    GUICtrlSetData($idViewConfwinTitle, i18nGet("confwin.title", "Customize Windows Settings"))
 EndFunc
 
 Func viewConfwinToolBar()

@@ -57,7 +57,7 @@ Func viewExtractCreate($hViewport, $iW, $iH)
 EndFunc
 
 Func viewExtractApplyLang()
-    GUICtrlSetData($idViewExtractTitle, i18nGet("extract.title"))
+    GUICtrlSetData($idViewExtractTitle, i18nGet("extract.title", "Extract to USB"))
 EndFunc
 
 Func viewExtractToolBar()

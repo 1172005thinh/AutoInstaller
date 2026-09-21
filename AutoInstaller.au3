@@ -90,7 +90,7 @@ $iX = 0
 $iY = 0
 $iW = $iMainW
 $iH = $iMainH
-Global $hMain = GUICreate(i18nGet("main.title"), $iW, $iH, -1, -1)
+Global $hMain = GUICreate(i18nGet("main.title", "AutoInstaller - Automate Windows 11 Installation"), $iW, $iH, -1, -1)
 GUISetIcon($rMainIconPath, -1, $hMain)
 
 ; 3. Initialize Navigation Panel
@@ -98,7 +98,7 @@ $iX = $iP
 $iY = $iP
 $iW = $iNavW
 $iH = $iNavH
-Global $hNavGroup = GUICtrlCreateGroup(i18nGet("main.nav.title"), $iX, $iY, $iW, $iH)
+Global $hNavGroup = GUICtrlCreateGroup(i18nGet("main.nav.title", "Navigation Panel"), $iX, $iY, $iW, $iH)
 ; Navigation View Button
 $iX = $iP * 2
 $iY = $iP * 3
@@ -137,7 +137,7 @@ $iX = $a_iPos[0] + $a_iPos[2] + $iP
 $iY = $a_iPos[3] - $iBtnH - $iP * 2
 $iW = $iMainW - $a_iPos[0] - $a_iPos[2] - $iP * 2
 $iH = $iBtnH + $iP * 3
-Global $hToolBar = GUICtrlCreateGroup(i18nGet("main.tool.title"), $iX, $iY, $iW, $iH)
+Global $hToolBar = GUICtrlCreateGroup(i18nGet("main.tool.title", "Tool Bar"), $iX, $iY, $iW, $iH)
 ; Tool Bar Buttons
 $iX = $a_iPos[0] + $a_iPos[2] + $iP * 2
 $iY = $a_iPos[3] - $iBtnH
@@ -155,7 +155,7 @@ $iX = $a_iPos[0]
 $iY = $a_iPos[1] + $a_iPos[3] + $iP
 $iW = $iMainW - $iP * 2
 $iH = $iMainH - $iNavH - $iStatusBarH - $iP * 3
-Global $hCtrlGroup = GUICtrlCreateGroup(i18nGet("main.ctrl.title"), $iX, $iY, $iW, $iH)
+Global $hCtrlGroup = GUICtrlCreateGroup(i18nGet("main.ctrl.title", "Control Panel"), $iX, $iY, $iW, $iH)
 ; Log Edit
 $iX = $a_iPos[0] + $iP
 $iY = $a_iPos[1] + $a_iPos[3] + $iP * 3
@@ -182,19 +182,19 @@ _GUICtrlStatusBar_Resize($hStatusBar)
 
 ; 8. Central App State Controllers
 Func appApplyLanguage()
-    WinSetTitle($hMain, "", i18nGet("main.title"))
-    GUICtrlSetData($hNavGroup, i18nGet("main.nav.title"))
-    GUICtrlSetData($hToolBar, i18nGet("main.tool.title"))
-    GUICtrlSetData($hCtrlGroup, i18nGet("main.ctrl.title"))
-    GUICtrlSetData($a_idNavViewBtn[0], i18nGet("home.btn.title"))
-    GUICtrlSetData($a_idNavViewBtn[1], i18nGet("unattend.btn.title"))
-    GUICtrlSetData($a_idNavViewBtn[2], i18nGet("apps.btn.title"))
-    GUICtrlSetData($a_idNavViewBtn[3], i18nGet("drivers.btn.title"))
-    GUICtrlSetData($a_idNavViewBtn[4], i18nGet("confwin.btn.title"))
-    GUICtrlSetData($a_idNavViewBtn[5], i18nGet("ventoy.btn.title"))
-    GUICtrlSetData($a_idNavViewBtn[6], i18nGet("extract.btn.title"))
-    GUICtrlSetData($a_idNavViewBtn[7], i18nGet("settings.btn.title"))
-    GUICtrlSetData($a_idNavViewBtn[8], i18nGet("help.btn.title"))
+    WinSetTitle($hMain, "", i18nGet("main.title", "AutoInstaller - Automate Windows 11 Installation"))
+    GUICtrlSetData($hNavGroup, i18nGet("main.nav.title", "Navigation Panel"))
+    GUICtrlSetData($hToolBar, i18nGet("main.tool.title", "Tool Bar"))
+    GUICtrlSetData($hCtrlGroup, i18nGet("main.ctrl.title", "Control Panel"))
+    GUICtrlSetData($a_idNavViewBtn[0], i18nGet("home.btn.title", "Home"))
+    GUICtrlSetData($a_idNavViewBtn[1], i18nGet("unattend.btn.title", "Unattend"))
+    GUICtrlSetData($a_idNavViewBtn[2], i18nGet("apps.btn.title", "Apps"))
+    GUICtrlSetData($a_idNavViewBtn[3], i18nGet("drivers.btn.title", "Drivers"))
+    GUICtrlSetData($a_idNavViewBtn[4], i18nGet("confwin.btn.title", "Configure"))
+    GUICtrlSetData($a_idNavViewBtn[5], i18nGet("ventoy.btn.title", "Ventoy"))
+    GUICtrlSetData($a_idNavViewBtn[6], i18nGet("extract.btn.title", "Extract"))
+    GUICtrlSetData($a_idNavViewBtn[7], i18nGet("settings.btn.title", "Settings"))
+    GUICtrlSetData($a_idNavViewBtn[8], i18nGet("help.btn.title", "Help"))
     viewHomeApplyLang()
     viewUnattendApplyLang()
     viewAppsApplyLang()
@@ -279,7 +279,7 @@ EndFunc
 ; 9. Render Default State
 appApplyLanguage()
 appApplyTheme()
-appSetStatus(i18nGet("status.welcome"))
+appSetStatus(i18nGet("status.welcome", "Welcome to AutoInstaller"))
 appView($hViewHome)
 GUISetState(@SW_SHOW, $hMain)
 
@@ -296,39 +296,39 @@ While 1
             
         Case $a_idNavViewBtn[0]
             appView($hViewHome)
-            appSetStatus(i18nGet("status.title") & i18nGet("home.btn.title"))
+            appSetStatus(i18nGet("status.title", "Status: ") & i18nGet("home.btn.title", "Home"))
             
         Case $a_idNavViewBtn[1]
             appView($hViewUnattend)
-            appSetStatus(i18nGet("status.title") & i18nGet("unattend.btn.title"))
+            appSetStatus(i18nGet("status.title", "Status: ") & i18nGet("unattend.btn.title", "Unattend"))
         
         Case $a_idNavViewBtn[2]
             appView($hViewApps)
-            appSetStatus(i18nGet("status.title") & i18nGet("apps.btn.title"))
+            appSetStatus(i18nGet("status.title", "Status: ") & i18nGet("apps.btn.title", "Apps"))
         
         Case $a_idNavViewBtn[3]
             appView($hViewDrivers)
-            appSetStatus(i18nGet("status.title") & i18nGet("drivers.btn.title"))
+            appSetStatus(i18nGet("status.title", "Status: ") & i18nGet("drivers.btn.title", "Drivers"))
         
         Case $a_idNavViewBtn[4]
             appView($hViewConfwin)
-            appSetStatus(i18nGet("status.title") & i18nGet("confwin.btn.title"))
+            appSetStatus(i18nGet("status.title", "Status: ") & i18nGet("confwin.btn.title", "Configure"))
         
         Case $a_idNavViewBtn[5]
             appView($hViewVentoy)
-            appSetStatus(i18nGet("status.title") & i18nGet("ventoy.btn.title"))
+            appSetStatus(i18nGet("status.title", "Status: ") & i18nGet("ventoy.btn.title", "Ventoy"))
         
         Case $a_idNavViewBtn[6]
             appView($hViewExtract)
-            appSetStatus(i18nGet("status.title") & i18nGet("extract.btn.title"))
+            appSetStatus(i18nGet("status.title", "Status: ") & i18nGet("extract.btn.title", "Extract"))
         
         Case $a_idNavViewBtn[7]
             appView($hViewSettings)
-            appSetStatus(i18nGet("status.title") & i18nGet("settings.btn.title"))
+            appSetStatus(i18nGet("status.title", "Status: ") & i18nGet("settings.btn.title", "Settings"))
         
         Case $a_idNavViewBtn[8]
             appView($hViewHelp)
-            appSetStatus(i18nGet("status.title") & i18nGet("help.btn.title"))
+            appSetStatus(i18nGet("status.title", "Status: ") & i18nGet("help.btn.title", "Help"))
     EndSwitch
 
     Switch $g_hCurrentView

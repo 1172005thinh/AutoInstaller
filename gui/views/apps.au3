@@ -57,7 +57,7 @@ Func viewAppsCreate($hViewport, $iW, $iH)
 EndFunc
 
 Func viewAppsApplyLang()
-    GUICtrlSetData($idViewAppsTitle, i18nGet("apps.title"))
+    GUICtrlSetData($idViewAppsTitle, i18nGet("apps.title", "Customize App Installation"))
 EndFunc
 
 Func viewAppsToolBar()

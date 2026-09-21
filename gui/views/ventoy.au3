@@ -57,7 +57,7 @@ Func viewVentoyCreate($hViewport, $iW, $iH)
 EndFunc
 
 Func viewVentoyApplyLang()
-    GUICtrlSetData($idViewVentoyTitle, i18nGet("ventoy.title"))
+    GUICtrlSetData($idViewVentoyTitle, i18nGet("ventoy.title", "Customize Ventoy"))
 EndFunc
 
 Func viewVentoyToolBar()

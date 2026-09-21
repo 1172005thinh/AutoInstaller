@@ -70,7 +70,7 @@ Func viewUnattendSaveValues($sTargetFile)
 EndFunc
 
 Func viewUnattendApplyLang()
-    GUICtrlSetData($idViewUnattendTitle, i18nGet("unattend.title"))
+    GUICtrlSetData($idViewUnattendTitle, i18nGet("unattend.title", "Customize Unattend Script"))
 EndFunc
 
 Func viewUnattendToolBar()
@@ -99,19 +99,19 @@ Func viewUnattendHandleEvent($idMsg)
         Case $a_idToolBarBtn[0]
             ; [Clear] - Reset all fields to default template values from sample.xml
             viewUnattendLoadValues($rUnattendSampleXml)
-            appSetStatus(i18nGet("status.title") & i18nGet("status.cleared"))
+            appSetStatus(i18nGet("status.title", "Status: ") & i18nGet("status.cleared", "Reset to default values"))
 
         Case $a_idToolBarBtn[$iToolBarBtnCol - 2]
             ; [Save] - Write current form values to AutoInstaller.xml
             If viewUnattendSaveValues($rUnattendAutoXml) Then
-                appSetStatus(i18nGet("status.title") & i18nGet("status.saved"))
+                appSetStatus(i18nGet("status.title", "Status: ") & i18nGet("status.saved", "Saved"))
             Else
-                appSetStatus(i18nGet("status.title") & i18nGet("status.error"))
+                appSetStatus(i18nGet("status.title", "Status: ") & i18nGet("status.error", "Error"))
             EndIf
 
         Case $a_idToolBarBtn[$iToolBarBtnCol - 1]
             ; [Cancel] - Discard changes & restore saved AutoInstaller.xml values
             viewUnattendLoadValues($rUnattendAutoXml)
-            appSetStatus(i18nGet("status.title") & i18nGet("status.ready"))
+            appSetStatus(i18nGet("status.title", "Status: ") & i18nGet("status.ready", "Ready"))
     EndSwitch
 EndFunc

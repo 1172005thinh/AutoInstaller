@@ -57,7 +57,7 @@ Func viewHelpCreate($hViewport, $iW, $iH)
 EndFunc
 
 Func viewHelpApplyLang()
-    GUICtrlSetData($idViewHelpTitle, i18nGet("help.title"))
+    GUICtrlSetData($idViewHelpTitle, i18nGet("help.title", "Help"))
 EndFunc
 
 Func viewHelpToolBar()

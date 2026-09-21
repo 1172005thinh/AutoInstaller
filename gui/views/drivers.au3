@@ -57,7 +57,7 @@ Func viewDriversCreate($hViewport, $iW, $iH)
 EndFunc
 
 Func viewDriversApplyLang()
-    GUICtrlSetData($idViewDriversTitle, i18nGet("drivers.title"))
+    GUICtrlSetData($idViewDriversTitle, i18nGet("drivers.title", "Customize Drivers Installation"))
 EndFunc
 
 Func viewDriversToolBar()
