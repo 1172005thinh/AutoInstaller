@@ -54,6 +54,10 @@ Func scrollInitViewport($hParent, $iX, $iY, $iW, $iH)
     _GUIScrollBars_ShowScrollBar($g_hMasterViewport, $SB_VERT, False)
     GUISetState(@SW_SHOW, $g_hMasterViewport)
 
+    ; Wire scroll message handlers
+    GUIRegisterMsg($WM_VSCROLL,    "scrollOnWM_VSCROLL")
+    GUIRegisterMsg($WM_MOUSEWHEEL, "scrollOnWM_MOUSEWHEEL")
+
     Return $g_hMasterViewport
 EndFunc
 
@@ -76,6 +80,17 @@ Func scrollCreateCanvas($hViewport, $iContentH)
     $g_oCanvases.Item($sKey) = $aData
 
     Return $hCanvas
+EndFunc
+
+; Update registered content height for dynamic canvases
+Func scrollSetContentHeight($hCanvas, $iContentH)
+    Local $sKey = String($hCanvas)
+    If $g_oCanvases.Exists($sKey) Then
+        Local $aData = $g_oCanvases.Item($sKey)
+        $aData[0] = $iContentH
+        $g_oCanvases.Item($sKey) = $aData
+    EndIf
+    WinMove($hCanvas, "", 0, Default, Default, $iContentH)
 EndFunc
 
 ; Switch active view Canvas, restore its saved position, and configure the viewport scrollbar
