@@ -34,6 +34,7 @@
 
 Global $hViewSettings = 0
 Global $hViewSettingsTitle = 0
+
 Global $hViewSettingsPreferGroup = 0
 Global $hViewSettingsLangLabel = 0
 Global $hViewSettingsLangCombo = 0
@@ -44,13 +45,14 @@ Func viewSettingsCreate($hViewport, $iW, $iH)
     #forceref $iW, $iH
     Local $iContentW = scrollGetContentWidth($iP)
     Local $iContentH = $iH
-    If $iContentH < 360 Then $iContentH = 360
+    Local $iEstCanvasH = 360
+    If $iContentH < $iEstCanvasH Then $iContentH = $iEstCanvasH
 
     Global $hViewSettings = scrollCreateCanvas($hViewport, $iContentH)
     GUISwitch($hViewSettings)
 
-    Local $iLblW = ($iW - $iP * 2) * 30 / 100
-    Local $iCmbW = ($iW - $iP * 2) * 30 / 100 - $iP * 3
+    Local $iLblW = ($iContentW - $iP * 6) * 30 / 100
+    Local $iCmbW = ($iContentW - $iP * 6) * 30 / 100 - $iP * 3
     Local $iPx = $iLblH * 20 / 100
 
     ; View Settings Title
