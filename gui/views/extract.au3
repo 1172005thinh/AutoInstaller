@@ -41,14 +41,14 @@ Func viewExtractCreate($hViewport, $iW, $iH)
     Local $iContentH = $iH
     If $iContentH < 360 Then $iContentH = 360
 
-    Global $hViewExtract = scrollCreateCanvas($hViewport, $iContentH)
+    $hViewExtract = scrollCreateCanvas($hViewport, $iContentH)
     GUISwitch($hViewExtract)
 
     Local $iX = $iP
     Local $iY = $iP
     Local $iCtrlW = $iContentW
     Local $iCtrlH = $iLblH * 2
-    Global $idViewExtractTitle = GUICtrlCreateLabel("", $iX, $iY, $iCtrlW, $iCtrlH)
+    $idViewExtractTitle = GUICtrlCreateLabel("", $iX, $iY, $iCtrlW, $iCtrlH)
     GUICtrlSetFont(-1, $iHeader, 800)
     
     viewExtractApplyLang()

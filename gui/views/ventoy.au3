@@ -41,14 +41,14 @@ Func viewVentoyCreate($hViewport, $iW, $iH)
     Local $iContentH = $iH
     If $iContentH < 360 Then $iContentH = 360
 
-    Global $hViewVentoy = scrollCreateCanvas($hViewport, $iContentH)
+    $hViewVentoy = scrollCreateCanvas($hViewport, $iContentH)
     GUISwitch($hViewVentoy)
 
     Local $iX = $iP
     Local $iY = $iP
     Local $iCtrlW = $iContentW
     Local $iCtrlH = $iLblH * 2
-    Global $idViewVentoyTitle = GUICtrlCreateLabel("", $iX, $iY, $iCtrlW, $iCtrlH)
+    $idViewVentoyTitle = GUICtrlCreateLabel("", $iX, $iY, $iCtrlW, $iCtrlH)
     GUICtrlSetFont(-1, $iHeader, 800)
     
     viewVentoyApplyLang()

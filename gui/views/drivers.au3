@@ -41,14 +41,14 @@ Func viewDriversCreate($hViewport, $iW, $iH)
     Local $iContentH = $iH
     If $iContentH < 360 Then $iContentH = 360
 
-    Global $hViewDrivers = scrollCreateCanvas($hViewport, $iContentH)
+    $hViewDrivers = scrollCreateCanvas($hViewport, $iContentH)
     GUISwitch($hViewDrivers)
 
     Local $iX = $iP
     Local $iY = $iP
     Local $iCtrlW = $iContentW
     Local $iCtrlH = $iLblH * 2
-    Global $idViewDriversTitle = GUICtrlCreateLabel("", $iX, $iY, $iCtrlW, $iCtrlH)
+    $idViewDriversTitle = GUICtrlCreateLabel("", $iX, $iY, $iCtrlW, $iCtrlH)
     GUICtrlSetFont(-1, $iHeader, 800)
     
     viewDriversApplyLang()

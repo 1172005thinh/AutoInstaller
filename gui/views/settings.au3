@@ -48,52 +48,43 @@ Func viewSettingsCreate($hViewport, $iW, $iH)
     Local $iEstCanvasH = 360
     If $iContentH < $iEstCanvasH Then $iContentH = $iEstCanvasH
 
-    Global $hViewSettings = scrollCreateCanvas($hViewport, $iContentH)
+    $hViewSettings = scrollCreateCanvas($hViewport, $iContentH)
     GUISwitch($hViewSettings)
 
     Local $iLblW = ($iContentW - $iP * 6) * 30 / 100
-    Local $iCmbW = ($iContentW - $iP * 6) * 30 / 100 - $iP * 3
+    Local $iInputW = ($iContentW - $iP * 6) * 58 / 100
+    Local $iColW = ($iContentW - $iP * 6) / 2
     Local $iPx = $iLblH * 20 / 100
+    Local $iGroupH = 0
+    Local $iItemY = 0
+    Local $iRowH = $iLblH + $iP * 2
 
     ; View Settings Title
     Local $iX = $iP
     Local $iY = $iP
     Local $iCtrlW = $iContentW
     Local $iCtrlH = $iLblH * 2
-    Global $hViewSettingsTitle = GUICtrlCreateLabel("", $iX, $iY, $iCtrlW, $iCtrlH)
+    $hViewSettingsTitle = GUICtrlCreateLabel("", $iX, $iY, $iCtrlW, $iCtrlH)
     GUICtrlSetFont(-1, $iHeader, 800)
     
     ; Initialize Preferences Group
+    $iGroupH = $iRowH * 2 + $iP * 3
     $iX = $iP
-    $iY = $iLblH * 2 + $iP
-    $iCtrlW = $iContentW
-    $iCtrlH = $iLblH * 2 + $iP * (3 * 2 + 1)
-    Global $hViewSettingsPreferGroup = GUICtrlCreateGroup(i18nGet("settings.prefer.title", "Preferences"), $iX, $iY, $iCtrlW, $iCtrlH)
+    $iY += $iLblH * 2 + $iP
+    $hViewSettingsPreferGroup = GUICtrlCreateGroup("", $iX, $iY, $iContentW, $iGroupH)
     
     ; Language Selector
     $iX = $iP * 3
-    $iY = $iLblH * 2 + $iP * 4
-    $iCtrlW = $iLblW
-    $iCtrlH = $iLblH
-    Global $hViewSettingsLangLabel = GUICtrlCreateLabel("", $iX, $iY, $iCtrlW, $iCtrlH)
-    $iX = $iLblW + $iP * 3
-    $iY = $iLblH * 2 + $iP * 4 - $iPx
-    $iCtrlW = $iCmbW
-    $iCtrlH = $iLblH
-    $hViewSettingsLangCombo = GUICtrlCreateCombo("", $iX, $iY, $iCtrlW, $iCtrlH)
+    $iItemY = $iY + $iP * 3
+    $hViewSettingsLangLabel = GUICtrlCreateLabel("", $iX, $iItemY, $iLblW, $iLblH)
+    $hViewSettingsLangCombo = GUICtrlCreateCombo("", $iX + $iLblW, $iItemY - $iPx, $iInputW, $iLblH + $iPx * 2)
     GUICtrlSetData($hViewSettingsLangCombo, "English (en-us)|Tiếng Việt (vi-vn)", ($sCurrentLang = "vi-vn" ? "Tiếng Việt (vi-vn)" : "English (en-us)"))
     
     ; Theme Selector
     $iX = $iP * 3
-    $iY = $iLblH * 2 + $iP * 8
-    $iCtrlW = $iLblW
-    $iCtrlH = $iLblH
-    Global $hViewSettingsThemeLabel = GUICtrlCreateLabel("", $iX, $iY, $iCtrlW, $iCtrlH)
-    $iX = $iLblW + $iP * 3
-    $iY = $iLblH * 2 + $iP * 8 - $iPx
-    $iCtrlW = $iCmbW
-    $iCtrlH = $iLblH
-    $hViewSettingsThemeCombo = GUICtrlCreateCombo("", $iX, $iY, $iCtrlW, $iCtrlH)
+    $iItemY += $iRowH
+    $hViewSettingsThemeLabel = GUICtrlCreateLabel("", $iX, $iItemY, $iLblW, $iLblH)
+    $hViewSettingsThemeCombo = GUICtrlCreateCombo("", $iX + $iLblW, $iItemY - $iPx, $iInputW, $iLblH + $iPx * 2)
     GUICtrlSetData($hViewSettingsThemeCombo, "Light|Dark", ($sCurrentTheme = "dark" ? "Dark" : "Light"))
     GUICtrlCreateGroup("", -99, -99, -99, -99)
     
@@ -104,9 +95,11 @@ EndFunc
 
 Func viewSettingsApplyLang()
     GUICtrlSetData($hViewSettingsTitle, i18nGet("settings.title", "Settings"))
+    
     GUICtrlSetData($hViewSettingsPreferGroup, i18nGet("settings.prefer.title", "Preferences"))
-    GUICtrlSetData($hViewSettingsLangLabel, i18nGet("settings.lang.label", "Language: "))
-    GUICtrlSetData($hViewSettingsThemeLabel, i18nGet("settings.theme.label", "Theme (Experimental): "))
+    GUICtrlSetData($hViewSettingsLangLabel, i18nGet("settings.prefer.lang.label", "Language: "))
+    GUICtrlSetData($hViewSettingsThemeLabel, i18nGet("settings.prefer.theme.label", "Theme (Experimental): "))
+    
     If $g_hCurrentView = $hViewSettings Then
         GUICtrlSetData($a_idToolBarBtn[$iToolBarBtnCol - 1], i18nGet("cancel.btn.title", "Cancel"))
         GUICtrlSetData($a_idToolBarBtn[$iToolBarBtnCol - 2], i18nGet("save.btn.title", "Save"))

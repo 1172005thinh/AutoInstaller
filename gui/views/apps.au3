@@ -41,14 +41,14 @@ Func viewAppsCreate($hViewport, $iW, $iH)
     Local $iContentH = $iH
     If $iContentH < 360 Then $iContentH = 360
 
-    Global $hViewApps = scrollCreateCanvas($hViewport, $iContentH)
+    $hViewApps = scrollCreateCanvas($hViewport, $iContentH)
     GUISwitch($hViewApps)
 
     Local $iX = $iP
     Local $iY = $iP
     Local $iCtrlW = $iContentW
     Local $iCtrlH = $iLblH * 2
-    Global $idViewAppsTitle = GUICtrlCreateLabel("", $iX, $iY, $iCtrlW, $iCtrlH)
+    $idViewAppsTitle = GUICtrlCreateLabel("", $iX, $iY, $iCtrlW, $iCtrlH)
     GUICtrlSetFont(-1, $iHeader, 800)
     
     viewAppsApplyLang()

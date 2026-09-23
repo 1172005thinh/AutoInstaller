@@ -41,14 +41,14 @@ Func viewConfwinCreate($hViewport, $iW, $iH)
     Local $iContentH = $iH
     If $iContentH < 360 Then $iContentH = 360
 
-    Global $hViewConfwin = scrollCreateCanvas($hViewport, $iContentH)
+    $hViewConfwin = scrollCreateCanvas($hViewport, $iContentH)
     GUISwitch($hViewConfwin)
 
     Local $iX = $iP
     Local $iY = $iP
     Local $iCtrlW = $iContentW
     Local $iCtrlH = $iLblH * 2
-    Global $idViewConfwinTitle = GUICtrlCreateLabel("", $iX, $iY, $iCtrlW, $iCtrlH)
+    $idViewConfwinTitle = GUICtrlCreateLabel("", $iX, $iY, $iCtrlW, $iCtrlH)
     GUICtrlSetFont(-1, $iHeader, 800)
     
     viewConfwinApplyLang()

@@ -41,14 +41,14 @@ Func viewHomeCreate($hViewPort, $iW, $iH)
     Local $iContentH = $iH
     If $iContentH < 360 Then $iContentH = 360
 
-    Global $hViewHome = scrollCreateCanvas($hViewport, $iContentH)
+    $hViewHome = scrollCreateCanvas($hViewport, $iContentH)
     GUISwitch($hViewHome)
 
     Local $iX = $iP
     Local $iY = $iP
     Local $iCtrlW = $iContentW
     Local $iCtrlH = $iLblH * 2
-    Global $idViewHomeTitle = GUICtrlCreateLabel("", $iX, $iY, $iCtrlW, $iCtrlH)
+    $idViewHomeTitle = GUICtrlCreateLabel("", $iX, $iY, $iCtrlW, $iCtrlH)
     GUICtrlSetFont(-1, $iHeader, 800)
     
     viewHomeApplyLang()

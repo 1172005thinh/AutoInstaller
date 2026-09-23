@@ -41,14 +41,14 @@ Func viewHelpCreate($hViewport, $iW, $iH)
     Local $iContentH = $iH
     If $iContentH < 360 Then $iContentH = 360
 
-    Global $hViewHelp = scrollCreateCanvas($hViewport, $iContentH)
+    $hViewHelp = scrollCreateCanvas($hViewport, $iContentH)
     GUISwitch($hViewHelp)
 
     Local $iX = $iP
     Local $iY = $iP
     Local $iCtrlW = $iContentW
     Local $iCtrlH = $iLblH * 2
-    Global $idViewHelpTitle = GUICtrlCreateLabel("", $iX, $iY, $iCtrlW, $iCtrlH)
+    $idViewHelpTitle = GUICtrlCreateLabel("", $iX, $iY, $iCtrlW, $iCtrlH)
     GUICtrlSetFont(-1, $iHeader, 800)
     
     viewHelpApplyLang()
