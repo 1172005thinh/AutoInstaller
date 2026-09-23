@@ -51,7 +51,7 @@ Global Const $iPrimary = 8
 Global Const $iSmall = 7
 
 Global Const $iNavViewBtnRow = 9
-Global Const $iToolBarBtnCol = 10
+Global Const $iToolBarBtnCol = 8
 Global Const $iCtrlBtnCol = 3
 Global Const $iCtrlBtnRow = 2
 

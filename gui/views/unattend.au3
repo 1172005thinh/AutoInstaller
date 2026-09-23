@@ -25,6 +25,7 @@
 #include "../modules/theme.au3"
 #include "../modules/config.au3"
 #include "../modules/scroll.au3"
+#include <Array.au3>
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Const
@@ -347,7 +348,7 @@ Func viewUnattendCreate($hViewPort, $iW, $iH)
     $iItemY += $iRowH
     Local $iListW = $iContentW - $iP * 4
     Local $iListH = $iRowH * 7 - $iP * 2
-    $idViewUnattendBloatwareTblList = GUICtrlCreateListView(i18nGet("unattend.bloatware.list.col1", "Package Name") & "|" & i18nGet("unattend.bloatware.list.col2", "Description"), $iX, $iItemY, $iListW, $iListH)
+    $idViewUnattendBloatwareTblList = GUICtrlCreateListView(i18nGet("unattend.bloatware.list.col1.label", "Package Name") & "|" & i18nGet("unattend.bloatware.list.col2.label", "Description"), $iX, $iItemY, $iListW, $iListH)
     _GUICtrlListView_SetExtendedListViewStyle($idViewUnattendBloatwareTblList, BitOR($LVS_EX_CHECKBOXES, $LVS_EX_FULLROWSELECT, $LVS_EX_GRIDLINES))
     _GUICtrlListView_SetColumnWidth($idViewUnattendBloatwareTblList, 0, $iListW * 45 / 100)
     _GUICtrlListView_SetColumnWidth($idViewUnattendBloatwareTblList, 1, $iListW * 51 / 100)
@@ -402,7 +403,7 @@ EndFunc
 Func viewUnattendApplyLang()
     GUICtrlSetData($idViewUnattendTitle, i18nGet("unattend.title", "Customize Unattend Script"))
 
-    GUICtrlSetData($hViewUnattendWindowsGroup, i18nGet("unattend.windows.title", "Windows"))
+    GUICtrlSetData($hViewUnattendWindowsGroup, i18nGet("unattend.windows.title", "Windows Customization"))
     GUICtrlSetData($idViewUnattendEditionLbl, i18nGet("unattend.windows.edition.label", "Windows Edition: "))
     GUICtrlSetData($idViewUnattendProductKeyLbl, i18nGet("unattend.windows.productkey.label", "Product Key: "))
     GUICtrlSetData($idViewUnattendArchLbl, i18nGet("unattend.windows.arch.label", "Architecture: "))
@@ -416,8 +417,8 @@ Func viewUnattendApplyLang()
     GUICtrlSetData($idViewUnattendKbLayoutLbl, i18nGet("unattend.region.kblayout.label", "Keyboard Layout: "))
     GUICtrlSetData($idViewUnattendTZLbl, i18nGet("unattend.region.timezone.label", "Time Zone: "))
 
-    GUICtrlSetData($hViewUnattendPartitionGroup, i18nGet("unattend.partition.title", "Disk Partitions"))
-    GUICtrlSetData($idViewUnattendPartitionManLbl, i18nGet("unattend.partition.man.label", "Partition Method: "))
+    GUICtrlSetData($hViewUnattendPartitionGroup, i18nGet("unattend.partition.title", "Disk Partitions Management"))
+    GUICtrlSetData($idViewUnattendPartitionManLbl, i18nGet("unattend.partition.man.label", "Partition Automation: "))
     GUICtrlSetData($idViewUnattendPartitionManRdoC1, i18nGet("unattend.partition.man.auto.label", "Auto"))
     GUICtrlSetData($idViewUnattendPartitionManRdoC2, i18nGet("unattend.partition.man.manual.label", "Manual"))
     GUICtrlSetData($idViewUnattendPartitionManRdoC3, i18nGet("unattend.partition.man.hybrid.label", "Hybrid"))
@@ -436,7 +437,7 @@ Func viewUnattendApplyLang()
     GUICtrlSetData($idViewUnattendBypassStorageCkbx, i18nGet("unattend.bypass.storage.label", "Bypass Storage"))
     GUICtrlSetData($idViewUnattendBypassDiskCkbx, i18nGet("unattend.bypass.disk.label", "Bypass Disk"))
 
-    GUICtrlSetData($hViewUnattendOOBEGroup, i18nGet("unattend.oobe.title", "OOBE Settings"))
+    GUICtrlSetData($hViewUnattendOOBEGroup, i18nGet("unattend.oobe.title", "Out-of-box-experience Settings"))
     GUICtrlSetData($idViewUnattendOOBEAllCkbx, i18nGet("unattend.oobe.all.label", "Select All"))
     GUICtrlSetData($idViewUnattendOOBEEULACkbx, i18nGet("unattend.oobe.eula.label", "Hide EULA Screen"))
     GUICtrlSetData($idViewUnattendOOBELocalAccCkbx, i18nGet("unattend.oobe.localacc.label", "Hide Local Account Screen"))
@@ -448,13 +449,13 @@ Func viewUnattendApplyLang()
     GUICtrlSetData($idViewUnattendOOBEPrivacyRdoC2, i18nGet("unattend.oobe.privacy.recom.label", "Recommended"))
     GUICtrlSetData($idViewUnattendOOBEPrivacyRdoC3, i18nGet("unattend.oobe.privacy.disable.label", "Disable All"))
 
-    GUICtrlSetData($hViewUnattendLocalAccGroup, i18nGet("unattend.localacc.title", "Local Account"))
+    GUICtrlSetData($hViewUnattendLocalAccGroup, i18nGet("unattend.localacc.title", "Local Accounts Management"))
     GUICtrlSetData($idViewUnattendLocalAccTblLbl, i18nGet("unattend.localacc.tbl.label", "Accounts Table: "))
 
     GUICtrlSetData($hViewUnattendBloatwareGroup, i18nGet("unattend.bloatware.title", "Bloatwares Removal"))
     GUICtrlSetData($idViewUnattendBloatwareAllCkbx, i18nGet("unattend.bloatware.all.label", "Select All"))
     GUICtrlSetData($idViewUnattendBloatwareTblLbl, i18nGet("unattend.bloatware.tbl.label", "Bloatwares Table: "))
-    GUICtrlSetData($idViewUnattendBloatwareTblList, i18nGet("unattend.bloatware.list.col1", "Package Name") & "|" & i18nGet("unattend.bloatware.list.col2", "Description"))
+    GUICtrlSetData($idViewUnattendBloatwareTblList, i18nGet("unattend.bloatware.list.col1.label", "Package Name") & "|" & i18nGet("unattend.bloatware.list.col2.label", "Description"))
 
     GUICtrlSetData($hViewUnattendScriptsGroup, i18nGet("unattend.scripts.title", "Custom Scripts"))
     GUICtrlSetData($idViewUnattendScriptsEditLbl, i18nGet("unattend.scripts.edit.label", "PowerShell Scripts:"))
@@ -485,6 +486,56 @@ Func viewUnattendApplyTheme()
     
     GUICtrlSetColor($idViewUnattendTitle, themeColor("text.primary"))
     GUICtrlSetBkColor($idViewUnattendTitle, themeColor("main.view.bg"))
+
+    Local $aLabels[42] = [ _
+        $idViewUnattendEditionLbl, _
+        $idViewUnattendProductKeyLbl, _
+        $idViewUnattendArchLbl, _
+        $idViewUnattendPcNameLbl, _
+        $idViewUnattendSysLangLbl, _
+        $idViewUnattendUsrLangLbl, _
+        $idViewUnattendSysUsrLangSameCkbx, _
+        $idViewUnattendUILangLbl, _
+        $idViewUnattendKbLayoutLbl, _
+        $idViewUnattendTZLbl, _
+        $idViewUnattendPartitionManLbl, _
+        $idViewUnattendPartitionManRdoC1, _
+        $idViewUnattendPartitionManRdoC2, _
+        $idViewUnattendPartitionManRdoC3, _
+        $idViewUnattendPartitionDiskIDLbl, _
+        $idViewUnattendPartitionTypeLbl, _
+        $idViewUnattendPartitionTypeRdoC1, _
+        $idViewUnattendPartitionTypeRdoC2, _
+        $idViewUnattendPartitionTblLbl, _
+        $idViewUnattendBypassAllCkbx, _
+        $idViewUnattendBypassTPMCkbx, _
+        $idViewUnattendBypassRAMCkbx, _
+        $idViewUnattendBypassSBCkbx, _
+        $idViewUnattendBypassCPUCkbx, _
+        $idViewUnattendBypassStorageCkbx, _
+        $idViewUnattendBypassDiskCkbx, _
+        $idViewUnattendOOBEAllCkbx, _
+        $idViewUnattendOOBEEULACkbx, _
+        $idViewUnattendOOBELocalAccCkbx, _
+        $idViewUnattendOOBEOnlAccCkbx, _
+        $idViewUnattendOOBEWirelessCkbx, _
+        $idViewUnattendOOBEBitLockerCkbx, _
+        $idViewUnattendOOBEPrivacyLbl, _
+        $idViewUnattendOOBEPrivacyRdoC1, _
+        $idViewUnattendOOBEPrivacyRdoC2, _
+        $idViewUnattendOOBEPrivacyRdoC3, _
+        $idViewUnattendLocalAccTblLbl, _
+        $idViewUnattendBloatwareAllCkbx, _
+        $idViewUnattendBloatwareTblLbl, _
+        $idViewUnattendBloatwareTblList, _
+        $idViewUnattendScriptsEditLbl, _
+        $idViewUnattendScriptsEditEdit _
+    ]
+    For $i = 0 to UBound($aLabels) - 1
+        GUICtrlSetColor($aLabels[$i], themeColor("text.primary"))
+        GUICtrlSetBkColor($aLabels[$i], themeColor("main.view.bg"))
+    Next
+    
 EndFunc
 
 Func viewUnattendHandleEvent($idMsg)
