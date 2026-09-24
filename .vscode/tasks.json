@@ -127,6 +127,72 @@
         "panel": "shared"
       },
       "problemMatcher": []
+    },
+    {
+      "label": "theme: Audit & Lint",
+      "type": "shell",
+      "command": "python",
+      "args": ["tools/AutoInstaller/theme_manager.py", "audit"],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "theme: Sort & Format JSONs",
+      "type": "shell",
+      "command": "python",
+      "args": ["tools/AutoInstaller/theme_manager.py", "sort"],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "theme: Synchronize Missing Keys",
+      "type": "shell",
+      "command": "python",
+      "args": ["tools/AutoInstaller/theme_manager.py", "sync"],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "theme: Scan Hardcoded Colors",
+      "type": "shell",
+      "command": "python",
+      "args": ["tools/AutoInstaller/theme_manager.py", "scan-hardcoded"],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "theme: Clean Unused Keys",
+      "type": "shell",
+      "command": "python",
+      "args": ["tools/AutoInstaller/theme_manager.py", "clean-unused"],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "theme: Theme Coverage Matrix",
+      "type": "shell",
+      "command": "python",
+      "args": ["tools/AutoInstaller/theme_manager.py", "coverage"],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
     }
   ]
 }
