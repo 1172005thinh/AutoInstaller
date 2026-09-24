@@ -5,6 +5,10 @@
 
 This directory hosts third-party software installers and execution scripts for **AutoInstaller**. Each application is decoupled into an autonomous subfolder containing an `install.au3` mini-installer.
 
+## **🚨 AI-ASSISTED WHEN IMPORTING FROM DEV BRANCH 🤖**
+
+> **NOTE**: `/apps` is still under development. Not all mini-installer are tested and verified.
+
 ---
 
 ## Mini-Installer Interface Standard (`install.au3`)
