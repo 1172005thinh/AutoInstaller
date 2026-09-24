@@ -1,0 +1,12 @@
+[TOPIC] Message summary
+
+# Standardized Commit Message Convention for AutoInstaller
+# Format: [TOPIC] Short imperative description (e.g. [FEAT] Add Brave mini-installer skeleton)
+#
+# Topics:
+#   [FEAT]     - New features, new application installers, new tools
+#   [FIX]      - Bug fixes, path corrections, detection updates
+#   [CHORE]    - Maintenance, configuration files, gitignore, dependencies
+#   [DOCS]     - Documentation changes (READMEs, catalog, architecture)
+#   [TEST]     - Test suites, Au3Check validation runs, verification scripts
+#   [REFACTOR] - Architecture and structural refactoring
