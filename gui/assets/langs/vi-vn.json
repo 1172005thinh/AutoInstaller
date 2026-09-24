@@ -159,7 +159,7 @@
     "unattend.title": "Tùy chỉnh Script Unattend",
     "unattend.windows.arch.label": "Kiến trúc: ",
     "unattend.windows.arch.tip": "Chọn kiến trúc vi xử lý của hệ thống",
-    "unattend.windows.edition": "Phiên bản Windows: ",
+    "unattend.windows.edition.label": "Phiên bản Windows: ",
     "unattend.windows.edition.tip": "Chọn phiên bản Windows muốn cài đặt",
     "unattend.windows.pcname.label": "Tên Máy: ",
     "unattend.windows.pcname.placeholder": "vd: DESKTOP-PC",

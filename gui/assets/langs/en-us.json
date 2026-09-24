@@ -159,7 +159,7 @@
     "unattend.title": "Customize Unattend Script",
     "unattend.windows.arch.label": "Architecture: ",
     "unattend.windows.arch.tip": "Select system CPU architecture",
-    "unattend.windows.edition": "Windows Edition: ",
+    "unattend.windows.edition.label": "Windows Edition: ",
     "unattend.windows.edition.tip": "Select the Windows edition to install",
     "unattend.windows.pcname.label": "PC Name: ",
     "unattend.windows.pcname.placeholder": "e.g. DESKTOP-PC",
