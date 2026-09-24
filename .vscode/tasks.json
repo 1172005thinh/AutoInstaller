@@ -2,7 +2,7 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "Run AutoInstaller",
+      "label": "AutoInstaller: Run",
       "type": "shell",
       "command": "tools\\AutoIt\\AutoIt3_x64.exe",
       "args": ["AutoInstaller.au3"],
@@ -17,7 +17,7 @@
       "problemMatcher": []
     },
     {
-      "label": "Execute AutoInstaller",
+      "label": "AutoInstaller: Execute from build",
       "type": "shell",
       "command": "./AutoInstaller.exe",
       "group": {
@@ -31,7 +31,7 @@
       "problemMatcher": []
     },
     {
-      "label": "Build AutoInstaller",
+      "label": "AutoInstaller: Build",
       "type": "shell",
       "command": "tools\\AutoIt\\Aut2Exe\\Aut2exe.exe",
       "args": [
@@ -45,6 +45,83 @@
         "kind": "build",
         "isDefault": true
       },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "i18n: Audit & Lint",
+      "type": "shell",
+      "command": "python",
+      "args": ["tools/AutoInstaller/i18n_manager.py", "audit"],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "i18n: Sort & Format JSONs",
+      "type": "shell",
+      "command": "python",
+      "args": ["tools/AutoInstaller/i18n_manager.py", "sort"],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "i18n: Synchronize Missing Keys",
+      "type": "shell",
+      "command": "python",
+      "args": ["tools/AutoInstaller/i18n_manager.py", "sync"],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "i18n: Fix Fallbacks in Code",
+      "type": "shell",
+      "command": "python",
+      "args": ["tools/AutoInstaller/i18n_manager.py", "fix-fallbacks"],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "i18n: Scan Hardcoded Strings",
+      "type": "shell",
+      "command": "python",
+      "args": ["tools/AutoInstaller/i18n_manager.py", "scan-hardcoded"],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "i18n: Clean Unused Keys",
+      "type": "shell",
+      "command": "python",
+      "args": ["tools/AutoInstaller/i18n_manager.py", "clean-unused"],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "i18n: Translation Coverage Matrix",
+      "type": "shell",
+      "command": "python",
+      "args": ["tools/AutoInstaller/i18n_manager.py", "coverage"],
       "presentation": {
         "reveal": "always",
         "panel": "shared"
