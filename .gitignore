@@ -1,12 +1,21 @@
 # IGNORE
 
 /.agents
-/[Tt]emp
+/.github
+/[Cc]ache
+/[Ee]xample
+/[Ee]xamples
+/[Oo]utput
+/[Oo]utputs
+/[Bb]uild
+/[Bb]uilds
 /[Tt]mp
+/[Tt]emp
 /[Ll]og
 /[Ll]ogs
-/[Oo]utput
-/[Oo]ut
+/[Dd]ata
+/[Ss]cratch
+/[Ww]indows
 AGENTS.md
 CLAUDE.md
 GEMINI.md

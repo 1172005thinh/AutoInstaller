@@ -16,6 +16,8 @@
 #include <MsgBoxConstants.au3>
 #include <GuiListView.au3>
 #include <EditConstants.au3>
+#include <StaticConstants.au3>
+#include <SliderConstants.au3>
 
 ; Controls
 #include "../controls/button.au3"
@@ -25,6 +27,7 @@
 #include "../modules/theme.au3"
 #include "../modules/config.au3"
 #include "../modules/scroll.au3"
+#include "../modules/xml.au3"
 #include <Array.au3>
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -40,8 +43,9 @@ Global $idViewUnattendTitle = 0
 
 Global $hViewUnattendWindowsGroup = 0
 Global $idViewUnattendEditionLbl = 0, $idViewUnattendEditionCmb = 0
+Global Const $g_sViewUnattendEditions = "Windows 11 Home|Windows 11 Home N|Windows 11 Home Single Language|Windows 11 Education|Windows 11 Education N|Windows 11 Pro|Windows 11 Pro N|Windows 11 Pro Education|Windows 11 Pro Education N|Windows 11 Pro for Workstations|Windows 11 Pro N for Workstations"
 Global $idViewUnattendProductKeyLbl = 0, $idViewUnattendProductKeyInput = 0
-Global $idViewUnattendArchLbl = 0, $idViewUnattendArchCmb = 0
+Global $idViewUnattendArchLbl = 0, $idViewUnattendArchRdoC1 = 0, $idViewUnattendArchRdoC2 = 0
 Global $idViewUnattendPCNameLbl = 0, $idViewUnattendPCNameInput = 0
 
 Global $hViewUnattendRegionGroup = 0
@@ -51,9 +55,30 @@ Global $idViewUnattendSysUsrLangSameCkbx = 0
 Global $idViewUnattendUILangLbl = 0, $idViewUnattendUILangCmb = 0
 Global $idViewUnattendKbLayoutLbl = 0, $idViewUnattendKbLayoutCmb = 0 
 Global $idViewUnattendTZLbl = 0, $idViewUnattendTZCmb = 0
+Global Const $g_sViewUnattendTimeZones = _
+    "(UTC-11:00) UTC-11|(UTC-10:00) Hawaiian Standard Time|(UTC-08:00) Pacific Standard Time|(UTC-07:00) Mountain Standard Time|" & _
+    "(UTC-06:00) Central America Standard Time|(UTC-06:00) Central Standard Time (Mexico)|(UTC-05:00) Eastern Standard Time|(UTC-05:00) SA Pacific Standard Time|" & _
+    "(UTC-04:30) Venezuela Standard Time|(UTC-04:00) Atlantic Standard Time|(UTC-04:00) Paraguay Standard Time|(UTC-04:00) SA Western Standard Time|" & _
+    "(UTC-03:00) Argentina Standard Time|(UTC-03:00) E. South America Standard Time|(UTC-03:00) Greenland Standard Time|(UTC-03:00) Montevideo Standard Time|" & _
+    "(UTC-03:00) Pacific SA Standard Time|(UTC-03:00) SA Eastern Standard Time|(UTC-02:00) UTC-02|(UTC-01:00) Cape Verde Standard Time|" & _
+    "(UTC) GMT Standard Time|(UTC) Greenwich Standard Time|(UTC) Morocco Standard Time|(UTC) UTC|" & _
+    "(UTC+01:00) Central Europe Standard Time|(UTC+01:00) Central European Standard Time|(UTC+01:00) Namibia Standard Time|(UTC+01:00) Romance Standard Time|" & _
+    "(UTC+01:00) W. Central Africa Standard Time|(UTC+01:00) W. Europe Standard Time|(UTC+02:00) E. Europe Standard Time|(UTC+02:00) Egypt Standard Time|" & _
+    "(UTC+02:00) FLE Standard Time|(UTC+02:00) GTB Standard Time|(UTC+02:00) Israel Standard Time|(UTC+02:00) Jordan Standard Time|" & _
+    "(UTC+02:00) Middle East Standard Time|(UTC+02:00) South Africa Standard Time|(UTC+02:00) Syria Standard Time|(UTC+02:00) Türkiye Standard Time|" & _
+    "(UTC+03:00) Arab Standard Time|(UTC+03:00) Arabic Standard Time|(UTC+03:00) Belarus Standard Time|(UTC+03:00) E. Africa Standard Time|" & _
+    "(UTC+03:00) Russian Standard Time|(UTC+03:30) Iran Standard Time|(UTC+04:00) Arabian Standard Time|(UTC+04:00) Azerbaijan Standard Time|" & _
+    "(UTC+04:00) Caucasus Standard Time|(UTC+04:00) Georgian Standard Time|(UTC+04:00) Mauritius Standard Time|(UTC+04:30) Afghanistan Standard Time|" & _
+    "(UTC+05:00) Pakistan Standard Time|(UTC+05:00) West Asia Standard Time|(UTC+05:30) India Standard Time|(UTC+05:30) Sri Lanka Standard Time|" & _
+    "(UTC+05:45) Nepal Standard Time|(UTC+06:00) Bangladesh Standard Time|(UTC+06:00) Central Asia Standard Time|(UTC+06:30) Myanmar Standard Time|" & _
+    "(UTC+07:00) SE Asia Standard Time|(UTC+08:00) China Standard Time|(UTC+08:00) Singapore Standard Time|(UTC+08:00) Taipei Standard Time|" & _
+    "(UTC+08:00) Ulaanbaatar Standard Time|(UTC+09:00) Korea Standard Time|(UTC+09:00) Tokyo Standard Time|(UTC+10:00) AUS Eastern Standard Time|" & _
+    "(UTC+10:00) West Pacific Standard Time|(UTC+11:00) Central Pacific Standard Time|(UTC+12:00) Fiji Standard Time|(UTC+12:00) New Zealand Standard Time|" & _
+    "(UTC+12:00) UTC+12|(UTC+13:00) Samoa Standard Time|(UTC+13:00) Tonga Standard Time"
 
 Global $hViewUnattendPartitionGroup = 0
-Global $idViewUnattendPartitionManLbl = 0, $idViewUnattendPartitionManRdoC1 = 0, $idViewUnattendPartitionManRdoC2 = 0, $idViewUnattendPartitionManRdoC3 = 0
+Global $idViewUnattendPartitionManLbl = 0, $idViewUnattendPartitionManSlider = 0
+Global $idViewUnattendPartitionManManualLbl = 0, $idViewUnattendPartitionManHybridLbl = 0, $idViewUnattendPartitionManAutoLbl = 0
 Global $idViewUnattendPartitionDiskIDLbl = 0, $idViewUnattendPartitionDiskIDInput = 0
 Global $idViewUnattendPartitionTypeLbl = 0, $idViewUnattendPartitionTypeRdoC1 = 0, $idViewUnattendPartitionTypeRdoC2 = 0
 Global $idViewUnattendPartitionTblLbl = 0, $idViewUnattendPartitionTblList = 0
@@ -150,7 +175,7 @@ Func viewUnattendCreate($hViewPort, $iW, $iH)
     $iItemY = $iY + $iP * 3
     $idViewUnattendEditionLbl = GUICtrlCreateLabel("", $iX, $iItemY, $iLblW, $iLblH)
     $idViewUnattendEditionCmb = GUICtrlCreateCombo("", $iX + $iLblW, $iItemY - $iPx, $iInputW, $iLblH + $iPx * 2)
-    GUICtrlSetData($idViewUnattendEditionCmb, "Windows 11 Pro|Windows 11 Home|Windows 11 Enterprise|Windows 11 Education|Windows 11 Pro for Workstations", "Windows 11 Pro")
+    GUICtrlSetData($idViewUnattendEditionCmb, $g_sViewUnattendEditions, "Windows 11 Pro")
 
     ; Product Key
     $iItemY += $iRowH
@@ -160,8 +185,9 @@ Func viewUnattendCreate($hViewPort, $iW, $iH)
     ; Architecture
     $iItemY += $iRowH
     $idViewUnattendArchLbl = GUICtrlCreateLabel("", $iX, $iItemY, $iLblW, $iLblH)
-    $idViewUnattendArchCmb = GUICtrlCreateCombo("", $iX + $iLblW, $iItemY - $iPx, $iInputW, $iLblH + $iPx * 2)
-    GUICtrlSetData($idViewUnattendArchCmb, "x64|ARM", "x64")
+    $idViewUnattendArchRdoC1 = GUICtrlCreateRadio("", $iP * 3 + $iLblW, $iItemY - $iPx, $iInputW / 2 - $iP, $iLblH + $iPx)
+    $idViewUnattendArchRdoC2 = GUICtrlCreateRadio("", $iP * 3 + $iLblW + $iInputW / 2 + $iP, $iItemY - $iPx, $iInputW / 2 - $iP, $iLblH + $iPx)
+    GUICtrlSetState($idViewUnattendArchRdoC1, $GUI_CHECKED)
 
     ; PC Name
     $iItemY += $iRowH
@@ -209,7 +235,7 @@ Func viewUnattendCreate($hViewPort, $iW, $iH)
     $iItemY += $iRowH
     $idViewUnattendTZLbl = GUICtrlCreateLabel("", $iX, $iItemY, $iLblW, $iLblH)
     $idViewUnattendTZCmb = GUICtrlCreateCombo("", $iX + $iLblW, $iItemY - $iPx, $iInputW, $iLblH + $iPx * 2)
-    GUICtrlSetData($idViewUnattendTZCmb, "UTC-8|UTC-7|UTC-6|UTC-5|UTC-4|UTC-3|UTC-2|UTC-1|UTC|UTC+1|UTC+2|UTC+3|UTC+4|UTC+5|UTC+6|UTC+7|UTC+8|UTC+9|UTC+10", "UTC+7")
+    GUICtrlSetData($idViewUnattendTZCmb, $g_sViewUnattendTimeZones, "(UTC+07:00) SE Asia Standard Time")
 
     ;GUICtrlCreateGroup("", -99, -99, -99, -99)
 
@@ -219,17 +245,22 @@ Func viewUnattendCreate($hViewPort, $iW, $iH)
     $iGroupH = $iRowH * 6 + $iP * 3
     $hViewUnattendPartitionGroup = GUICtrlCreateGroup("", $iX, $iY, $iContentW, $iGroupH)
 
-    ; Partition Auto/Manual/Hybrid
+    ; Partition Automation Slider (Manual -> Hybrid -> Automated)
     $iX = $iP * 3
     $iItemY = $iY + $iP * 3
     $idViewUnattendPartitionManLbl = GUICtrlCreateLabel("", $iX, $iItemY, $iLblW, $iLblH)
-    $idViewUnattendPartitionManRdoC1 = GUICtrlCreateRadio("", $iP * 3 + $iLblW, $iItemY - $iPx, $iInputW / 3 - $iP * 2, $iLblH + $iPx)
-    $idViewUnattendPartitionManRdoC2 = GUICtrlCreateRadio("", $iP * 3 + $iLblW + $iInputW / 3 + $iP, $iItemY - $iPx, $iInputW / 3 - $iP * 2, $iLblH + $iPx)
-    $idViewUnattendPartitionManRdoC3 = GUICtrlCreateRadio("", $iP * 3 + $iLblW + $iInputW / 3 * 2 + $iP * 2, $iItemY - $iPx, $iInputW / 3 - $iP * 2, $iLblH + $iPx)
-    GUICtrlSetState($idViewUnattendPartitionManRdoC1, $GUI_CHECKED)
+    $idViewUnattendPartitionManSlider = GUICtrlCreateSlider($iP * 3 + $iLblW, $iItemY - $iPx, $iInputW, $iLblH + $iPx * 2)
+    GUICtrlSetLimit($idViewUnattendPartitionManSlider, 2, 0)
+    GUICtrlSetData($idViewUnattendPartitionManSlider, 2)
+
+    Local $iTickLblY = $iItemY + $iLblH + $iPx
+    Local $iTickColW = $iInputW / 3
+    $idViewUnattendPartitionManManualLbl = GUICtrlCreateLabel("", $iP * 3 + $iLblW, $iTickLblY, $iTickColW, $iLblH)
+    $idViewUnattendPartitionManHybridLbl = GUICtrlCreateLabel("", $iP * 3 + $iLblW + $iTickColW, $iTickLblY, $iTickColW, $iLblH, $SS_CENTER)
+    $idViewUnattendPartitionManAutoLbl = GUICtrlCreateLabel("", $iP * 3 + $iLblW + $iTickColW * 2, $iTickLblY, $iTickColW, $iLblH, $SS_RIGHT)
 
     ; Partition Disk ID
-    $iItemY += $iRowH
+    $iItemY += $iRowH + $iLblH
     $idViewUnattendPartitionDiskIDLbl = GUICtrlCreateLabel("", $iX, $iItemY, $iLblW, $iLblH)
     $idViewUnattendPartitionDiskIDInput = GUICtrlCreateInput("$$VT_WINDOWS_DISK_1ST_NONVTOY$$", $iX + $iLblW, $iItemY - $iPx, $iInputW, $iLblH + $iPx * 2)
 
@@ -407,6 +438,8 @@ Func viewUnattendApplyLang()
     GUICtrlSetData($idViewUnattendEditionLbl, i18nGet("unattend.windows.edition.label", "Windows Edition: "))
     GUICtrlSetData($idViewUnattendProductKeyLbl, i18nGet("unattend.windows.productkey.label", "Product Key: "))
     GUICtrlSetData($idViewUnattendArchLbl, i18nGet("unattend.windows.arch.label", "Architecture: "))
+    GUICtrlSetData($idViewUnattendArchRdoC1, i18nGet("unattend.windows.arch.x64.label", "x64"))
+    GUICtrlSetData($idViewUnattendArchRdoC2, i18nGet("unattend.windows.arch.arm.label", "ARM"))
     GUICtrlSetData($idViewUnattendPCNameLbl, i18nGet("unattend.windows.pcname.label", "PC Name: "))
     
     GUICtrlSetData($hViewUnattendRegionGroup, i18nGet("unattend.region.title", "Language - Region"))
@@ -419,9 +452,9 @@ Func viewUnattendApplyLang()
 
     GUICtrlSetData($hViewUnattendPartitionGroup, i18nGet("unattend.partition.title", "Disk Partitions Management"))
     GUICtrlSetData($idViewUnattendPartitionManLbl, i18nGet("unattend.partition.man.label", "Partition Automation: "))
-    GUICtrlSetData($idViewUnattendPartitionManRdoC1, i18nGet("unattend.partition.man.auto.label", "Auto"))
-    GUICtrlSetData($idViewUnattendPartitionManRdoC2, i18nGet("unattend.partition.man.manual.label", "Manual"))
-    GUICtrlSetData($idViewUnattendPartitionManRdoC3, i18nGet("unattend.partition.man.hybrid.label", "Hybrid"))
+    GUICtrlSetData($idViewUnattendPartitionManManualLbl, i18nGet("unattend.partition.man.manual.label", "Manual"))
+    GUICtrlSetData($idViewUnattendPartitionManHybridLbl, i18nGet("unattend.partition.man.hybrid.label", "Hybrid"))
+    GUICtrlSetData($idViewUnattendPartitionManAutoLbl, i18nGet("unattend.partition.man.auto.label", "Automated"))
     GUICtrlSetData($idViewUnattendPartitionDiskIDLbl, i18nGet("unattend.partition.diskid.label", "Disk ID: "))
     GUICtrlSetData($idViewUnattendPartitionTypeLbl, i18nGet("unattend.partition.type.label", "Partition Type: "))
     GUICtrlSetData($idViewUnattendPartitionTypeRdoC1, i18nGet("unattend.partition.type.gpt.label", "GPT"))
@@ -487,10 +520,14 @@ Func viewUnattendApplyTheme()
     GUICtrlSetColor($idViewUnattendTitle, themeColor("text.primary"))
     GUICtrlSetBkColor($idViewUnattendTitle, themeColor("main.view.bg"))
 
-    Local $aLabels[42] = [ _
+    GUICtrlSetBkColor($idViewUnattendPartitionManSlider, themeColor("main.view.bg"))
+
+    Local $aLabels[44] = [ _
         $idViewUnattendEditionLbl, _
         $idViewUnattendProductKeyLbl, _
         $idViewUnattendArchLbl, _
+        $idViewUnattendArchRdoC1, _
+        $idViewUnattendArchRdoC2, _
         $idViewUnattendPcNameLbl, _
         $idViewUnattendSysLangLbl, _
         $idViewUnattendUsrLangLbl, _
@@ -499,9 +536,9 @@ Func viewUnattendApplyTheme()
         $idViewUnattendKbLayoutLbl, _
         $idViewUnattendTZLbl, _
         $idViewUnattendPartitionManLbl, _
-        $idViewUnattendPartitionManRdoC1, _
-        $idViewUnattendPartitionManRdoC2, _
-        $idViewUnattendPartitionManRdoC3, _
+        $idViewUnattendPartitionManManualLbl, _
+        $idViewUnattendPartitionManHybridLbl, _
+        $idViewUnattendPartitionManAutoLbl, _
         $idViewUnattendPartitionDiskIDLbl, _
         $idViewUnattendPartitionTypeLbl, _
         $idViewUnattendPartitionTypeRdoC1, _
@@ -540,6 +577,15 @@ EndFunc
 
 Func viewUnattendHandleEvent($idMsg)
     Switch $idMsg
+        Case $idViewUnattendPartitionManManualLbl
+            GUICtrlSetData($idViewUnattendPartitionManSlider, 0)
+
+        Case $idViewUnattendPartitionManHybridLbl
+            GUICtrlSetData($idViewUnattendPartitionManSlider, 1)
+
+        Case $idViewUnattendPartitionManAutoLbl
+            GUICtrlSetData($idViewUnattendPartitionManSlider, 2)
+
         Case $a_idToolBarBtn[0]
             ; [Clear] - Reset all fields to default template values from sample.xml
             viewUnattendLoadValues($rUnattendSampleXml)
