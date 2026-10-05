@@ -18,6 +18,8 @@
 #include <EditConstants.au3>
 #include <StaticConstants.au3>
 #include <SliderConstants.au3>
+#include <SendMessage.au3>
+
 
 ; Controls
 #include "../controls/button.au3"
@@ -81,10 +83,10 @@ Global $idViewUnattendPartitionManLbl = 0, $idViewUnattendPartitionManSlider = 0
 Global $idViewUnattendPartitionManManualLbl = 0, $idViewUnattendPartitionManHybridLbl = 0, $idViewUnattendPartitionManAutoLbl = 0
 Global $idViewUnattendPartitionDiskIDLbl = 0, $idViewUnattendPartitionDiskIDInput = 0
 Global $idViewUnattendPartitionTypeLbl = 0, $idViewUnattendPartitionTypeRdoC1 = 0, $idViewUnattendPartitionTypeRdoC2 = 0
-Global $idViewUnattendPartitionTblLbl = 0, $idViewUnattendPartitionTblList = 0
+Global $idViewUnattendPartitionTblLbl = 0, $idViewUnattendPartitionTblList = 0, $hViewUnattendPartitionTblList = 0
 Global $idViewUnattendPartResetBtn = 0
 Global $idViewUnattendPartTypeCmb = 0, $idViewUnattendPartLabelInput = 0, $idViewUnattendPartSizeInput = 0, $idViewUnattendPartLetterInput = 0, $idViewUnattendPartFormatCmb = 0
-Global $idViewUnattendPartAddBtn = 0, $idViewUnattendPartDeleteBtn = 0, $idViewUnattendPartEditBtn = 0, $idViewUnattendPartClearBtn = 0
+Global $idViewUnattendPartAddBtn = 0, $idViewUnattendPartDeleteBtn = 0, $idViewUnattendPartClearBtn = 0, $idViewUnattendPartSaveBtn = 0, $idViewUnattendPartCancelBtn = 0
 Global $idViewUnattendPartitionOSPartIDLbl = 0, $idViewUnattendPartitionOSPartIDInput = 0
 
 Global $hViewUnattendBypassGroup = 0
@@ -106,15 +108,14 @@ Global $idViewUnattendOOBEBitLockerCkbx = 0
 Global $idViewUnattendOOBEPrivacyLbl = 0, $idViewUnattendOOBEPrivacyRdoC1 = 0, $idViewUnattendOOBEPrivacyRdoC2 = 0, $idViewUnattendOOBEPrivacyRdoC3 = 0
 
 Global $hViewUnattendLocalAccGroup = 0
-Global $idViewUnattendLocalAccTblLbl = 0, $idViewUnattendLocalAccTblList = 0
+Global $idViewUnattendLocalAccTblLbl = 0, $idViewUnattendLocalAccTblList = 0, $hViewUnattendLocalAccTblList = 0
 Global $idViewUnattendAccResetBtn = 0
 Global $idViewUnattendAccTypeCmb = 0, $idViewUnattendAccNameInput = 0, $idViewUnattendAccDispNameInput = 0, $idViewUnattendAccPassInput = 0
-Global $idViewUnattendAccAddBtn = 0, $idViewUnattendAccDeleteBtn = 0, $idViewUnattendAccEditBtn = 0, $idViewUnattendAccClearBtn = 0
+Global $idViewUnattendAccAddBtn = 0, $idViewUnattendAccDeleteBtn = 0, $idViewUnattendAccClearBtn = 0, $idViewUnattendAccSaveBtn = 0, $idViewUnattendAccCancelBtn = 0
 Global $idViewUnattendLocalAccAutoLogonLbl = 0, $idViewUnattendLocalAccAutoLogonInput = 0
 
 Global $hViewUnattendBloatwareGroup = 0
-Global $idViewUnattendBloatwareAllCkbx = 0
-Global $idViewUnattendBloatwareTblLbl = 0, $idViewUnattendBloatwareTblList = 0
+Global $idViewUnattendBloatwareTblLbl = 0, $idViewUnattendBloatwareResetBtn = 0, $idViewUnattendBloatwareTblList = 0
 Global $a_sKnownBloatwares[25][2] = [ _
     ["Microsoft.Copilot", "Windows Copilot AI assistant integration"], _
     ["Clipchamp.Clipchamp", "Clipchamp video editor application"], _
@@ -145,6 +146,17 @@ Global $a_sKnownBloatwares[25][2] = [ _
 
 Global $hViewUnattendScriptsGroup = 0
 Global $idViewUnattendScriptsEditLbl = 0, $idViewUnattendScriptsEditEdit = 0
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Helper Functions
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+Func _SetCueBannerW($hWnd, $sText, $bOnFocus = True)
+    If Not IsHWnd($hWnd) Then $hWnd = GUICtrlGetHandle($hWnd)
+    Local $tText = DllStructCreate("wchar[" & (StringLen($sText) + 1) & "]")
+    DllStructSetData($tText, 1, $sText)
+    Return _SendMessage($hWnd, $EM_SETCUEBANNER, $bOnFocus, $tText, 0, "wparam", "struct*") = 1
+EndFunc
 
 Func viewUnattendCreate($hViewPort, $iW, $iH)
     #forceref $iW, $iH
@@ -251,7 +263,7 @@ Func viewUnattendCreate($hViewPort, $iW, $iH)
     Local $iPartListH = $iRowH * 5
     $iX = $iP
     $iY += $iGroupH + $iP
-    $iGroupH = 6 * $iRowH + $iPartListH + 2 * $iLblH + 2 * $iPx + 9 * $iP
+    $iGroupH = 8 * $iRowH + $iPartListH + 5 * $iP
     $hViewUnattendPartitionGroup = GUICtrlCreateGroup("", $iX, $iY, $iContentW, $iGroupH)
 
     ; Partition Automation Slider (Manual -> Hybrid -> Automated)
@@ -285,11 +297,11 @@ Func viewUnattendCreate($hViewPort, $iW, $iH)
     $iItemY += $iRowH
     $idViewUnattendPartitionTblLbl = GUICtrlCreateLabel("", $iX, $iItemY, $iLblW, $iLblH)
     Local $iPartListW = $iContentW - $iP * 4
-    Local $iBtnW = 75
+    Local $iBtnW = ($iPartListW * 92 / 100 - 4 * $iP) / 5
     $idViewUnattendPartResetBtn = GUICtrlCreateButton(i18nGet("unattend.partition.btn.reset", "Reset"), ($iX + $iPartListW) - $iBtnW, $iItemY - $iPx, $iBtnW, $iBtnH)
 
     ; Partition Table ListView (6 cols, max 8 rows)
-    $iItemY += $iRowH
+    $iItemY += $iRowH + $iP
     $idViewUnattendPartitionTblList = GUICtrlCreateListView( _
         i18nGet("unattend.partition.col.id", "ID") & "|" & _
         i18nGet("unattend.partition.col.type", "Type") & "|" & _
@@ -298,13 +310,14 @@ Func viewUnattendCreate($hViewPort, $iW, $iH)
         i18nGet("unattend.partition.col.letter", "Letter") & "|" & _
         i18nGet("unattend.partition.col.format", "Format"), _
         $iX, $iItemY, $iPartListW, $iPartListH)
+    $hViewUnattendPartitionTblList = GUICtrlGetHandle($idViewUnattendPartitionTblList)
     _GUICtrlListView_SetExtendedListViewStyle($idViewUnattendPartitionTblList, BitOR($LVS_EX_FULLROWSELECT, $LVS_EX_GRIDLINES))
     Local $iPartCol0W = Int($iPartListW * 8 / 100)
     Local $iPartCol1W = Int($iPartListW * 18 / 100)
     Local $iPartCol2W = Int($iPartListW * 28 / 100)
     Local $iPartCol3W = Int($iPartListW * 20 / 100)
     Local $iPartCol4W = Int($iPartListW * 11 / 100)
-    Local $iPartCol5W = $iPartListW - ($iPartCol0W + $iPartCol1W + $iPartCol2W + $iPartCol3W + $iPartCol4W)
+    Local $iPartCol5W = $iPartListW - ($iPartCol0W + $iPartCol1W + $iPartCol2W + $iPartCol3W + $iPartCol4W) - $iPx
     _GUICtrlListView_SetColumnWidth($idViewUnattendPartitionTblList, 0, $iPartCol0W)
     _GUICtrlListView_SetColumnWidth($idViewUnattendPartitionTblList, 1, $iPartCol1W)
     _GUICtrlListView_SetColumnWidth($idViewUnattendPartitionTblList, 2, $iPartCol2W)
@@ -322,32 +335,33 @@ Func viewUnattendCreate($hViewPort, $iW, $iH)
     ; Partition Input Edit Row (aligned with columns 1..5)
     $iItemY += $iPartListH + $iP
     Local $iEditX = $iX + $iPartCol0W
-    $idViewUnattendPartTypeCmb = GUICtrlCreateCombo("", $iEditX, $iItemY, $iPartCol1W, $iLblH + $iPx * 2)
+    $idViewUnattendPartTypeCmb = GUICtrlCreateCombo("", $iEditX + $iPx, $iItemY, $iPartCol1W - 2 * $iPx, $iLblH + $iPx * 2)
     GUICtrlSetData($idViewUnattendPartTypeCmb, "EFI|MSR|Primary|Extended|Logical|Recovery", "EFI")
     $iEditX += $iPartCol1W
-    $idViewUnattendPartLabelInput = GUICtrlCreateInput("System", $iEditX, $iItemY, $iPartCol2W, $iLblH + $iPx * 2)
+    $idViewUnattendPartLabelInput = GUICtrlCreateInput("System", $iEditX + $iPx, $iItemY, $iPartCol2W - 2 * $iPx, $iLblH + $iPx * 2)
     $iEditX += $iPartCol2W
-    $idViewUnattendPartSizeInput = GUICtrlCreateInput("512", $iEditX, $iItemY, $iPartCol3W, $iLblH + $iPx * 2, $ES_NUMBER)
+    $idViewUnattendPartSizeInput = GUICtrlCreateInput("512", $iEditX + $iPx, $iItemY, $iPartCol3W - 2 * $iPx, $iLblH + $iPx * 2, $ES_NUMBER)
     $iEditX += $iPartCol3W
-    $idViewUnattendPartLetterInput = GUICtrlCreateInput("", $iEditX, $iItemY, $iPartCol4W, $iLblH + $iPx * 2)
+    $idViewUnattendPartLetterInput = GUICtrlCreateInput("", $iEditX + $iPx, $iItemY, $iPartCol4W - 2 * $iPx, $iLblH + $iPx * 2)
     GUICtrlSetLimit($idViewUnattendPartLetterInput, 1)
     $iEditX += $iPartCol4W
-    $idViewUnattendPartFormatCmb = GUICtrlCreateCombo("", $iEditX, $iItemY, $iPartCol5W, $iLblH + $iPx * 2)
+    $idViewUnattendPartFormatCmb = GUICtrlCreateCombo("", $iEditX + $iPx, $iItemY, $iPartCol5W, $iLblH + $iPx * 2)
     GUICtrlSetData($idViewUnattendPartFormatCmb, "NTFS|FAT32", "FAT32")
 
     ; Partition Action Buttons Row (right-aligned to table width)
     $iItemY += $iRowH
-    Local $iBtnRowW = 4 * $iBtnW + 3 * $iP
+    Local $iBtnRowW = 5 * $iBtnW + 4 * $iP
     Local $iBtnStartX = ($iX + $iPartListW) - $iBtnRowW
     $idViewUnattendPartAddBtn = GUICtrlCreateButton(i18nGet("unattend.partition.btn.add", "Add"), $iBtnStartX, $iItemY, $iBtnW, $iBtnH)
     $idViewUnattendPartDeleteBtn = GUICtrlCreateButton(i18nGet("unattend.partition.btn.delete", "Delete"), $iBtnStartX + $iBtnW + $iP, $iItemY, $iBtnW, $iBtnH)
-    $idViewUnattendPartEditBtn = GUICtrlCreateButton(i18nGet("unattend.partition.btn.edit", "Edit"), $iBtnStartX + ($iBtnW + $iP) * 2, $iItemY, $iBtnW, $iBtnH)
-    $idViewUnattendPartClearBtn = GUICtrlCreateButton(i18nGet("unattend.partition.btn.clear", "Clear"), $iBtnStartX + ($iBtnW + $iP) * 3, $iItemY, $iBtnW, $iBtnH)
+    $idViewUnattendPartClearBtn = GUICtrlCreateButton(i18nGet("unattend.partition.btn.clear", "Clear"), $iBtnStartX + ($iBtnW + $iP) * 2, $iItemY, $iBtnW, $iBtnH)
+    $idViewUnattendPartSaveBtn = GUICtrlCreateButton(i18nGet("unattend.partition.btn.save", "Save"), $iBtnStartX + ($iBtnW + $iP) * 3, $iItemY, $iBtnW, $iBtnH)
+    $idViewUnattendPartCancelBtn = GUICtrlCreateButton(i18nGet("unattend.partition.btn.cancel", "Cancel"), $iBtnStartX + ($iBtnW + $iP) * 4, $iItemY, $iBtnW, $iBtnH)
 
     ; Install OS on Partition ID Row
     $iItemY += $iRowH + $iP * 2
     $idViewUnattendPartitionOSPartIDLbl = GUICtrlCreateLabel("", $iX, $iItemY, $iLblW, $iLblH)
-    $idViewUnattendPartitionOSPartIDInput = GUICtrlCreateInput("3", $iX + $iLblW, $iItemY - $iPx, 60, $iLblH + $iPx * 2, $ES_NUMBER)
+    $idViewUnattendPartitionOSPartIDInput = GUICtrlCreateInput("3", $iX + $iLblW, $iItemY - $iPx, $iInputW / 3, $iLblH + $iPx * 2, $ES_NUMBER)
     GUICtrlSetLimit($idViewUnattendPartitionOSPartIDInput, 1)
     
     ;GUICtrlCreateGroup("", -99, -99, -99, -99)
@@ -440,7 +454,7 @@ Func viewUnattendCreate($hViewPort, $iW, $iH)
     Local $iAccListH = $iRowH * 5
     $iX = $iP
     $iY += $iGroupH + $iP
-    $iGroupH = 3 * $iRowH + $iAccListH + $iLblH + 2 * $iPx + 9 * $iP
+    $iGroupH = 5 * $iRowH + $iAccListH + 3 * $iP
     $hViewUnattendLocalAccGroup = GUICtrlCreateGroup("", $iX, $iY, $iContentW, $iGroupH)
 
     ; Local Account Table Header Row
@@ -448,10 +462,11 @@ Func viewUnattendCreate($hViewPort, $iW, $iH)
     $iItemY = $iY + $iP * 3
     $idViewUnattendLocalAccTblLbl = GUICtrlCreateLabel("", $iX, $iItemY, $iColW, $iLblH)
     Local $iAccListW = $iContentW - $iP * 4
+    $iBtnW = ($iAccListW * 92 / 100 - 4 * $iP) / 5
     $idViewUnattendAccResetBtn = GUICtrlCreateButton(i18nGet("unattend.localacc.btn.reset", "Reset"), ($iX + $iAccListW) - $iBtnW, $iItemY - $iPx, $iBtnW, $iBtnH)
 
     ; Accounts Table ListView (5 cols, max 8 rows)
-    $iItemY += $iRowH
+    $iItemY += $iRowH + $iP
     $idViewUnattendLocalAccTblList = GUICtrlCreateListView( _
         i18nGet("unattend.localacc.col.id", "ID") & "|" & _
         i18nGet("unattend.localacc.col.type", "Type") & "|" & _
@@ -459,12 +474,13 @@ Func viewUnattendCreate($hViewPort, $iW, $iH)
         i18nGet("unattend.localacc.col.displayname", "DisplayName") & "|" & _
         i18nGet("unattend.localacc.col.password", "Password"), _
         $iX, $iItemY, $iAccListW, $iAccListH)
+    $hViewUnattendLocalAccTblList = GUICtrlGetHandle($idViewUnattendLocalAccTblList)
     _GUICtrlListView_SetExtendedListViewStyle($idViewUnattendLocalAccTblList, BitOR($LVS_EX_FULLROWSELECT, $LVS_EX_GRIDLINES))
-    Local $iAccCol0W = Int($iAccListW * 10 / 100)
-    Local $iAccCol1W = Int($iAccListW * 22 / 100)
-    Local $iAccCol2W = Int($iAccListW * 22 / 100)
+    Local $iAccCol0W = Int($iAccListW * 8 / 100)
+    Local $iAccCol1W = Int($iAccListW * 18 / 100)
+    Local $iAccCol2W = Int($iAccListW * 24 / 100)
     Local $iAccCol3W = Int($iAccListW * 24 / 100)
-    Local $iAccCol4W = $iAccListW - ($iAccCol0W + $iAccCol1W + $iAccCol2W + $iAccCol3W)
+    Local $iAccCol4W = $iAccListW - ($iAccCol0W + $iAccCol1W + $iAccCol2W + $iAccCol3W) - $iPx
     _GUICtrlListView_SetColumnWidth($idViewUnattendLocalAccTblList, 0, $iAccCol0W)
     _GUICtrlListView_SetColumnWidth($idViewUnattendLocalAccTblList, 1, $iAccCol1W)
     _GUICtrlListView_SetColumnWidth($idViewUnattendLocalAccTblList, 2, $iAccCol2W)
@@ -478,27 +494,28 @@ Func viewUnattendCreate($hViewPort, $iW, $iH)
     ; Accounts Input Edit Row (aligned with columns 1..4)
     $iItemY += $iAccListH + $iP
     Local $iAccEditX = $iX + $iAccCol0W
-    $idViewUnattendAccTypeCmb = GUICtrlCreateCombo("", $iAccEditX, $iItemY, $iAccCol1W, $iLblH + $iPx * 2)
+    $idViewUnattendAccTypeCmb = GUICtrlCreateCombo("", $iAccEditX + $iPx, $iItemY, $iAccCol1W - 2 * $iPx, $iLblH + $iPx * 2)
     GUICtrlSetData($idViewUnattendAccTypeCmb, "Administrator|User", "Administrator")
     $iAccEditX += $iAccCol1W
-    $idViewUnattendAccNameInput = GUICtrlCreateInput("Admin", $iAccEditX, $iItemY, $iAccCol2W, $iLblH + $iPx * 2)
+    $idViewUnattendAccNameInput = GUICtrlCreateInput("Admin", $iAccEditX + $iPx, $iItemY, $iAccCol2W - 2 * $iPx, $iLblH + $iPx * 2)
     $iAccEditX += $iAccCol2W
-    $idViewUnattendAccDispNameInput = GUICtrlCreateInput("Administrator", $iAccEditX, $iItemY, $iAccCol3W, $iLblH + $iPx * 2)
+    $idViewUnattendAccDispNameInput = GUICtrlCreateInput("Administrator", $iAccEditX + $iPx, $iItemY, $iAccCol3W - 2 * $iPx, $iLblH + $iPx * 2)
     $iAccEditX += $iAccCol3W
-    $idViewUnattendAccPassInput = GUICtrlCreateInput("Password123", $iAccEditX, $iItemY, $iAccCol4W, $iLblH + $iPx * 2)
+    $idViewUnattendAccPassInput = GUICtrlCreateInput("Password123", $iAccEditX + $iPx, $iItemY, $iAccCol4W, $iLblH + $iPx * 2)
 
     ; Accounts Action Buttons Row (right-aligned to table width)
     $iItemY += $iRowH
     Local $iAccBtnStartX = ($iX + $iAccListW) - $iBtnRowW
     $idViewUnattendAccAddBtn = GUICtrlCreateButton(i18nGet("unattend.localacc.btn.add", "Add"), $iAccBtnStartX, $iItemY, $iBtnW, $iBtnH)
     $idViewUnattendAccDeleteBtn = GUICtrlCreateButton(i18nGet("unattend.localacc.btn.delete", "Delete"), $iAccBtnStartX + $iBtnW + $iP, $iItemY, $iBtnW, $iBtnH)
-    $idViewUnattendAccEditBtn = GUICtrlCreateButton(i18nGet("unattend.localacc.btn.edit", "Edit"), $iAccBtnStartX + ($iBtnW + $iP) * 2, $iItemY, $iBtnW, $iBtnH)
-    $idViewUnattendAccClearBtn = GUICtrlCreateButton(i18nGet("unattend.localacc.btn.clear", "Clear"), $iAccBtnStartX + ($iBtnW + $iP) * 3, $iItemY, $iBtnW, $iBtnH)
+    $idViewUnattendAccClearBtn = GUICtrlCreateButton(i18nGet("unattend.localacc.btn.clear", "Clear"), $iAccBtnStartX + ($iBtnW + $iP) * 2, $iItemY, $iBtnW, $iBtnH)
+    $idViewUnattendAccSaveBtn = GUICtrlCreateButton(i18nGet("unattend.localacc.btn.save", "Save"), $iAccBtnStartX + ($iBtnW + $iP) * 3, $iItemY, $iBtnW, $iBtnH)
+    $idViewUnattendAccCancelBtn = GUICtrlCreateButton(i18nGet("unattend.localacc.btn.cancel", "Cancel"), $iAccBtnStartX + ($iBtnW + $iP) * 4, $iItemY, $iBtnW, $iBtnH)
 
     ; Auto-Logon Account Row
     $iItemY += $iRowH + $iP * 2
     $idViewUnattendLocalAccAutoLogonLbl = GUICtrlCreateLabel("", $iX, $iItemY, $iLblW, $iLblH)
-    $idViewUnattendLocalAccAutoLogonInput = GUICtrlCreateInput("1", $iX + $iLblW, $iItemY - $iPx, 60, $iLblH + $iPx * 2, $ES_NUMBER)
+    $idViewUnattendLocalAccAutoLogonInput = GUICtrlCreateInput("1", $iX + $iLblW, $iItemY - $iPx, $iInputW / 3, $iLblH + $iPx * 2, $ES_NUMBER)
     GUICtrlSetLimit($idViewUnattendLocalAccAutoLogonInput, 1)
     
     ;GUICtrlCreateGroup("", -99, -99, -99, -99)
@@ -506,22 +523,19 @@ Func viewUnattendCreate($hViewPort, $iW, $iH)
     ; Initialize Bloatware Group
     $iX = $iP
     $iY += $iGroupH + $iP
-    $iGroupH = $iRowH * 9 + $iP * 3
+    $iGroupH = $iRowH * 8 + $iP * 4
     $hViewUnattendBloatwareGroup = GUICtrlCreateGroup("", $iX, $iY, $iContentW, $iGroupH)
 
-    ; Bloatware All
+    ; Bloatware List Label & Reset Button Row
     $iX = $iP * 3
     $iItemY = $iY + $iP * 3
-    $idViewUnattendBloatwareAllCkbx = GUICtrlCreateCheckbox("", $iX, $iItemY, $iColW, $iLblH)
-    
-    ; Bloatware List Label
-    $iItemY += $iRowH
     $idViewUnattendBloatwareTblLbl = GUICtrlCreateLabel("", $iX, $iItemY, $iColW, $iLblH)
-
-    ; Bloatware List
-    $iItemY += $iRowH
     Local $iListW = $iContentW - $iP * 4
     Local $iListH = $iRowH * 7 - $iP * 2
+    $idViewUnattendBloatwareResetBtn = GUICtrlCreateButton(i18nGet("unattend.bloatware.btn.reset", "Reset"), ($iX + $iListW) - $iBtnW, $iItemY - $iPx, $iBtnW, $iBtnH)
+
+    ; Bloatware List
+    $iItemY += $iRowH + $iP
     $idViewUnattendBloatwareTblList = GUICtrlCreateListView(i18nGet("unattend.bloatware.list.col1.label", "Package Name") & "|" & i18nGet("unattend.bloatware.list.col2.label", "Description"), $iX, $iItemY, $iListW, $iListH)
     _GUICtrlListView_SetExtendedListViewStyle($idViewUnattendBloatwareTblList, BitOR($LVS_EX_CHECKBOXES, $LVS_EX_FULLROWSELECT, $LVS_EX_GRIDLINES))
     _GUICtrlListView_SetColumnWidth($idViewUnattendBloatwareTblList, 0, $iListW * 45 / 100)
@@ -530,6 +544,7 @@ Func viewUnattendCreate($hViewPort, $iW, $iH)
         Local $sPkg = $a_sKnownBloatwares[$i][0]
         Local $sDesc = _UnattendGetBloatwareDesc($sPkg, $a_sKnownBloatwares[$i][1])
         GUICtrlCreateListViewItem($sPkg & "|" & $sDesc, $idViewUnattendBloatwareTblList)
+        _GUICtrlListView_SetItemChecked($idViewUnattendBloatwareTblList, $i, True)
     Next
 
     ;GUICtrlCreateGroup("", -99, -99, -99, -99)
@@ -559,6 +574,7 @@ Func viewUnattendCreate($hViewPort, $iW, $iH)
     scrollSetContentHeight($hViewUnattend, $iTotalContentH)
 
     GUIRegisterMsg($WM_COMMAND, "unattendOnWM_COMMAND")
+    GUIRegisterMsg($WM_NOTIFY,  "unattendOnWM_NOTIFY")
 
     viewUnattendApplyLang()
     viewUnattendApplyTheme()
@@ -591,7 +607,7 @@ Func viewUnattendApplyLang()
     GUICtrlSetData($idViewUnattendProductKeyLbl, i18nGet("unattend.windows.productkey.label", "Product Key: "))
     GUICtrlSetTip($idViewUnattendProductKeyLbl, i18nGet("unattend.windows.productkey.tip", "Enter 25-character Windows product key (auto-formatted)"))
     GUICtrlSetTip($idViewUnattendProductKeyInput, i18nGet("unattend.windows.productkey.tip", "Enter 25-character Windows product key (auto-formatted)"))
-    _GUICtrlEdit_SetCueBanner(GUICtrlGetHandle($idViewUnattendProductKeyInput), i18nGet("unattend.windows.productkey.placeholder", "XXXXX-XXXXX-XXXXX-XXXXX-XXXXX"), True)
+    _SetCueBannerW($idViewUnattendProductKeyInput, i18nGet("unattend.windows.productkey.placeholder", "XXXXX-XXXXX-XXXXX-XXXXX-XXXXX"), True)
 
     GUICtrlSetData($idViewUnattendArchLbl, i18nGet("unattend.windows.arch.label", "Architecture: "))
     GUICtrlSetTip($idViewUnattendArchLbl, i18nGet("unattend.windows.arch.tip", "Select system CPU architecture"))
@@ -603,7 +619,7 @@ Func viewUnattendApplyLang()
     GUICtrlSetData($idViewUnattendPCNameLbl, i18nGet("unattend.windows.pcname.label", "PC Name: "))
     GUICtrlSetTip($idViewUnattendPCNameLbl, i18nGet("unattend.windows.pcname.tip", "Specify computer NetBIOS name (max 15 characters)"))
     GUICtrlSetTip($idViewUnattendPCNameInput, i18nGet("unattend.windows.pcname.tip", "Specify computer NetBIOS name (max 15 characters)"))
-    _GUICtrlEdit_SetCueBanner(GUICtrlGetHandle($idViewUnattendPCNameInput), i18nGet("unattend.windows.pcname.placeholder", "e.g. DESKTOP-PC"), True)
+    _SetCueBannerW($idViewUnattendPCNameInput, i18nGet("unattend.windows.pcname.placeholder", "e.g. DESKTOP-PC"), True)
     
     ; Language - Region
     GUICtrlSetData($hViewUnattendRegionGroup, i18nGet("unattend.region.title", "Language - Region"))
@@ -646,7 +662,7 @@ Func viewUnattendApplyLang()
     GUICtrlSetData($idViewUnattendPartitionDiskIDLbl, i18nGet("unattend.partition.diskid.label", "Disk ID: "))
     GUICtrlSetTip($idViewUnattendPartitionDiskIDLbl, i18nGet("unattend.partition.diskid.tip", "Target disk index (0, 1, ...) or Ventoy disk variable"))
     GUICtrlSetTip($idViewUnattendPartitionDiskIDInput, i18nGet("unattend.partition.diskid.tip", "Target disk index (0, 1, ...) or Ventoy disk variable"))
-    _GUICtrlEdit_SetCueBanner(GUICtrlGetHandle($idViewUnattendPartitionDiskIDInput), i18nGet("unattend.partition.diskid.placeholder", "0 or $$VT_WINDOWS_DISK_1ST_NONVTOY$$"), True)
+    _SetCueBannerW($idViewUnattendPartitionDiskIDInput, i18nGet("unattend.partition.diskid.placeholder", "0 or $$VT_WINDOWS_DISK_1ST_NONVTOY$$"), True)
 
     GUICtrlSetData($idViewUnattendPartitionTypeLbl, i18nGet("unattend.partition.type.label", "Partition Type: "))
     GUICtrlSetTip($idViewUnattendPartitionTypeLbl, i18nGet("unattend.partition.type.tip", "Disk partition scheme: GPT (UEFI) or MBR (Legacy BIOS)"))
@@ -659,6 +675,7 @@ Func viewUnattendApplyLang()
     GUICtrlSetTip($idViewUnattendPartitionTblLbl, i18nGet("unattend.partition.tbl.tip", "Interactive disk partition layout (max 8 partitions)"))
     GUICtrlSetTip($idViewUnattendPartitionTblList, i18nGet("unattend.partition.tbl.tip", "Interactive disk partition layout (max 8 partitions)"))
     GUICtrlSetData($idViewUnattendPartResetBtn, i18nGet("unattend.partition.btn.reset", "Reset"))
+    GUICtrlSetTip($idViewUnattendPartResetBtn, i18nGet("unattend.partition.btn.reset.tip", "Reset partition table to default layout"))
 
     _GUICtrlListView_SetColumn($idViewUnattendPartitionTblList, 0, i18nGet("unattend.partition.col.id", "ID"))
     _GUICtrlListView_SetColumn($idViewUnattendPartitionTblList, 1, i18nGet("unattend.partition.col.type", "Type"))
@@ -667,19 +684,25 @@ Func viewUnattendApplyLang()
     _GUICtrlListView_SetColumn($idViewUnattendPartitionTblList, 4, i18nGet("unattend.partition.col.letter", "Letter"))
     _GUICtrlListView_SetColumn($idViewUnattendPartitionTblList, 5, i18nGet("unattend.partition.col.format", "Format"))
 
-    _GUICtrlEdit_SetCueBanner(GUICtrlGetHandle($idViewUnattendPartLabelInput), i18nGet("unattend.partition.placeholder.label", "Label"), True)
-    _GUICtrlEdit_SetCueBanner(GUICtrlGetHandle($idViewUnattendPartSizeInput), i18nGet("unattend.partition.placeholder.size", "Size MB"), True)
-    _GUICtrlEdit_SetCueBanner(GUICtrlGetHandle($idViewUnattendPartLetterInput), i18nGet("unattend.partition.placeholder.letter", "Letter"), True)
+    _SetCueBannerW($idViewUnattendPartLabelInput, i18nGet("unattend.partition.placeholder.label", "Label"), True)
+    _SetCueBannerW($idViewUnattendPartSizeInput, i18nGet("unattend.partition.placeholder.size", "Size MB"), True)
+    _SetCueBannerW($idViewUnattendPartLetterInput, i18nGet("unattend.partition.placeholder.letter", "Letter"), True)
 
     GUICtrlSetData($idViewUnattendPartAddBtn, i18nGet("unattend.partition.btn.add", "Add"))
+    GUICtrlSetTip($idViewUnattendPartAddBtn, i18nGet("unattend.partition.btn.add.tip", "Add a new partition to the table"))
     GUICtrlSetData($idViewUnattendPartDeleteBtn, i18nGet("unattend.partition.btn.delete", "Delete"))
-    GUICtrlSetData($idViewUnattendPartEditBtn, i18nGet("unattend.partition.btn.edit", "Edit"))
+    GUICtrlSetTip($idViewUnattendPartDeleteBtn, i18nGet("unattend.partition.btn.delete.tip", "Delete the selected partition"))
     GUICtrlSetData($idViewUnattendPartClearBtn, i18nGet("unattend.partition.btn.clear", "Clear"))
+    GUICtrlSetTip($idViewUnattendPartClearBtn, i18nGet("unattend.partition.btn.clear.tip", "Clear all input fields in the edit row"))
+    GUICtrlSetData($idViewUnattendPartSaveBtn, i18nGet("unattend.partition.btn.save", "Save"))
+    GUICtrlSetTip($idViewUnattendPartSaveBtn, i18nGet("unattend.partition.btn.save.tip", "Save changes to the selected partition"))
+    GUICtrlSetData($idViewUnattendPartCancelBtn, i18nGet("unattend.partition.btn.cancel", "Cancel"))
+    GUICtrlSetTip($idViewUnattendPartCancelBtn, i18nGet("unattend.partition.btn.cancel.tip", "Discard changes and restore selected partition values"))
 
     GUICtrlSetData($idViewUnattendPartitionOSPartIDLbl, i18nGet("unattend.partition.ospartid.label", "Install OS on Partition ID: "))
     GUICtrlSetTip($idViewUnattendPartitionOSPartIDLbl, i18nGet("unattend.partition.ospartid.tip", "Partition ID where Windows will be installed (default: 3)"))
     GUICtrlSetTip($idViewUnattendPartitionOSPartIDInput, i18nGet("unattend.partition.ospartid.tip", "Partition ID where Windows will be installed (default: 3)"))
-    _GUICtrlEdit_SetCueBanner(GUICtrlGetHandle($idViewUnattendPartitionOSPartIDInput), "3", True)
+    _SetCueBannerW($idViewUnattendPartitionOSPartIDInput, "3", True)
 
     ; Bypass Hardware Checks
     GUICtrlSetData($hViewUnattendBypassGroup, i18nGet("unattend.bypass.title", "Bypass Hardware Checks"))
@@ -727,6 +750,7 @@ Func viewUnattendApplyLang()
     GUICtrlSetTip($idViewUnattendLocalAccTblLbl, i18nGet("unattend.localacc.tbl.tip", "Manage local user accounts (max 8 accounts)"))
     GUICtrlSetTip($idViewUnattendLocalAccTblList, i18nGet("unattend.localacc.tbl.tip", "Manage local user accounts (max 8 accounts)"))
     GUICtrlSetData($idViewUnattendAccResetBtn, i18nGet("unattend.localacc.btn.reset", "Reset"))
+    GUICtrlSetTip($idViewUnattendAccResetBtn, i18nGet("unattend.localacc.btn.reset.tip", "Reset accounts table to default administrator account"))
 
     _GUICtrlListView_SetColumn($idViewUnattendLocalAccTblList, 0, i18nGet("unattend.localacc.col.id", "ID"))
     _GUICtrlListView_SetColumn($idViewUnattendLocalAccTblList, 1, i18nGet("unattend.localacc.col.type", "Type"))
@@ -734,27 +758,33 @@ Func viewUnattendApplyLang()
     _GUICtrlListView_SetColumn($idViewUnattendLocalAccTblList, 3, i18nGet("unattend.localacc.col.displayname", "DisplayName"))
     _GUICtrlListView_SetColumn($idViewUnattendLocalAccTblList, 4, i18nGet("unattend.localacc.col.password", "Password"))
 
-    _GUICtrlEdit_SetCueBanner(GUICtrlGetHandle($idViewUnattendAccNameInput), i18nGet("unattend.localacc.placeholder.name", "Username"), True)
-    _GUICtrlEdit_SetCueBanner(GUICtrlGetHandle($idViewUnattendAccDispNameInput), i18nGet("unattend.localacc.placeholder.displayname", "Display Name"), True)
-    _GUICtrlEdit_SetCueBanner(GUICtrlGetHandle($idViewUnattendAccPassInput), i18nGet("unattend.localacc.placeholder.password", "Password (unhidden)"), True)
+    _SetCueBannerW($idViewUnattendAccNameInput, i18nGet("unattend.localacc.placeholder.name", "Username"), True)
+    _SetCueBannerW($idViewUnattendAccDispNameInput, i18nGet("unattend.localacc.placeholder.displayname", "Display Name"), True)
+    _SetCueBannerW($idViewUnattendAccPassInput, i18nGet("unattend.localacc.placeholder.password", "Password (unhidden)"), True)
 
     GUICtrlSetData($idViewUnattendAccAddBtn, i18nGet("unattend.localacc.btn.add", "Add"))
+    GUICtrlSetTip($idViewUnattendAccAddBtn, i18nGet("unattend.localacc.btn.add.tip", "Add a new local account to the table"))
     GUICtrlSetData($idViewUnattendAccDeleteBtn, i18nGet("unattend.localacc.btn.delete", "Delete"))
-    GUICtrlSetData($idViewUnattendAccEditBtn, i18nGet("unattend.localacc.btn.edit", "Edit"))
+    GUICtrlSetTip($idViewUnattendAccDeleteBtn, i18nGet("unattend.localacc.btn.delete.tip", "Delete the selected local account"))
     GUICtrlSetData($idViewUnattendAccClearBtn, i18nGet("unattend.localacc.btn.clear", "Clear"))
+    GUICtrlSetTip($idViewUnattendAccClearBtn, i18nGet("unattend.localacc.btn.clear.tip", "Clear all input fields in the edit row"))
+    GUICtrlSetData($idViewUnattendAccSaveBtn, i18nGet("unattend.localacc.btn.save", "Save"))
+    GUICtrlSetTip($idViewUnattendAccSaveBtn, i18nGet("unattend.localacc.btn.save.tip", "Save changes to the selected local account"))
+    GUICtrlSetData($idViewUnattendAccCancelBtn, i18nGet("unattend.localacc.btn.cancel", "Cancel"))
+    GUICtrlSetTip($idViewUnattendAccCancelBtn, i18nGet("unattend.localacc.btn.cancel.tip", "Discard changes and restore selected local account values"))
 
     GUICtrlSetData($idViewUnattendLocalAccAutoLogonLbl, i18nGet("unattend.localacc.autologon.label", "Auto-Logon Account ID: "))
     GUICtrlSetTip($idViewUnattendLocalAccAutoLogonLbl, i18nGet("unattend.localacc.autologon.tip", "Account ID to automatically log into on boot (default: 1)"))
     GUICtrlSetTip($idViewUnattendLocalAccAutoLogonInput, i18nGet("unattend.localacc.autologon.tip", "Account ID to automatically log into on boot (default: 1)"))
-    _GUICtrlEdit_SetCueBanner(GUICtrlGetHandle($idViewUnattendLocalAccAutoLogonInput), i18nGet("unattend.localacc.autologon.placeholder", "1"), True)
+    _SetCueBannerW($idViewUnattendLocalAccAutoLogonInput, i18nGet("unattend.localacc.autologon.placeholder", "1"), True)
 
     ; Bloatware Removal
     GUICtrlSetData($hViewUnattendBloatwareGroup, i18nGet("unattend.bloatware.title", "Bloatware Removal"))
-    GUICtrlSetData($idViewUnattendBloatwareAllCkbx, i18nGet("unattend.bloatware.all.label", "Select All"))
-    GUICtrlSetTip($idViewUnattendBloatwareAllCkbx, i18nGet("unattend.bloatware.all.tip", "Toggle all bloatware packages for removal"))
     GUICtrlSetData($idViewUnattendBloatwareTblLbl, i18nGet("unattend.bloatware.tbl.label", "Bloatwares List: "))
     GUICtrlSetTip($idViewUnattendBloatwareTblLbl, i18nGet("unattend.bloatware.tbl.tip", "Select pre-installed apps and UWP packages to remove"))
     GUICtrlSetTip($idViewUnattendBloatwareTblList, i18nGet("unattend.bloatware.tbl.tip", "Select pre-installed apps and UWP packages to remove"))
+    GUICtrlSetData($idViewUnattendBloatwareResetBtn, i18nGet("unattend.bloatware.btn.reset", "Reset"))
+    GUICtrlSetTip($idViewUnattendBloatwareResetBtn, i18nGet("unattend.bloatware.btn.reset.tip", "Select all bloatware packages for removal"))
 
     _GUICtrlListView_SetColumn($idViewUnattendBloatwareTblList, 0, i18nGet("unattend.bloatware.list.col1.label", "Package Name"))
     _GUICtrlListView_SetColumn($idViewUnattendBloatwareTblList, 1, i18nGet("unattend.bloatware.list.col2.label", "Description"))
@@ -841,7 +871,6 @@ Func viewUnattendApplyTheme()
         $idViewUnattendOOBEPrivacyRdoC3, _
         $idViewUnattendLocalAccTblLbl, _
         $idViewUnattendLocalAccAutoLogonLbl, _
-        $idViewUnattendBloatwareAllCkbx, _
         $idViewUnattendBloatwareTblLbl, _
         $idViewUnattendBloatwareTblList, _
         $idViewUnattendScriptsEditLbl, _
@@ -891,6 +920,10 @@ Func viewUnattendHandleEvent($idMsg)
 
         Case $idViewUnattendPartitionManAutoLbl
             GUICtrlSetData($idViewUnattendPartitionManSlider, 2)
+
+        ; Partition Scheme Type (GPT / MBR)
+        Case $idViewUnattendPartitionTypeRdoC1, $idViewUnattendPartitionTypeRdoC2
+            _UnattendPartReset()
         
         ; Language Same Checkbox logic
         Case $idViewUnattendSysUsrLangSameCkbx
@@ -944,17 +977,13 @@ Func viewUnattendHandleEvent($idMsg)
                                  (GUICtrlRead($idViewUnattendOOBEBitLockerCkbx) = $GUI_CHECKED)
             GUICtrlSetState($idViewUnattendOOBEAllCkbx, $bAllChecked ? $GUI_CHECKED : $GUI_UNCHECKED)
 
-        ; Bloatware All Checkbox
-        Case $idViewUnattendBloatwareAllCkbx
-            Local $bCheck = (GUICtrlRead($idViewUnattendBloatwareAllCkbx) = $GUI_CHECKED)
+        ; Bloatware Reset Button
+        Case $idViewUnattendBloatwareResetBtn
             Local $iCount = _GUICtrlListView_GetItemCount($idViewUnattendBloatwareTblList)
             For $i = 0 To $iCount - 1
-                _GUICtrlListView_SetItemChecked($idViewUnattendBloatwareTblList, $i, $bCheck)
+                _GUICtrlListView_SetItemChecked($idViewUnattendBloatwareTblList, $i, True)
             Next
-
-        ; Bloatware Table List View Click
-        Case $idViewUnattendBloatwareTblList
-            _UnattendBloatwareUpdateSelectAllState()
+            appSetStatus(i18nGet("status.title", "Status: ") & "Reset bloatware list to all selected")
 
         ; Partition Table Actions
         Case $idViewUnattendPartitionTblList
@@ -969,15 +998,14 @@ Func viewUnattendHandleEvent($idMsg)
         Case $idViewUnattendPartDeleteBtn
             _UnattendPartOnDelete()
 
-        Case $idViewUnattendPartEditBtn
-            _UnattendPartOnEdit()
-
         Case $idViewUnattendPartClearBtn
             _UnattendPartOnClear()
 
-        Case $idViewUnattendPartTypeCmb, $idViewUnattendPartLabelInput, $idViewUnattendPartSizeInput, _
-             $idViewUnattendPartLetterInput, $idViewUnattendPartFormatCmb
-            _UnattendPartAutoSave()
+        Case $idViewUnattendPartSaveBtn
+            _UnattendPartOnSave()
+
+        Case $idViewUnattendPartCancelBtn
+            _UnattendPartOnCancel()
 
         Case $idViewUnattendPartitionOSPartIDInput
             _UnattendValidateOSPartID()
@@ -995,15 +1023,14 @@ Func viewUnattendHandleEvent($idMsg)
         Case $idViewUnattendAccDeleteBtn
             _UnattendAccOnDelete()
 
-        Case $idViewUnattendAccEditBtn
-            _UnattendAccOnEdit()
-
         Case $idViewUnattendAccClearBtn
             _UnattendAccOnClear()
 
-        Case $idViewUnattendAccTypeCmb, $idViewUnattendAccNameInput, $idViewUnattendAccDispNameInput, _
-             $idViewUnattendAccPassInput
-            _UnattendAccAutoSave()
+        Case $idViewUnattendAccSaveBtn
+            _UnattendAccOnSave()
+
+        Case $idViewUnattendAccCancelBtn
+            _UnattendAccOnCancel()
 
         Case $idViewUnattendLocalAccAutoLogonInput
             _UnattendValidateAutoLogonID()
@@ -1090,30 +1117,19 @@ Func _UnattendGetBloatwareDesc($sPkg, $sDefault)
     EndSwitch
 EndFunc
 
-Func _UnattendBloatwareUpdateSelectAllState()
-    Local $iCount = _GUICtrlListView_GetItemCount($idViewUnattendBloatwareTblList)
-    If $iCount = 0 Then
-        GUICtrlSetState($idViewUnattendBloatwareAllCkbx, $GUI_UNCHECKED)
-        Return
-    EndIf
-    Local $bAllChecked = True
-    For $i = 0 To $iCount - 1
-        If Not _GUICtrlListView_GetItemChecked($idViewUnattendBloatwareTblList, $i) Then
-            $bAllChecked = False
-            ExitLoop
-        EndIf
-    Next
-    GUICtrlSetState($idViewUnattendBloatwareAllCkbx, $bAllChecked ? $GUI_CHECKED : $GUI_UNCHECKED)
-EndFunc
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Partition Table Helpers
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-Func _UnattendPartOnSelect()
-    Local $sSel = _GUICtrlListView_GetSelectedIndices($idViewUnattendPartitionTblList)
-    If $sSel = "" Then Return
-    Local $iIdx = Number($sSel)
+Func _UnattendPartOnSelect($iIdx = -1)
+    If $iIdx < 0 Then
+        Local $sSel = _GUICtrlListView_GetSelectedIndices($idViewUnattendPartitionTblList)
+        If $sSel = "" Then Return
+        $iIdx = Number($sSel)
+    EndIf
+    Local $iCount = _GUICtrlListView_GetItemCount($idViewUnattendPartitionTblList)
+    If $iIdx < 0 Or $iIdx >= $iCount Then Return
+
     Local $sType = _GUICtrlListView_GetItemText($idViewUnattendPartitionTblList, $iIdx, 1)
     Local $sLabel = _GUICtrlListView_GetItemText($idViewUnattendPartitionTblList, $iIdx, 2)
     Local $sSize = _GUICtrlListView_GetItemText($idViewUnattendPartitionTblList, $iIdx, 3)
@@ -1192,42 +1208,21 @@ Func _UnattendPartOnDelete()
     appSetStatus(i18nGet("status.title", "Status: ") & "Deleted partition")
 EndFunc
 
-Func _UnattendPartOnEdit()
-    Local $sSel = _GUICtrlListView_GetSelectedIndices($idViewUnattendPartitionTblList)
-    If $sSel = "" Then
-        Local $iCount = _GUICtrlListView_GetItemCount($idViewUnattendPartitionTblList)
-        If $iCount > 0 Then
-            _GUICtrlListView_SetItemSelected($idViewUnattendPartitionTblList, 0, True, True)
-            _UnattendPartOnSelect()
-        Else
-            appSetStatus(i18nGet("status.title", "Status: ") & "No partition rows to edit")
-            Return
-        EndIf
-    Else
-        _UnattendPartOnSelect()
-    EndIf
-    GUICtrlSetState($idViewUnattendPartTypeCmb, $GUI_FOCUS)
-    appSetStatus(i18nGet("status.title", "Status: ") & "Editing partition " & (Number(_GUICtrlListView_GetSelectedIndices($idViewUnattendPartitionTblList)) + 1))
-EndFunc
-
 Func _UnattendPartOnClear()
-    Local $sSel = _GUICtrlListView_GetSelectedIndices($idViewUnattendPartitionTblList)
-    If $sSel = "" Then
-        appSetStatus(i18nGet("status.title", "Status: ") & "Please select a partition row to clear")
-        Return
-    EndIf
     GUICtrlSetData($idViewUnattendPartTypeCmb, "")
     GUICtrlSetData($idViewUnattendPartLabelInput, "")
     GUICtrlSetData($idViewUnattendPartSizeInput, "")
     GUICtrlSetData($idViewUnattendPartLetterInput, "")
     GUICtrlSetData($idViewUnattendPartFormatCmb, "")
-    _UnattendPartAutoSave()
-    appSetStatus(i18nGet("status.title", "Status: ") & "Cleared partition " & (Number($sSel) + 1))
+    appSetStatus(i18nGet("status.title", "Status: ") & "Cleared partition inputs")
 EndFunc
 
-Func _UnattendPartAutoSave()
+Func _UnattendPartOnSave()
     Local $sSel = _GUICtrlListView_GetSelectedIndices($idViewUnattendPartitionTblList)
-    If $sSel = "" Then Return
+    If $sSel = "" Then
+        appSetStatus(i18nGet("status.title", "Status: ") & "Please select a partition row to save")
+        Return
+    EndIf
     Local $iIdx = Number($sSel)
     Local $sType = GUICtrlRead($idViewUnattendPartTypeCmb)
     Local $sLabel = GUICtrlRead($idViewUnattendPartLabelInput)
@@ -1240,6 +1235,12 @@ Func _UnattendPartAutoSave()
     _GUICtrlListView_SetItemText($idViewUnattendPartitionTblList, $iIdx, $sSize, 3)
     _GUICtrlListView_SetItemText($idViewUnattendPartitionTblList, $iIdx, $sLetter, 4)
     _GUICtrlListView_SetItemText($idViewUnattendPartitionTblList, $iIdx, $sFormat, 5)
+    appSetStatus(i18nGet("status.title", "Status: ") & "Saved partition " & ($iIdx + 1))
+EndFunc
+
+Func _UnattendPartOnCancel()
+    _UnattendPartOnSelect()
+    appSetStatus(i18nGet("status.title", "Status: ") & "Reverted partition inputs to selected row")
 EndFunc
 
 Func _UnattendValidateOSPartID()
@@ -1257,10 +1258,15 @@ EndFunc
 ; Accounts Table Helpers
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-Func _UnattendAccOnSelect()
-    Local $sSel = _GUICtrlListView_GetSelectedIndices($idViewUnattendLocalAccTblList)
-    If $sSel = "" Then Return
-    Local $iIdx = Number($sSel)
+Func _UnattendAccOnSelect($iIdx = -1)
+    If $iIdx < 0 Then
+        Local $sSel = _GUICtrlListView_GetSelectedIndices($idViewUnattendLocalAccTblList)
+        If $sSel = "" Then Return
+        $iIdx = Number($sSel)
+    EndIf
+    Local $iCount = _GUICtrlListView_GetItemCount($idViewUnattendLocalAccTblList)
+    If $iIdx < 0 Or $iIdx >= $iCount Then Return
+
     Local $sType = _GUICtrlListView_GetItemText($idViewUnattendLocalAccTblList, $iIdx, 1)
     Local $sName = _GUICtrlListView_GetItemText($idViewUnattendLocalAccTblList, $iIdx, 2)
     Local $sDisp = _GUICtrlListView_GetItemText($idViewUnattendLocalAccTblList, $iIdx, 3)
@@ -1326,41 +1332,20 @@ Func _UnattendAccOnDelete()
     appSetStatus(i18nGet("status.title", "Status: ") & "Deleted account")
 EndFunc
 
-Func _UnattendAccOnEdit()
-    Local $sSel = _GUICtrlListView_GetSelectedIndices($idViewUnattendLocalAccTblList)
-    If $sSel = "" Then
-        Local $iCount = _GUICtrlListView_GetItemCount($idViewUnattendLocalAccTblList)
-        If $iCount > 0 Then
-            _GUICtrlListView_SetItemSelected($idViewUnattendLocalAccTblList, 0, True, True)
-            _UnattendAccOnSelect()
-        Else
-            appSetStatus(i18nGet("status.title", "Status: ") & "No account rows to edit")
-            Return
-        EndIf
-    Else
-        _UnattendAccOnSelect()
-    EndIf
-    GUICtrlSetState($idViewUnattendAccTypeCmb, $GUI_FOCUS)
-    appSetStatus(i18nGet("status.title", "Status: ") & "Editing account " & (Number(_GUICtrlListView_GetSelectedIndices($idViewUnattendLocalAccTblList)) + 1))
-EndFunc
-
 Func _UnattendAccOnClear()
-    Local $sSel = _GUICtrlListView_GetSelectedIndices($idViewUnattendLocalAccTblList)
-    If $sSel = "" Then
-        appSetStatus(i18nGet("status.title", "Status: ") & "Please select an account row to clear")
-        Return
-    EndIf
     GUICtrlSetData($idViewUnattendAccTypeCmb, "")
     GUICtrlSetData($idViewUnattendAccNameInput, "")
     GUICtrlSetData($idViewUnattendAccDispNameInput, "")
     GUICtrlSetData($idViewUnattendAccPassInput, "")
-    _UnattendAccAutoSave()
-    appSetStatus(i18nGet("status.title", "Status: ") & "Cleared account " & (Number($sSel) + 1))
+    appSetStatus(i18nGet("status.title", "Status: ") & "Cleared account inputs")
 EndFunc
 
-Func _UnattendAccAutoSave()
+Func _UnattendAccOnSave()
     Local $sSel = _GUICtrlListView_GetSelectedIndices($idViewUnattendLocalAccTblList)
-    If $sSel = "" Then Return
+    If $sSel = "" Then
+        appSetStatus(i18nGet("status.title", "Status: ") & "Please select an account row to save")
+        Return
+    EndIf
     Local $iIdx = Number($sSel)
     Local $sType = GUICtrlRead($idViewUnattendAccTypeCmb)
     Local $sName = GUICtrlRead($idViewUnattendAccNameInput)
@@ -1371,6 +1356,12 @@ Func _UnattendAccAutoSave()
     _GUICtrlListView_SetItemText($idViewUnattendLocalAccTblList, $iIdx, $sName, 2)
     _GUICtrlListView_SetItemText($idViewUnattendLocalAccTblList, $iIdx, $sDisp, 3)
     _GUICtrlListView_SetItemText($idViewUnattendLocalAccTblList, $iIdx, $sPass, 4)
+    appSetStatus(i18nGet("status.title", "Status: ") & "Saved account " & ($iIdx + 1))
+EndFunc
+
+Func _UnattendAccOnCancel()
+    _UnattendAccOnSelect()
+    appSetStatus(i18nGet("status.title", "Status: ") & "Reverted account inputs to selected row")
 EndFunc
 
 Func _UnattendValidateAutoLogonID()
@@ -1394,17 +1385,6 @@ Func unattendOnWM_COMMAND($hWnd, $iMsg, $wParam, $lParam)
 
     If $g_hCurrentView = $hViewUnattend Then
         Switch $iCode
-            Case 0x0300, 0x0001 ; EN_CHANGE or CBN_SELCHANGE
-                Switch $iCtrlID
-                    Case $idViewUnattendPartTypeCmb, $idViewUnattendPartLabelInput, $idViewUnattendPartSizeInput, _
-                         $idViewUnattendPartLetterInput, $idViewUnattendPartFormatCmb
-                        _UnattendPartAutoSave()
-
-                    Case $idViewUnattendAccTypeCmb, $idViewUnattendAccNameInput, $idViewUnattendAccDispNameInput, _
-                         $idViewUnattendAccPassInput
-                        _UnattendAccAutoSave()
-                EndSwitch
-
             Case 0x0200 ; EN_KILLFOCUS
                 Switch $iCtrlID
                     Case $idViewUnattendPartitionOSPartIDInput
@@ -1414,6 +1394,49 @@ Func unattendOnWM_COMMAND($hWnd, $iMsg, $wParam, $lParam)
                         _UnattendValidateAutoLogonID()
                 EndSwitch
         EndSwitch
+    EndIf
+
+    Return $GUI_RUNDEFMSG
+EndFunc
+
+Func unattendOnWM_NOTIFY($hWnd, $iMsg, $wParam, $lParam)
+    #forceref $hWnd, $iMsg, $wParam
+    If $g_hCurrentView = $hViewUnattend Then
+        Local $tNMHDR = DllStructCreate($tagNMHDR, $lParam)
+        Local $hWndFrom = HWnd(DllStructGetData($tNMHDR, "hWndFrom"))
+        Local $iCode = DllStructGetData($tNMHDR, "Code")
+
+        If $hWndFrom = $hViewUnattendPartitionTblList Then
+            Switch $iCode
+                Case $LVN_ITEMCHANGED
+                    Local $tNMLV = DllStructCreate($tagNMLISTVIEW, $lParam)
+                    Local $iNewState = DllStructGetData($tNMLV, "NewState")
+                    Local $iOldState = DllStructGetData($tNMLV, "OldState")
+                    If BitAND($iNewState, $LVIS_SELECTED) <> 0 And BitAND($iOldState, $LVIS_SELECTED) = 0 Then
+                        _UnattendPartOnSelect(DllStructGetData($tNMLV, "Item"))
+                    EndIf
+
+                Case $NM_CLICK
+                    Local $tNMItem = DllStructCreate($tagNMITEMACTIVATE, $lParam)
+                    Local $iItem = DllStructGetData($tNMItem, "Index")
+                    If $iItem >= 0 Then _UnattendPartOnSelect($iItem)
+            EndSwitch
+        ElseIf $hWndFrom = $hViewUnattendLocalAccTblList Then
+            Switch $iCode
+                Case $LVN_ITEMCHANGED
+                    Local $tNMLV = DllStructCreate($tagNMLISTVIEW, $lParam)
+                    Local $iNewState = DllStructGetData($tNMLV, "NewState")
+                    Local $iOldState = DllStructGetData($tNMLV, "OldState")
+                    If BitAND($iNewState, $LVIS_SELECTED) <> 0 And BitAND($iOldState, $LVIS_SELECTED) = 0 Then
+                        _UnattendAccOnSelect(DllStructGetData($tNMLV, "Item"))
+                    EndIf
+
+                Case $NM_CLICK
+                    Local $tNMItem = DllStructCreate($tagNMITEMACTIVATE, $lParam)
+                    Local $iItem = DllStructGetData($tNMItem, "Index")
+                    If $iItem >= 0 Then _UnattendAccOnSelect($iItem)
+            EndSwitch
+        EndIf
     EndIf
 
     Return $GUI_RUNDEFMSG

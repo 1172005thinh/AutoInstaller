@@ -231,7 +231,7 @@ class I18nManager:
             re.compile(r'GUICtrlSet(?:Data|Tip)\s*\(\s*[^,]+,\s*["\']([^"\']+)["\']'),
             re.compile(r'appSetStatus\s*\(\s*["\']([^"\']+)["\']'),
             re.compile(r'MsgBox\s*\([^,]+,\s*["\']([^"\']+)["\'],\s*["\']([^"\']+)["\']'),
-            re.compile(r'_GUICtrlEdit_SetCueBanner\s*\([^,]+,\s*["\']([^"\']+)["\']')
+            re.compile(r'_(?:GUICtrlEdit_)?SetCueBannerW?\s*\([^,]+,\s*["\']([^"\']+)["\']')
         ]
 
         # Ignore tokens that are layout/technical rather than user text
