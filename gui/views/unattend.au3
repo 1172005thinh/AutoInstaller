@@ -15,6 +15,7 @@
 #include <WindowsConstants.au3>
 #include <MsgBoxConstants.au3>
 #include <GuiListView.au3>
+#include <GuiComboBox.au3>
 #include <EditConstants.au3>
 #include <StaticConstants.au3>
 #include <SliderConstants.au3>
@@ -78,6 +79,8 @@ Global Const $g_sViewUnattendTimeZones = _
     "(UTC+10:00) West Pacific Standard Time|(UTC+11:00) Central Pacific Standard Time|(UTC+12:00) Fiji Standard Time|(UTC+12:00) New Zealand Standard Time|" & _
     "(UTC+12:00) UTC+12|(UTC+13:00) Samoa Standard Time|(UTC+13:00) Tonga Standard Time"
 
+Global Const $g_sViewUnattendPartTypes = "EFI|MSR|Primary|Extended|Logical|Recovery"
+Global Const $g_sViewUnattendPartFormats = "NTFS|FAT32"
 Global $hViewUnattendPartitionGroup = 0
 Global $idViewUnattendPartitionManLbl = 0, $idViewUnattendPartitionManSlider = 0
 Global $idViewUnattendPartitionManManualLbl = 0, $idViewUnattendPartitionManHybridLbl = 0, $idViewUnattendPartitionManAutoLbl = 0
@@ -107,6 +110,7 @@ Global $idViewUnattendOOBEWirelessCkbx = 0
 Global $idViewUnattendOOBEBitLockerCkbx = 0
 Global $idViewUnattendOOBEPrivacyLbl = 0, $idViewUnattendOOBEPrivacyRdoC1 = 0, $idViewUnattendOOBEPrivacyRdoC2 = 0, $idViewUnattendOOBEPrivacyRdoC3 = 0
 
+Global Const $g_sViewUnattendAccTypes = "Administrator|User"
 Global $hViewUnattendLocalAccGroup = 0
 Global $idViewUnattendLocalAccTblLbl = 0, $idViewUnattendLocalAccTblList = 0, $hViewUnattendLocalAccTblList = 0
 Global $idViewUnattendAccResetBtn = 0
@@ -336,7 +340,7 @@ Func viewUnattendCreate($hViewPort, $iW, $iH)
     $iItemY += $iPartListH + $iP
     Local $iEditX = $iX + $iPartCol0W
     $idViewUnattendPartTypeCmb = GUICtrlCreateCombo("", $iEditX + $iPx, $iItemY, $iPartCol1W - 2 * $iPx, $iLblH + $iPx * 2)
-    GUICtrlSetData($idViewUnattendPartTypeCmb, "EFI|MSR|Primary|Extended|Logical|Recovery", "EFI")
+    GUICtrlSetData($idViewUnattendPartTypeCmb, $g_sViewUnattendPartTypes, "EFI")
     $iEditX += $iPartCol1W
     $idViewUnattendPartLabelInput = GUICtrlCreateInput("System", $iEditX + $iPx, $iItemY, $iPartCol2W - 2 * $iPx, $iLblH + $iPx * 2)
     $iEditX += $iPartCol2W
@@ -346,7 +350,7 @@ Func viewUnattendCreate($hViewPort, $iW, $iH)
     GUICtrlSetLimit($idViewUnattendPartLetterInput, 1)
     $iEditX += $iPartCol4W
     $idViewUnattendPartFormatCmb = GUICtrlCreateCombo("", $iEditX + $iPx, $iItemY, $iPartCol5W, $iLblH + $iPx * 2)
-    GUICtrlSetData($idViewUnattendPartFormatCmb, "NTFS|FAT32", "FAT32")
+    GUICtrlSetData($idViewUnattendPartFormatCmb, $g_sViewUnattendPartFormats, "FAT32")
 
     ; Partition Action Buttons Row (right-aligned to table width)
     $iItemY += $iRowH
@@ -495,7 +499,7 @@ Func viewUnattendCreate($hViewPort, $iW, $iH)
     $iItemY += $iAccListH + $iP
     Local $iAccEditX = $iX + $iAccCol0W
     $idViewUnattendAccTypeCmb = GUICtrlCreateCombo("", $iAccEditX + $iPx, $iItemY, $iAccCol1W - 2 * $iPx, $iLblH + $iPx * 2)
-    GUICtrlSetData($idViewUnattendAccTypeCmb, "Administrator|User", "Administrator")
+    GUICtrlSetData($idViewUnattendAccTypeCmb, $g_sViewUnattendAccTypes, "Administrator")
     $iAccEditX += $iAccCol1W
     $idViewUnattendAccNameInput = GUICtrlCreateInput("Admin", $iAccEditX + $iPx, $iItemY, $iAccCol2W - 2 * $iPx, $iLblH + $iPx * 2)
     $iAccEditX += $iAccCol2W
@@ -929,14 +933,14 @@ Func viewUnattendHandleEvent($idMsg)
         Case $idViewUnattendSysUsrLangSameCkbx
             If GUICtrlRead($idViewUnattendSysUsrLangSameCkbx) = $GUI_CHECKED Then
                 GUICtrlSetState($idViewUnattendUsrLangCmb, $GUI_DISABLE)
-                GUICtrlSetData($idViewUnattendUsrLangCmb, GUICtrlRead($idViewUnattendSysLangCmb))
+                _UnattendComboSetSelection($idViewUnattendUsrLangCmb, GUICtrlRead($idViewUnattendSysLangCmb), "English|Tiếng Việt")
             Else
                 GUICtrlSetState($idViewUnattendUsrLangCmb, $GUI_ENABLE)
             EndIf
 
         Case $idViewUnattendSysLangCmb
             If GUICtrlRead($idViewUnattendSysUsrLangSameCkbx) = $GUI_CHECKED Then
-                GUICtrlSetData($idViewUnattendUsrLangCmb, GUICtrlRead($idViewUnattendSysLangCmb))
+                _UnattendComboSetSelection($idViewUnattendUsrLangCmb, GUICtrlRead($idViewUnattendSysLangCmb), "English|Tiếng Việt")
             EndIf
 
         ; Bypass Hardware Checks "Select All" Logic
@@ -1118,6 +1122,38 @@ Func _UnattendGetBloatwareDesc($sPkg, $sDefault)
 EndFunc
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; ComboBox Value Helper
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+Func _UnattendComboSetSelection($idCombo, $sValue, $sFullOptions = "")
+    Local $hWnd = GUICtrlGetHandle($idCombo)
+    If $hWnd = 0 Then Return
+
+    ; If options are missing from combo, reload all options
+    If _GUICtrlComboBox_GetCount($hWnd) = 0 And $sFullOptions <> "" Then
+        GUICtrlSetData($idCombo, "|" & $sFullOptions, $sValue)
+        Return
+    EndIf
+
+    If $sValue = "" Then
+        _GUICtrlComboBox_SetCurSel($hWnd, -1)
+        _GUICtrlComboBox_SetEditText($hWnd, "")
+    Else
+        Local $iIdx = _GUICtrlComboBox_FindStringExact($hWnd, $sValue)
+        If $iIdx <> -1 Then
+            _GUICtrlComboBox_SetCurSel($hWnd, $iIdx)
+        Else
+            If $sFullOptions <> "" Then
+                GUICtrlSetData($idCombo, "|" & $sFullOptions, $sValue)
+            Else
+                _GUICtrlComboBox_SetCurSel($hWnd, -1)
+                _GUICtrlComboBox_SetEditText($hWnd, $sValue)
+            EndIf
+        EndIf
+    EndIf
+EndFunc
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Partition Table Helpers
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -1136,11 +1172,11 @@ Func _UnattendPartOnSelect($iIdx = -1)
     Local $sLetter = _GUICtrlListView_GetItemText($idViewUnattendPartitionTblList, $iIdx, 4)
     Local $sFormat = _GUICtrlListView_GetItemText($idViewUnattendPartitionTblList, $iIdx, 5)
 
-    GUICtrlSetData($idViewUnattendPartTypeCmb, $sType)
+    _UnattendComboSetSelection($idViewUnattendPartTypeCmb, $sType, $g_sViewUnattendPartTypes)
     GUICtrlSetData($idViewUnattendPartLabelInput, $sLabel)
     GUICtrlSetData($idViewUnattendPartSizeInput, $sSize)
     GUICtrlSetData($idViewUnattendPartLetterInput, $sLetter)
-    GUICtrlSetData($idViewUnattendPartFormatCmb, $sFormat)
+    _UnattendComboSetSelection($idViewUnattendPartFormatCmb, $sFormat, $g_sViewUnattendPartFormats)
 EndFunc
 
 Func _UnattendPartReset()
@@ -1156,6 +1192,8 @@ Func _UnattendPartReset()
         GUICtrlCreateListViewItem("2|Primary|Windows|102400|C|NTFS", $idViewUnattendPartitionTblList)
         GUICtrlCreateListViewItem("3|Recovery|Recovery|1024||NTFS", $idViewUnattendPartitionTblList)
     EndIf
+    GUICtrlSetData($idViewUnattendPartTypeCmb, "|" & $g_sViewUnattendPartTypes, "EFI")
+    GUICtrlSetData($idViewUnattendPartFormatCmb, "|" & $g_sViewUnattendPartFormats, "FAT32")
     _GUICtrlListView_SetItemSelected($idViewUnattendPartitionTblList, 0, True, True)
     _UnattendPartOnSelect()
     _UnattendValidateOSPartID()
@@ -1197,11 +1235,11 @@ Func _UnattendPartOnDelete()
         _GUICtrlListView_SetItemSelected($idViewUnattendPartitionTblList, $iNewSel, True, True)
         _UnattendPartOnSelect()
     Else
-        GUICtrlSetData($idViewUnattendPartTypeCmb, "")
+        _UnattendComboSetSelection($idViewUnattendPartTypeCmb, "", $g_sViewUnattendPartTypes)
         GUICtrlSetData($idViewUnattendPartLabelInput, "")
         GUICtrlSetData($idViewUnattendPartSizeInput, "")
         GUICtrlSetData($idViewUnattendPartLetterInput, "")
-        GUICtrlSetData($idViewUnattendPartFormatCmb, "")
+        _UnattendComboSetSelection($idViewUnattendPartFormatCmb, "", $g_sViewUnattendPartFormats)
     EndIf
 
     _UnattendValidateOSPartID()
@@ -1209,11 +1247,11 @@ Func _UnattendPartOnDelete()
 EndFunc
 
 Func _UnattendPartOnClear()
-    GUICtrlSetData($idViewUnattendPartTypeCmb, "")
+    _UnattendComboSetSelection($idViewUnattendPartTypeCmb, "", $g_sViewUnattendPartTypes)
     GUICtrlSetData($idViewUnattendPartLabelInput, "")
     GUICtrlSetData($idViewUnattendPartSizeInput, "")
     GUICtrlSetData($idViewUnattendPartLetterInput, "")
-    GUICtrlSetData($idViewUnattendPartFormatCmb, "")
+    _UnattendComboSetSelection($idViewUnattendPartFormatCmb, "", $g_sViewUnattendPartFormats)
     appSetStatus(i18nGet("status.title", "Status: ") & "Cleared partition inputs")
 EndFunc
 
@@ -1272,7 +1310,7 @@ Func _UnattendAccOnSelect($iIdx = -1)
     Local $sDisp = _GUICtrlListView_GetItemText($idViewUnattendLocalAccTblList, $iIdx, 3)
     Local $sPass = _GUICtrlListView_GetItemText($idViewUnattendLocalAccTblList, $iIdx, 4)
 
-    GUICtrlSetData($idViewUnattendAccTypeCmb, $sType)
+    _UnattendComboSetSelection($idViewUnattendAccTypeCmb, $sType, $g_sViewUnattendAccTypes)
     GUICtrlSetData($idViewUnattendAccNameInput, $sName)
     GUICtrlSetData($idViewUnattendAccDispNameInput, $sDisp)
     GUICtrlSetData($idViewUnattendAccPassInput, $sPass)
@@ -1281,6 +1319,7 @@ EndFunc
 Func _UnattendAccReset()
     _GUICtrlListView_DeleteAllItems(GUICtrlGetHandle($idViewUnattendLocalAccTblList))
     GUICtrlCreateListViewItem("1|Administrator|Admin|Administrator|Password123", $idViewUnattendLocalAccTblList)
+    GUICtrlSetData($idViewUnattendAccTypeCmb, "|" & $g_sViewUnattendAccTypes, "Administrator")
     _GUICtrlListView_SetItemSelected($idViewUnattendLocalAccTblList, 0, True, True)
     _UnattendAccOnSelect()
     _UnattendValidateAutoLogonID()
@@ -1322,7 +1361,7 @@ Func _UnattendAccOnDelete()
         _GUICtrlListView_SetItemSelected($idViewUnattendLocalAccTblList, $iNewSel, True, True)
         _UnattendAccOnSelect()
     Else
-        GUICtrlSetData($idViewUnattendAccTypeCmb, "")
+        _UnattendComboSetSelection($idViewUnattendAccTypeCmb, "", $g_sViewUnattendAccTypes)
         GUICtrlSetData($idViewUnattendAccNameInput, "")
         GUICtrlSetData($idViewUnattendAccDispNameInput, "")
         GUICtrlSetData($idViewUnattendAccPassInput, "")
@@ -1333,7 +1372,7 @@ Func _UnattendAccOnDelete()
 EndFunc
 
 Func _UnattendAccOnClear()
-    GUICtrlSetData($idViewUnattendAccTypeCmb, "")
+    _UnattendComboSetSelection($idViewUnattendAccTypeCmb, "", $g_sViewUnattendAccTypes)
     GUICtrlSetData($idViewUnattendAccNameInput, "")
     GUICtrlSetData($idViewUnattendAccDispNameInput, "")
     GUICtrlSetData($idViewUnattendAccPassInput, "")
