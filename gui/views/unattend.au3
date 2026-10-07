@@ -31,6 +31,7 @@
 #include "../modules/config.au3"
 #include "../modules/scroll.au3"
 #include "../modules/xml.au3"
+#include "../modules/data.au3"
 #include <Array.au3>
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -44,9 +45,11 @@
 Global $hViewUnattend = 0
 Global $idViewUnattendTitle = 0
 
+Global $g_bKeyFormatting = False
+Global $g_sPrevProductKey = ""
+
 Global $hViewUnattendWindowsGroup = 0
 Global $idViewUnattendEditionLbl = 0, $idViewUnattendEditionCmb = 0
-Global Const $g_sViewUnattendEditions = "Windows 11 Home|Windows 11 Home N|Windows 11 Home Single Language|Windows 11 Education|Windows 11 Education N|Windows 11 Pro|Windows 11 Pro N|Windows 11 Pro Education|Windows 11 Pro Education N|Windows 11 Pro for Workstations|Windows 11 Pro N for Workstations"
 Global $idViewUnattendProductKeyLbl = 0, $idViewUnattendProductKeyInput = 0
 Global $idViewUnattendArchLbl = 0, $idViewUnattendArchRdoC1 = 0, $idViewUnattendArchRdoC2 = 0
 Global $idViewUnattendPCNameLbl = 0, $idViewUnattendPCNameInput = 0
@@ -58,26 +61,6 @@ Global $idViewUnattendSysUsrLangSameCkbx = 0
 Global $idViewUnattendUILangLbl = 0, $idViewUnattendUILangCmb = 0
 Global $idViewUnattendKbLayoutLbl = 0, $idViewUnattendKbLayoutCmb = 0 
 Global $idViewUnattendTZLbl = 0, $idViewUnattendTZCmb = 0
-Global Const $g_sViewUnattendTimeZones = _
-    "(UTC-11:00) UTC-11|(UTC-10:00) Hawaiian Standard Time|(UTC-08:00) Pacific Standard Time|(UTC-07:00) Mountain Standard Time|" & _
-    "(UTC-06:00) Central America Standard Time|(UTC-06:00) Central Standard Time (Mexico)|(UTC-05:00) Eastern Standard Time|(UTC-05:00) SA Pacific Standard Time|" & _
-    "(UTC-04:30) Venezuela Standard Time|(UTC-04:00) Atlantic Standard Time|(UTC-04:00) Paraguay Standard Time|(UTC-04:00) SA Western Standard Time|" & _
-    "(UTC-03:00) Argentina Standard Time|(UTC-03:00) E. South America Standard Time|(UTC-03:00) Greenland Standard Time|(UTC-03:00) Montevideo Standard Time|" & _
-    "(UTC-03:00) Pacific SA Standard Time|(UTC-03:00) SA Eastern Standard Time|(UTC-02:00) UTC-02|(UTC-01:00) Cape Verde Standard Time|" & _
-    "(UTC) GMT Standard Time|(UTC) Greenwich Standard Time|(UTC) Morocco Standard Time|(UTC) UTC|" & _
-    "(UTC+01:00) Central Europe Standard Time|(UTC+01:00) Central European Standard Time|(UTC+01:00) Namibia Standard Time|(UTC+01:00) Romance Standard Time|" & _
-    "(UTC+01:00) W. Central Africa Standard Time|(UTC+01:00) W. Europe Standard Time|(UTC+02:00) E. Europe Standard Time|(UTC+02:00) Egypt Standard Time|" & _
-    "(UTC+02:00) FLE Standard Time|(UTC+02:00) GTB Standard Time|(UTC+02:00) Israel Standard Time|(UTC+02:00) Jordan Standard Time|" & _
-    "(UTC+02:00) Middle East Standard Time|(UTC+02:00) South Africa Standard Time|(UTC+02:00) Syria Standard Time|(UTC+02:00) Türkiye Standard Time|" & _
-    "(UTC+03:00) Arab Standard Time|(UTC+03:00) Arabic Standard Time|(UTC+03:00) Belarus Standard Time|(UTC+03:00) E. Africa Standard Time|" & _
-    "(UTC+03:00) Russian Standard Time|(UTC+03:30) Iran Standard Time|(UTC+04:00) Arabian Standard Time|(UTC+04:00) Azerbaijan Standard Time|" & _
-    "(UTC+04:00) Caucasus Standard Time|(UTC+04:00) Georgian Standard Time|(UTC+04:00) Mauritius Standard Time|(UTC+04:30) Afghanistan Standard Time|" & _
-    "(UTC+05:00) Pakistan Standard Time|(UTC+05:00) West Asia Standard Time|(UTC+05:30) India Standard Time|(UTC+05:30) Sri Lanka Standard Time|" & _
-    "(UTC+05:45) Nepal Standard Time|(UTC+06:00) Bangladesh Standard Time|(UTC+06:00) Central Asia Standard Time|(UTC+06:30) Myanmar Standard Time|" & _
-    "(UTC+07:00) SE Asia Standard Time|(UTC+08:00) China Standard Time|(UTC+08:00) Singapore Standard Time|(UTC+08:00) Taipei Standard Time|" & _
-    "(UTC+08:00) Ulaanbaatar Standard Time|(UTC+09:00) Korea Standard Time|(UTC+09:00) Tokyo Standard Time|(UTC+10:00) AUS Eastern Standard Time|" & _
-    "(UTC+10:00) West Pacific Standard Time|(UTC+11:00) Central Pacific Standard Time|(UTC+12:00) Fiji Standard Time|(UTC+12:00) New Zealand Standard Time|" & _
-    "(UTC+12:00) UTC+12|(UTC+13:00) Samoa Standard Time|(UTC+13:00) Tonga Standard Time"
 
 Global Const $g_sViewUnattendPartTypes = "EFI|MSR|Primary|Extended|Logical|Recovery"
 Global Const $g_sViewUnattendPartFormats = "NTFS|FAT32"
@@ -108,10 +91,13 @@ Global $idViewUnattendOOBELocalAccCkbx = 0
 Global $idViewUnattendOOBEOnlAccCkbx = 0
 Global $idViewUnattendOOBEWirelessCkbx = 0
 Global $idViewUnattendOOBEBitLockerCkbx = 0
-Global $idViewUnattendOOBEPrivacyLbl = 0, $idViewUnattendOOBEPrivacyRdoC1 = 0, $idViewUnattendOOBEPrivacyRdoC2 = 0, $idViewUnattendOOBEPrivacyRdoC3 = 0
+Global $idViewUnattendOOBEPrivacyLbl = 0, $idViewUnattendOOBEPrivacySlider = 0
+Global $idViewUnattendOOBEPrivacyRecomLbl = 0, $idViewUnattendOOBEPrivacyExpressLbl = 0, $idViewUnattendOOBEPrivacyDisableLbl = 0
 
 Global Const $g_sViewUnattendAccTypes = "Administrator|User"
 Global $hViewUnattendLocalAccGroup = 0
+Global $idViewUnattendLocalAccManLbl = 0, $idViewUnattendLocalAccManSlider = 0
+Global $idViewUnattendLocalAccManHybridLbl = 0, $idViewUnattendLocalAccManAutoLbl = 0
 Global $idViewUnattendLocalAccTblLbl = 0, $idViewUnattendLocalAccTblList = 0, $hViewUnattendLocalAccTblList = 0
 Global $idViewUnattendAccResetBtn = 0
 Global $idViewUnattendAccTypeCmb = 0, $idViewUnattendAccNameInput = 0, $idViewUnattendAccDispNameInput = 0, $idViewUnattendAccPassInput = 0
@@ -120,33 +106,6 @@ Global $idViewUnattendLocalAccAutoLogonLbl = 0, $idViewUnattendLocalAccAutoLogon
 
 Global $hViewUnattendBloatwareGroup = 0
 Global $idViewUnattendBloatwareTblLbl = 0, $idViewUnattendBloatwareResetBtn = 0, $idViewUnattendBloatwareTblList = 0
-Global $a_sKnownBloatwares[25][2] = [ _
-    ["Microsoft.Copilot", "Windows Copilot AI assistant integration"], _
-    ["Clipchamp.Clipchamp", "Clipchamp video editor application"], _
-    ["Microsoft.BingSearch", "Bing web search integration in Windows"], _
-    ["Microsoft.BingNews", "Microsoft Bing News widget and application"], _
-    ["MicrosoftTeams", "Microsoft Teams personal / work client"], _
-    ["MSTeams", "Microsoft Teams alternate package"], _
-    ["Microsoft.OutlookForWindows", "New web-based Outlook email client"], _
-    ["Microsoft.MicrosoftSolitaireCollection", "Microsoft Solitaire collection games"], _
-    ["Microsoft.Microsoft3DViewer", "3D Model Viewer utility"], _
-    ["Microsoft.SkypeApp", "Skype instant messaging and calling app"], _
-    ["Microsoft.People", "Windows People address book app"], _
-    ["Microsoft.Todos", "Microsoft To Do task manager"], _
-    ["Microsoft.Wallet", "Microsoft Wallet payment autofill"], _
-    ["Microsoft.WindowsMaps", "Windows Maps application"], _
-    ["Microsoft.Getstarted", "Tips and Get Started application"], _
-    ["Microsoft.GetHelp", "Get Help diagnostic assistance app"], _
-    ["Microsoft.WindowsFeedbackHub", "Windows Feedback Hub telemetry app"], _
-    ["Microsoft.Office.OneNote", "OneNote for Windows application"], _
-    ["Microsoft.MicrosoftOfficeHub", "Microsoft 365 / Office Hub portal"], _
-    ["Microsoft.MixedReality.Portal", "Windows Mixed Reality portal app"], _
-    ["MicrosoftCorporationII.QuickAssist", "Remote assistance support client"], _
-    ["MicrosoftCorporationII.MicrosoftFamily", "Microsoft Family Safety monitor"], _
-    ["Microsoft.MicrosoftStickyNotes", "Sticky Notes desktop application"], _
-    ["Microsoft.549981C3F5F10", "Cortana voice assistant component"], _
-    ["App.Support.QuickAssist", "Quick Assist capability component"] _
-]
 
 Global $hViewUnattendScriptsGroup = 0
 Global $idViewUnattendScriptsEditLbl = 0, $idViewUnattendScriptsEditEdit = 0
@@ -199,12 +158,13 @@ Func viewUnattendCreate($hViewPort, $iW, $iH)
     $iItemY = $iY + $iP * 3
     $idViewUnattendEditionLbl = GUICtrlCreateLabel("", $iX, $iItemY, $iLblW, $iLblH)
     $idViewUnattendEditionCmb = GUICtrlCreateCombo("", $iX + $iLblW, $iItemY - $iPx, $iInputW, $iLblH + $iPx * 2)
-    GUICtrlSetData($idViewUnattendEditionCmb, $g_sViewUnattendEditions, "Windows 11 Pro")
+    GUICtrlSetData($idViewUnattendEditionCmb, dataGetColumnList("editions.csv"), "Windows 11 Pro")
 
     ; Product Key
     $iItemY += $iRowH
     $idViewUnattendProductKeyLbl = GUICtrlCreateLabel("", $iX, $iItemY, $iLblW, $iLblH)
-    $idViewUnattendProductKeyInput = GUICtrlCreateInput("", $iX + $iLblW, $iItemY - $iPx, $iInputW, $iLblH + $iPx * 2)
+    $idViewUnattendProductKeyInput = GUICtrlCreateInput("", $iX + $iLblW, $iItemY - $iPx, $iInputW, $iLblH + $iPx * 2, BitOR($GUI_SS_DEFAULT_INPUT, $ES_UPPERCASE))
+    GUICtrlSetLimit($idViewUnattendProductKeyInput, 29)
     
     ; Architecture
     $iItemY += $iRowH
@@ -226,40 +186,42 @@ Func viewUnattendCreate($hViewPort, $iW, $iH)
     $iGroupH = $iRowH * 6 + $iP * 3
     $hViewUnattendRegionGroup = GUICtrlCreateGroup("", $iX, $iY, $iContentW, $iGroupH)
 
-    ; System Language
+    ; System Locale
     $iX = $iP * 3
     $iItemY = $iY + $iP * 3
     $idViewUnattendSysLangLbl = GUICtrlCreateLabel("", $iX, $iItemY, $iLblW, $iLblH)
     $idViewUnattendSysLangCmb = GUICtrlCreateCombo("", $iX + $iLblW, $iItemY - $iPx, $iInputW, $iLblH + $iPx * 2)
-    GUICtrlSetData($idViewUnattendSysLangCmb, "English|Tiếng Việt", "English")
+    GUICtrlSetData($idViewUnattendSysLangCmb, dataGetColumnList("locales.csv"), "English (United States)")
 
-    ; User Language
+    ; User Locale
     $iItemY += $iRowH
     $idViewUnattendUsrLangLbl = GUICtrlCreateLabel("", $iX, $iItemY, $iLblW, $iLblH)
     $idViewUnattendUsrLangCmb = GUICtrlCreateCombo("", $iX + $iLblW, $iItemY - $iPx, $iInputW, $iLblH + $iPx * 2)
-    GUICtrlSetData($idViewUnattendUsrLangCmb, "English|Tiếng Việt", "English")
+    GUICtrlSetData($idViewUnattendUsrLangCmb, dataGetColumnList("locales.csv"), "English (United States)")
+    GUICtrlSetState($idViewUnattendUsrLangCmb, $GUI_DISABLE)
 
-    ; System & User Language Same Checkbox
+    ; Same as System Locale Checkbox
     $iItemY += $iRowH
     $idViewUnattendSysUsrLangSameCkbx = GUICtrlCreateCheckbox("", $iX + $iLblW, $iItemY - $iPx, $iInputW, $iLblH + $iPx * 2)
+    GUICtrlSetState($idViewUnattendSysUsrLangSameCkbx, $GUI_CHECKED)
 
     ; UI Language
     $iItemY += $iRowH
     $idViewUnattendUILangLbl = GUICtrlCreateLabel("", $iX, $iItemY, $iLblW, $iLblH)
     $idViewUnattendUILangCmb = GUICtrlCreateCombo("", $iX + $iLblW, $iItemY - $iPx, $iInputW, $iLblH + $iPx * 2)
-    GUICtrlSetData($idViewUnattendUILangCmb, "English|Tiếng Việt", "English")
+    GUICtrlSetData($idViewUnattendUILangCmb, dataGetColumnList("uilangs.csv"), "English (United States)")
 
     ; Keyboard Layout
     $iItemY += $iRowH
     $idViewUnattendKbLayoutLbl = GUICtrlCreateLabel("", $iX, $iItemY, $iLblW, $iLblH)
     $idViewUnattendKbLayoutCmb = GUICtrlCreateCombo("", $iX + $iLblW, $iItemY - $iPx, $iInputW, $iLblH + $iPx * 2)
-    GUICtrlSetData($idViewUnattendKbLayoutCmb, "en-us|vi-vn", "en-us")
+    GUICtrlSetData($idViewUnattendKbLayoutCmb, dataGetColumnList("kblayouts.csv"), "US")
 
     ; Time Zone
     $iItemY += $iRowH
     $idViewUnattendTZLbl = GUICtrlCreateLabel("", $iX, $iItemY, $iLblW, $iLblH)
     $idViewUnattendTZCmb = GUICtrlCreateCombo("", $iX + $iLblW, $iItemY - $iPx, $iInputW, $iLblH + $iPx * 2)
-    GUICtrlSetData($idViewUnattendTZCmb, $g_sViewUnattendTimeZones, "(UTC+07:00) SE Asia Standard Time")
+    GUICtrlSetData($idViewUnattendTZCmb, dataGetColumnList("timezones.csv"), "(UTC+07:00) SE Asia Standard Time")
 
     ;GUICtrlCreateGroup("", -99, -99, -99, -99)
 
@@ -413,7 +375,7 @@ Func viewUnattendCreate($hViewPort, $iW, $iH)
     ; Initialize OOBE Group
     $iX = $iP
     $iY += $iGroupH + $iP
-    $iGroupH = $iRowH * 5 + $iP * 3
+    $iGroupH = $iRowH * 5 + $iLblH + $iP * 4
     $hViewUnattendOOBEGroup = GUICtrlCreateGroup("", $iX, $iY, $iContentW, $iGroupH)
 
     ; Hide All OOBE
@@ -443,14 +405,18 @@ Func viewUnattendCreate($hViewPort, $iW, $iH)
     $idViewUnattendOOBEBitLockerCkbx = GUICtrlCreateCheckbox("", $iRightColX, $iItemY + $iRowH, $iColW, $iLblH)
     GUICtrlSetState($idViewUnattendOOBEBitLockerCkbx, $GUI_CHECKED)
 
-    ; Privacy Protect
+    ; Privacy Settings Slider (0: Recommended, 1: Express, 2: Disable All)
     $iItemY += $iRowH * 3
     $idViewUnattendOOBEPrivacyLbl = GUICtrlCreateLabel("", $iX, $iItemY, $iLblW, $iLblH)
-    $idViewUnattendOOBEPrivacyRdoC1 = GUICtrlCreateRadio("", $iP * 3 + $iLblW, $iItemY - $iPx, $iInputW / 3 - $iP * 2, $iLblH + $iPx)
-    $idViewUnattendOOBEPrivacyRdoC2 = GUICtrlCreateRadio("", $iP * 3 + $iLblW + $iInputW / 3 + $iP, $iItemY - $iPx, $iInputW / 3 - $iP * 2, $iLblH + $iPx)
-    $idViewUnattendOOBEPrivacyRdoC3 = GUICtrlCreateRadio("", $iP * 3 + $iLblW + $iInputW / 3 * 2 + $iP * 2, $iItemY - $iPx, $iInputW / 3 - $iP * 2, $iLblH + $iPx)
-    GUICtrlSetState($idViewUnattendOOBEPrivacyRdoC1, $GUI_CHECKED)
-    GUIStartGroup()
+    $idViewUnattendOOBEPrivacySlider = GUICtrlCreateSlider($iP * 3 + $iLblW, $iItemY - $iPx, $iInputW, $iLblH + $iPx * 2)
+    GUICtrlSetLimit($idViewUnattendOOBEPrivacySlider, 2, 0)
+    GUICtrlSetData($idViewUnattendOOBEPrivacySlider, 2)
+
+    Local $iPrivTickY = $iItemY + $iLblH + $iPx
+    Local $iPrivTickW = $iInputW / 3
+    $idViewUnattendOOBEPrivacyRecomLbl = GUICtrlCreateLabel("", $iP * 3 + $iLblW, $iPrivTickY, $iPrivTickW, $iLblH)
+    $idViewUnattendOOBEPrivacyExpressLbl = GUICtrlCreateLabel("", $iP * 3 + $iLblW + $iPrivTickW, $iPrivTickY, $iPrivTickW, $iLblH, $SS_CENTER)
+    $idViewUnattendOOBEPrivacyDisableLbl = GUICtrlCreateLabel("", $iP * 3 + $iLblW + $iPrivTickW * 2, $iPrivTickY, $iPrivTickW, $iLblH, $SS_RIGHT)
 
     ;GUICtrlCreateGroup("", -99, -99, -99, -99)
 
@@ -458,12 +424,24 @@ Func viewUnattendCreate($hViewPort, $iW, $iH)
     Local $iAccListH = $iRowH * 5
     $iX = $iP
     $iY += $iGroupH + $iP
-    $iGroupH = 5 * $iRowH + $iAccListH + 3 * $iP
+    $iGroupH = 6 * $iRowH + $iAccListH + 5 * $iP
     $hViewUnattendLocalAccGroup = GUICtrlCreateGroup("", $iX, $iY, $iContentW, $iGroupH)
 
-    ; Local Account Table Header Row
+    ; Account Automation Slider (0: Hybrid, 1: Automated)
     $iX = $iP * 3
     $iItemY = $iY + $iP * 3
+    $idViewUnattendLocalAccManLbl = GUICtrlCreateLabel("", $iX, $iItemY, $iLblW, $iLblH)
+    $idViewUnattendLocalAccManSlider = GUICtrlCreateSlider($iP * 3 + $iLblW, $iItemY - $iPx, $iInputW, $iLblH + $iPx * 2)
+    GUICtrlSetLimit($idViewUnattendLocalAccManSlider, 1, 0)
+    GUICtrlSetData($idViewUnattendLocalAccManSlider, 1)
+
+    Local $iAccTickY = $iItemY + $iLblH + $iPx
+    Local $iAccTickColW = $iInputW / 2
+    $idViewUnattendLocalAccManHybridLbl = GUICtrlCreateLabel("", $iP * 3 + $iLblW, $iAccTickY, $iAccTickColW, $iLblH)
+    $idViewUnattendLocalAccManAutoLbl = GUICtrlCreateLabel("", $iP * 3 + $iLblW + $iAccTickColW, $iAccTickY, $iAccTickColW, $iLblH, $SS_RIGHT)
+
+    ; Local Account Table Header Row
+    $iItemY += $iRowH + $iLblH
     $idViewUnattendLocalAccTblLbl = GUICtrlCreateLabel("", $iX, $iItemY, $iColW, $iLblH)
     Local $iAccListW = $iContentW - $iP * 4
     $iBtnW = ($iAccListW * 92 / 100 - 4 * $iP) / 5
@@ -544,11 +522,12 @@ Func viewUnattendCreate($hViewPort, $iW, $iH)
     _GUICtrlListView_SetExtendedListViewStyle($idViewUnattendBloatwareTblList, BitOR($LVS_EX_CHECKBOXES, $LVS_EX_FULLROWSELECT, $LVS_EX_GRIDLINES))
     _GUICtrlListView_SetColumnWidth($idViewUnattendBloatwareTblList, 0, $iListW * 45 / 100)
     _GUICtrlListView_SetColumnWidth($idViewUnattendBloatwareTblList, 1, $iListW * 51 / 100)
-    For $i = 0 To UBound($a_sKnownBloatwares) - 1
-        Local $sPkg = $a_sKnownBloatwares[$i][0]
-        Local $sDesc = _UnattendGetBloatwareDesc($sPkg, $a_sKnownBloatwares[$i][1])
+    Local $aBloat = dataLoadCsv("bloatwares.csv")
+    For $i = 1 To UBound($aBloat, 1) - 1
+        Local $sPkg = $aBloat[$i][0]
+        Local $sDesc = _UnattendGetBloatwareDesc($sPkg, $aBloat[$i][1])
         GUICtrlCreateListViewItem($sPkg & "|" & $sDesc, $idViewUnattendBloatwareTblList)
-        _GUICtrlListView_SetItemChecked($idViewUnattendBloatwareTblList, $i, True)
+        _GUICtrlListView_SetItemChecked($idViewUnattendBloatwareTblList, $i - 1, True)
     Next
 
     ;GUICtrlCreateGroup("", -99, -99, -99, -99)
@@ -579,6 +558,9 @@ Func viewUnattendCreate($hViewPort, $iW, $iH)
 
     GUIRegisterMsg($WM_COMMAND, "unattendOnWM_COMMAND")
     GUIRegisterMsg($WM_NOTIFY,  "unattendOnWM_NOTIFY")
+
+    _UnattendUpdatePartAutomationState(2)
+    _UnattendUpdateAccAutomationState(1)
 
     viewUnattendApplyLang()
     viewUnattendApplyTheme()
@@ -628,16 +610,16 @@ Func viewUnattendApplyLang()
     ; Language - Region
     GUICtrlSetData($hViewUnattendRegionGroup, i18nGet("unattend.region.title", "Language - Region"))
 
-    GUICtrlSetData($idViewUnattendSysLangLbl, i18nGet("unattend.region.syslang.label", "System Language"))
-    GUICtrlSetTip($idViewUnattendSysLangLbl, i18nGet("unattend.region.syslang.tip", "System language for services and default profile"))
-    GUICtrlSetTip($idViewUnattendSysLangCmb, i18nGet("unattend.region.syslang.tip", "System language for services and default profile"))
+    GUICtrlSetData($idViewUnattendSysLangLbl, i18nGet("unattend.region.syslang.label", "System Locale: "))
+    GUICtrlSetTip($idViewUnattendSysLangLbl, i18nGet("unattend.region.syslang.tip", "System locale for services and default profile"))
+    GUICtrlSetTip($idViewUnattendSysLangCmb, i18nGet("unattend.region.syslang.tip", "System locale for services and default profile"))
 
-    GUICtrlSetData($idViewUnattendUsrLangLbl, i18nGet("unattend.region.usrlang.label", "User Language"))
+    GUICtrlSetData($idViewUnattendUsrLangLbl, i18nGet("unattend.region.usrlang.label", "User Locale: "))
     GUICtrlSetTip($idViewUnattendUsrLangLbl, i18nGet("unattend.region.usrlang.tip", "User interface and account locale"))
     GUICtrlSetTip($idViewUnattendUsrLangCmb, i18nGet("unattend.region.usrlang.tip", "User interface and account locale"))
 
-    GUICtrlSetData($idViewUnattendSysUsrLangSameCkbx, i18nGet("unattend.region.sysusrlangsame.label", "Same as System Language"))
-    GUICtrlSetTip($idViewUnattendSysUsrLangSameCkbx, i18nGet("unattend.region.sysusrlangsame.tip", "Keep user language synced with system language"))
+    GUICtrlSetData($idViewUnattendSysUsrLangSameCkbx, i18nGet("unattend.region.sysusrlangsame.label", "Same as System Locale"))
+    GUICtrlSetTip($idViewUnattendSysUsrLangSameCkbx, i18nGet("unattend.region.sysusrlangsame.tip", "Keep user locale synced with system locale"))
 
     GUICtrlSetData($idViewUnattendUILangLbl, i18nGet("unattend.region.uilang.label", "UI Language: "))
     GUICtrlSetTip($idViewUnattendUILangLbl, i18nGet("unattend.region.uilang.tip", "Display language for Windows UI"))
@@ -741,15 +723,24 @@ Func viewUnattendApplyLang()
     GUICtrlSetTip($idViewUnattendOOBEBitLockerCkbx, i18nGet("unattend.oobe.bitlocker.tip", "Disable automatic BitLocker drive encryption"))
     GUICtrlSetData($idViewUnattendOOBEPrivacyLbl, i18nGet("unattend.oobe.privacy.label", "Privacy Settings: "))
     GUICtrlSetTip($idViewUnattendOOBEPrivacyLbl, i18nGet("unattend.oobe.privacy.tip", "Select privacy and telemetry level"))
-    GUICtrlSetData($idViewUnattendOOBEPrivacyRdoC1, i18nGet("unattend.oobe.privacy.express.label", "Express"))
-    GUICtrlSetTip($idViewUnattendOOBEPrivacyRdoC1, i18nGet("unattend.oobe.privacy.express.tip", "Default Windows express privacy settings"))
-    GUICtrlSetData($idViewUnattendOOBEPrivacyRdoC2, i18nGet("unattend.oobe.privacy.recom.label", "Recommended"))
-    GUICtrlSetTip($idViewUnattendOOBEPrivacyRdoC2, i18nGet("unattend.oobe.privacy.recom.tip", "Recommended balanced privacy options"))
-    GUICtrlSetData($idViewUnattendOOBEPrivacyRdoC3, i18nGet("unattend.oobe.privacy.disable.label", "Disable All"))
-    GUICtrlSetTip($idViewUnattendOOBEPrivacyRdoC3, i18nGet("unattend.oobe.privacy.disable.tip", "Disable telemetry, tracking, and diagnostics"))
+    GUICtrlSetTip($idViewUnattendOOBEPrivacySlider, i18nGet("unattend.oobe.privacy.tip", "Select privacy and telemetry level"))
+    GUICtrlSetData($idViewUnattendOOBEPrivacyRecomLbl, i18nGet("unattend.oobe.privacy.recom.label", "Recommended"))
+    GUICtrlSetTip($idViewUnattendOOBEPrivacyRecomLbl, i18nGet("unattend.oobe.privacy.recom.tip", "Recommended balanced privacy options"))
+    GUICtrlSetData($idViewUnattendOOBEPrivacyExpressLbl, i18nGet("unattend.oobe.privacy.express.label", "Express"))
+    GUICtrlSetTip($idViewUnattendOOBEPrivacyExpressLbl, i18nGet("unattend.oobe.privacy.express.tip", "Default Windows express privacy settings"))
+    GUICtrlSetData($idViewUnattendOOBEPrivacyDisableLbl, i18nGet("unattend.oobe.privacy.disable.label", "Disable All"))
+    GUICtrlSetTip($idViewUnattendOOBEPrivacyDisableLbl, i18nGet("unattend.oobe.privacy.disable.tip", "Disable telemetry, tracking, and diagnostics"))
 
     ; Local Accounts Management
     GUICtrlSetData($hViewUnattendLocalAccGroup, i18nGet("unattend.localacc.title", "Local Accounts Management"))
+    GUICtrlSetData($idViewUnattendLocalAccManLbl, i18nGet("unattend.localacc.man.label", "Account Automation: "))
+    GUICtrlSetTip($idViewUnattendLocalAccManLbl, i18nGet("unattend.localacc.man.tip", "Choose accounts automation strategy: Hybrid or Automated"))
+    GUICtrlSetTip($idViewUnattendLocalAccManSlider, i18nGet("unattend.localacc.man.tip", "Choose accounts automation strategy: Hybrid or Automated"))
+    GUICtrlSetData($idViewUnattendLocalAccManHybridLbl, i18nGet("unattend.localacc.man.hybrid.label", "Hybrid"))
+    GUICtrlSetTip($idViewUnattendLocalAccManHybridLbl, i18nGet("unattend.localacc.man.hybrid.tip", "Prompt or customize local accounts during setup"))
+    GUICtrlSetData($idViewUnattendLocalAccManAutoLbl, i18nGet("unattend.localacc.man.auto.label", "Automated"))
+    GUICtrlSetTip($idViewUnattendLocalAccManAutoLbl, i18nGet("unattend.localacc.man.auto.tip", "Automatically create configured accounts during setup"))
+
     GUICtrlSetData($idViewUnattendLocalAccTblLbl, i18nGet("unattend.localacc.tbl.label", "Accounts Table: "))
     GUICtrlSetTip($idViewUnattendLocalAccTblLbl, i18nGet("unattend.localacc.tbl.tip", "Manage local user accounts (max 8 accounts)"))
     GUICtrlSetTip($idViewUnattendLocalAccTblList, i18nGet("unattend.localacc.tbl.tip", "Manage local user accounts (max 8 accounts)"))
@@ -792,10 +783,11 @@ Func viewUnattendApplyLang()
 
     _GUICtrlListView_SetColumn($idViewUnattendBloatwareTblList, 0, i18nGet("unattend.bloatware.list.col1.label", "Package Name"))
     _GUICtrlListView_SetColumn($idViewUnattendBloatwareTblList, 1, i18nGet("unattend.bloatware.list.col2.label", "Description"))
-    For $i = 0 To UBound($a_sKnownBloatwares) - 1
-        Local $sPkg = $a_sKnownBloatwares[$i][0]
-        Local $sDesc = _UnattendGetBloatwareDesc($sPkg, $a_sKnownBloatwares[$i][1])
-        _GUICtrlListView_SetItemText($idViewUnattendBloatwareTblList, $i, $sDesc, 1)
+    Local $aBloatLang = dataLoadCsv("bloatwares.csv")
+    For $i = 1 To UBound($aBloatLang, 1) - 1
+        Local $sPkg = $aBloatLang[$i][0]
+        Local $sDesc = _UnattendGetBloatwareDesc($sPkg, $aBloatLang[$i][1])
+        _GUICtrlListView_SetItemText($idViewUnattendBloatwareTblList, $i - 1, $sDesc, 1)
     Next
 
     ; Custom Scripts
@@ -832,6 +824,8 @@ Func viewUnattendApplyTheme()
     GUICtrlSetBkColor($idViewUnattendTitle, themeColor("main.view.bg"))
 
     GUICtrlSetBkColor($idViewUnattendPartitionManSlider, themeColor("main.view.bg"))
+    GUICtrlSetBkColor($idViewUnattendOOBEPrivacySlider, themeColor("main.view.bg"))
+    GUICtrlSetBkColor($idViewUnattendLocalAccManSlider, themeColor("main.view.bg"))
 
     Local $aLabels[] = [ _
         $idViewUnattendEditionLbl, _
@@ -870,9 +864,12 @@ Func viewUnattendApplyTheme()
         $idViewUnattendOOBEWirelessCkbx, _
         $idViewUnattendOOBEBitLockerCkbx, _
         $idViewUnattendOOBEPrivacyLbl, _
-        $idViewUnattendOOBEPrivacyRdoC1, _
-        $idViewUnattendOOBEPrivacyRdoC2, _
-        $idViewUnattendOOBEPrivacyRdoC3, _
+        $idViewUnattendOOBEPrivacyRecomLbl, _
+        $idViewUnattendOOBEPrivacyExpressLbl, _
+        $idViewUnattendOOBEPrivacyDisableLbl, _
+        $idViewUnattendLocalAccManLbl, _
+        $idViewUnattendLocalAccManHybridLbl, _
+        $idViewUnattendLocalAccManAutoLbl, _
         $idViewUnattendLocalAccTblLbl, _
         $idViewUnattendLocalAccAutoLogonLbl, _
         $idViewUnattendBloatwareTblLbl, _
@@ -918,12 +915,18 @@ Func viewUnattendHandleEvent($idMsg)
         ; Partition Management Slider Logic
         Case $idViewUnattendPartitionManManualLbl
             GUICtrlSetData($idViewUnattendPartitionManSlider, 0)
+            _UnattendUpdatePartAutomationState(0)
 
         Case $idViewUnattendPartitionManHybridLbl
             GUICtrlSetData($idViewUnattendPartitionManSlider, 1)
+            _UnattendUpdatePartAutomationState(1)
 
         Case $idViewUnattendPartitionManAutoLbl
             GUICtrlSetData($idViewUnattendPartitionManSlider, 2)
+            _UnattendUpdatePartAutomationState(2)
+
+        Case $idViewUnattendPartitionManSlider
+            _UnattendUpdatePartAutomationState(GUICtrlRead($idViewUnattendPartitionManSlider))
 
         ; Partition Scheme Type (GPT / MBR)
         Case $idViewUnattendPartitionTypeRdoC1, $idViewUnattendPartitionTypeRdoC2
@@ -933,14 +936,14 @@ Func viewUnattendHandleEvent($idMsg)
         Case $idViewUnattendSysUsrLangSameCkbx
             If GUICtrlRead($idViewUnattendSysUsrLangSameCkbx) = $GUI_CHECKED Then
                 GUICtrlSetState($idViewUnattendUsrLangCmb, $GUI_DISABLE)
-                _UnattendComboSetSelection($idViewUnattendUsrLangCmb, GUICtrlRead($idViewUnattendSysLangCmb), "English|Tiếng Việt")
+                _UnattendComboSetSelection($idViewUnattendUsrLangCmb, GUICtrlRead($idViewUnattendSysLangCmb), dataGetColumnList("locales.csv"))
             Else
                 GUICtrlSetState($idViewUnattendUsrLangCmb, $GUI_ENABLE)
             EndIf
 
         Case $idViewUnattendSysLangCmb
             If GUICtrlRead($idViewUnattendSysUsrLangSameCkbx) = $GUI_CHECKED Then
-                _UnattendComboSetSelection($idViewUnattendUsrLangCmb, GUICtrlRead($idViewUnattendSysLangCmb), "English|Tiếng Việt")
+                _UnattendComboSetSelection($idViewUnattendUsrLangCmb, GUICtrlRead($idViewUnattendSysLangCmb), dataGetColumnList("locales.csv"))
             EndIf
 
         ; Bypass Hardware Checks "Select All" Logic
@@ -980,6 +983,28 @@ Func viewUnattendHandleEvent($idMsg)
                                  (GUICtrlRead($idViewUnattendOOBEWirelessCkbx) = $GUI_CHECKED) And _
                                  (GUICtrlRead($idViewUnattendOOBEBitLockerCkbx) = $GUI_CHECKED)
             GUICtrlSetState($idViewUnattendOOBEAllCkbx, $bAllChecked ? $GUI_CHECKED : $GUI_UNCHECKED)
+
+        ; OOBE Privacy Slider Tick Labels
+        Case $idViewUnattendOOBEPrivacyRecomLbl
+            GUICtrlSetData($idViewUnattendOOBEPrivacySlider, 0)
+
+        Case $idViewUnattendOOBEPrivacyExpressLbl
+            GUICtrlSetData($idViewUnattendOOBEPrivacySlider, 1)
+
+        Case $idViewUnattendOOBEPrivacyDisableLbl
+            GUICtrlSetData($idViewUnattendOOBEPrivacySlider, 2)
+
+        ; Local Accounts Automation Slider Logic
+        Case $idViewUnattendLocalAccManHybridLbl
+            GUICtrlSetData($idViewUnattendLocalAccManSlider, 0)
+            _UnattendUpdateAccAutomationState(0)
+
+        Case $idViewUnattendLocalAccManAutoLbl
+            GUICtrlSetData($idViewUnattendLocalAccManSlider, 1)
+            _UnattendUpdateAccAutomationState(1)
+
+        Case $idViewUnattendLocalAccManSlider
+            _UnattendUpdateAccAutomationState(GUICtrlRead($idViewUnattendLocalAccManSlider))
 
         ; Bloatware Reset Button
         Case $idViewUnattendBloatwareResetBtn
@@ -1119,6 +1144,95 @@ Func _UnattendGetBloatwareDesc($sPkg, $sDefault)
         Case Else
             Return $sDefault
     EndSwitch
+EndFunc
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Product Key Live Auto-Formatting
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+Func _UnattendFormatProductKey($sRaw, $sPrev = "")
+    ; Keep only capitalized alphanumeric characters [A-Z0-9]
+    Local $sClean = StringRegExpReplace(StringUpper($sRaw), "[^A-Z0-9]", "")
+    If StringLen($sClean) > 25 Then $sClean = StringLeft($sClean, 25)
+
+    ; If user deleted trailing '-' with Backspace, also remove the preceding character
+    If StringRight($sPrev, 1) = "-" And StringLen($sRaw) = StringLen($sPrev) - 1 And StringLen($sClean) > 0 Then
+        If Mod(StringLen($sClean), 5) = 0 Then
+            $sClean = StringLeft($sClean, StringLen($sClean) - 1)
+        EndIf
+    EndIf
+
+    Local $sFormatted = ""
+    Local $iLen = StringLen($sClean)
+    For $i = 1 To $iLen
+        $sFormatted &= StringMid($sClean, $i, 1)
+        If Mod($i, 5) = 0 And $i < 25 Then
+            $sFormatted &= "-"
+        EndIf
+    Next
+    Return $sFormatted
+EndFunc
+
+Func _UnattendUpdatePartAutomationState($iState)
+    ; $iState: 0 = Manual, 1 = Hybrid, 2 = Automated
+    ; Manual: Disable all below options in the section
+    ; Hybrid: Disable all below options in the section except Disk ID
+    ; Automated: Enable all options in the section
+
+    Local $iDiskIDState = ($iState = 0) ? $GUI_DISABLE : $GUI_ENABLE
+    Local $iOtherState = ($iState = 2) ? $GUI_ENABLE : $GUI_DISABLE
+
+    GUICtrlSetState($idViewUnattendPartitionDiskIDLbl, $iDiskIDState)
+    GUICtrlSetState($idViewUnattendPartitionDiskIDInput, $iDiskIDState)
+
+    GUICtrlSetState($idViewUnattendPartitionTypeLbl, $iOtherState)
+    GUICtrlSetState($idViewUnattendPartitionTypeRdoC1, $iOtherState)
+    GUICtrlSetState($idViewUnattendPartitionTypeRdoC2, $iOtherState)
+
+    GUICtrlSetState($idViewUnattendPartitionTblLbl, $iOtherState)
+    GUICtrlSetState($idViewUnattendPartitionTblList, $iOtherState)
+    GUICtrlSetState($idViewUnattendPartResetBtn, $iOtherState)
+
+    GUICtrlSetState($idViewUnattendPartTypeCmb, $iOtherState)
+    GUICtrlSetState($idViewUnattendPartLabelInput, $iOtherState)
+    GUICtrlSetState($idViewUnattendPartSizeInput, $iOtherState)
+    GUICtrlSetState($idViewUnattendPartLetterInput, $iOtherState)
+    GUICtrlSetState($idViewUnattendPartFormatCmb, $iOtherState)
+
+    GUICtrlSetState($idViewUnattendPartAddBtn, $iOtherState)
+    GUICtrlSetState($idViewUnattendPartDeleteBtn, $iOtherState)
+    GUICtrlSetState($idViewUnattendPartClearBtn, $iOtherState)
+    GUICtrlSetState($idViewUnattendPartSaveBtn, $iOtherState)
+    GUICtrlSetState($idViewUnattendPartCancelBtn, $iOtherState)
+
+    GUICtrlSetState($idViewUnattendPartitionOSPartIDLbl, $iOtherState)
+    GUICtrlSetState($idViewUnattendPartitionOSPartIDInput, $iOtherState)
+EndFunc
+
+Func _UnattendUpdateAccAutomationState($iState)
+    ; $iState: 0 = Hybrid, 1 = Automated
+    ; Hybrid: Disable all below options in the section
+    ; Automated: Enable all options in the section
+
+    Local $iOptState = ($iState = 1) ? $GUI_ENABLE : $GUI_DISABLE
+
+    GUICtrlSetState($idViewUnattendLocalAccTblLbl, $iOptState)
+    GUICtrlSetState($idViewUnattendLocalAccTblList, $iOptState)
+    GUICtrlSetState($idViewUnattendAccResetBtn, $iOptState)
+
+    GUICtrlSetState($idViewUnattendAccTypeCmb, $iOptState)
+    GUICtrlSetState($idViewUnattendAccNameInput, $iOptState)
+    GUICtrlSetState($idViewUnattendAccDispNameInput, $iOptState)
+    GUICtrlSetState($idViewUnattendAccPassInput, $iOptState)
+
+    GUICtrlSetState($idViewUnattendAccAddBtn, $iOptState)
+    GUICtrlSetState($idViewUnattendAccDeleteBtn, $iOptState)
+    GUICtrlSetState($idViewUnattendAccClearBtn, $iOptState)
+    GUICtrlSetState($idViewUnattendAccSaveBtn, $iOptState)
+    GUICtrlSetState($idViewUnattendAccCancelBtn, $iOptState)
+
+    GUICtrlSetState($idViewUnattendLocalAccAutoLogonLbl, $iOptState)
+    GUICtrlSetState($idViewUnattendLocalAccAutoLogonInput, $iOptState)
 EndFunc
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1424,6 +1538,31 @@ Func unattendOnWM_COMMAND($hWnd, $iMsg, $wParam, $lParam)
 
     If $g_hCurrentView = $hViewUnattend Then
         Switch $iCode
+            Case 0x0300 ; EN_CHANGE
+                If $iCtrlID = $idViewUnattendProductKeyInput And Not $g_bKeyFormatting Then
+                    $g_bKeyFormatting = True
+                    Local $sCurrent = GUICtrlRead($idViewUnattendProductKeyInput)
+                    Local $sNew = _UnattendFormatProductKey($sCurrent, $g_sPrevProductKey)
+                    If Not ($sCurrent == $sNew) Then
+                        Local $aSel = _GUICtrlEdit_GetSel($idViewUnattendProductKeyInput)
+                        GUICtrlSetData($idViewUnattendProductKeyInput, $sNew)
+                        Local $iNewCursor = $aSel[0] + (StringLen($sNew) - StringLen($sCurrent))
+                        If $iNewCursor < 0 Then $iNewCursor = 0
+                        If $iNewCursor > StringLen($sNew) Then $iNewCursor = StringLen($sNew)
+                        _GUICtrlEdit_SetSel($idViewUnattendProductKeyInput, $iNewCursor, $iNewCursor)
+                    EndIf
+                    $g_sPrevProductKey = $sNew
+                    $g_bKeyFormatting = False
+                ElseIf $iCtrlID = $idViewUnattendPartLetterInput And Not $g_bKeyFormatting Then
+                    $g_bKeyFormatting = True
+                    Local $sCurrent = GUICtrlRead($idViewUnattendPartLetterInput)
+                    Local $sUpper = StringUpper(StringLeft(StringRegExpReplace($sCurrent, "[^a-zA-Z]", ""), 1))
+                    If Not ($sCurrent == $sUpper) Then
+                        GUICtrlSetData($idViewUnattendPartLetterInput, $sUpper)
+                    EndIf
+                    $g_bKeyFormatting = False
+                EndIf
+
             Case 0x0200 ; EN_KILLFOCUS
                 Switch $iCtrlID
                     Case $idViewUnattendPartitionOSPartIDInput

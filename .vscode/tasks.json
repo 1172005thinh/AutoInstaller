@@ -193,6 +193,39 @@
         "panel": "shared"
       },
       "problemMatcher": []
+    },
+    {
+      "label": "data: Audit & Lint CSVs",
+      "type": "shell",
+      "command": "python",
+      "args": ["tools/AutoInstaller/data_manager.py", "audit"],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "data: Sort CSVs (A-Z)",
+      "type": "shell",
+      "command": "python",
+      "args": ["tools/AutoInstaller/data_manager.py", "sort"],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "data: Datasets Overview & Stats",
+      "type": "shell",
+      "command": "python",
+      "args": ["tools/AutoInstaller/data_manager.py", "stats"],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
     }
   ]
 }

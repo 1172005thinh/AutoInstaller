@@ -1,0 +1,26 @@
+PackageName,Description
+App.Support.QuickAssist,Quick Assist capability component
+Clipchamp.Clipchamp,Clipchamp video editor application
+Microsoft.549981C3F5F10,Cortana voice assistant component
+Microsoft.BingNews,Microsoft Bing News widget and application
+Microsoft.BingSearch,Bing web search integration in Windows
+Microsoft.Copilot,Windows Copilot AI assistant integration
+Microsoft.GetHelp,Get Help diagnostic assistance app
+Microsoft.Getstarted,Tips and Get Started application
+Microsoft.Microsoft3DViewer,3D Model Viewer utility
+Microsoft.MicrosoftOfficeHub,Microsoft 365 / Office Hub portal
+Microsoft.MicrosoftSolitaireCollection,Microsoft Solitaire collection games
+Microsoft.MicrosoftStickyNotes,Sticky Notes desktop application
+Microsoft.MixedReality.Portal,Windows Mixed Reality portal app
+Microsoft.Office.OneNote,OneNote for Windows application
+Microsoft.OutlookForWindows,New web-based Outlook email client
+Microsoft.People,Windows People address book app
+Microsoft.SkypeApp,Skype instant messaging and calling app
+Microsoft.Todos,Microsoft To Do task manager
+Microsoft.Wallet,Microsoft Wallet payment autofill
+Microsoft.WindowsFeedbackHub,Windows Feedback Hub telemetry app
+Microsoft.WindowsMaps,Windows Maps application
+MicrosoftCorporationII.MicrosoftFamily,Microsoft Family Safety monitor
+MicrosoftCorporationII.QuickAssist,Remote assistance support client
+MicrosoftTeams,Microsoft Teams personal / work client
+MSTeams,Microsoft Teams alternate package
