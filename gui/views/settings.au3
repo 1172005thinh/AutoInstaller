@@ -98,21 +98,37 @@ Func viewSettingsApplyLang()
     
     GUICtrlSetData($hViewSettingsPreferGroup, i18nGet("settings.prefer.title", "Preferences"))
     GUICtrlSetData($hViewSettingsLangLabel, i18nGet("settings.prefer.lang.label", "Language: "))
+    GUICtrlSetTip($hViewSettingsLangLabel, i18nGet("settings.prefer.lang.tip", "Select application display language"))
+    GUICtrlSetTip($hViewSettingsLangCombo, i18nGet("settings.prefer.lang.tip", "Select application display language"))
+
     GUICtrlSetData($hViewSettingsThemeLabel, i18nGet("settings.prefer.theme.label", "Theme (Experimental): "))
+    GUICtrlSetTip($hViewSettingsThemeLabel, i18nGet("settings.prefer.theme.tip", "Select application UI theme"))
+    GUICtrlSetTip($hViewSettingsThemeCombo, i18nGet("settings.prefer.theme.tip", "Select application UI theme"))
     
     If $g_hCurrentView = $hViewSettings Then
-        GUICtrlSetData($a_idToolBarBtn[$iToolBarBtnCol - 1], i18nGet("cancel.btn.title", "Cancel"))
+        GUICtrlSetData($a_idToolBarBtn[0], i18nGet("reset.btn.title", "Reset"))
+        GUICtrlSetTip($a_idToolBarBtn[0], i18nGet("reset.btn.tip", "Reset all values in this view to defaults"))
         GUICtrlSetData($a_idToolBarBtn[$iToolBarBtnCol - 2], i18nGet("save.btn.title", "Save"))
+        GUICtrlSetTip($a_idToolBarBtn[$iToolBarBtnCol - 2], i18nGet("save.btn.tip", "Save configuration to AutoInstaller.xml"))
+        GUICtrlSetData($a_idToolBarBtn[$iToolBarBtnCol - 1], i18nGet("cancel.btn.title", "Cancel"))
+        GUICtrlSetTip($a_idToolBarBtn[$iToolBarBtnCol - 1], i18nGet("cancel.btn.tip", "Discard changes and reload saved configuration"))
     EndIf
 EndFunc
 
-Func viewSettingsToolBar()    
-    ; Button Index 8: [Save]
+Func viewSettingsToolBar()
+    ; Button Index 0: [Reset]
+    GUICtrlSetData($a_idToolBarBtn[0], i18nGet("reset.btn.title", "Reset"))
+    GUICtrlSetTip($a_idToolBarBtn[0], i18nGet("reset.btn.tip", "Reset all values in this view to defaults"))
+    GUICtrlSetState($a_idToolBarBtn[0], $GUI_SHOW)
+
+    ; Button Index 6: [Save]
     GUICtrlSetData($a_idToolBarBtn[$iToolBarBtnCol - 2], i18nGet("save.btn.title", "Save"))
+    GUICtrlSetTip($a_idToolBarBtn[$iToolBarBtnCol - 2], i18nGet("save.btn.tip", "Save configuration to AutoInstaller.xml"))
     GUICtrlSetState($a_idToolBarBtn[$iToolBarBtnCol - 2], $GUI_SHOW)
     
-    ; Button Index 9: [Cancel]
+    ; Button Index 7: [Cancel]
     GUICtrlSetData($a_idToolBarBtn[$iToolBarBtnCol - 1], i18nGet("cancel.btn.title", "Cancel"))
+    GUICtrlSetTip($a_idToolBarBtn[$iToolBarBtnCol - 1], i18nGet("cancel.btn.tip", "Discard changes and reload saved configuration"))
     GUICtrlSetState($a_idToolBarBtn[$iToolBarBtnCol - 1], $GUI_SHOW)
 EndFunc
 
@@ -131,6 +147,12 @@ EndFunc
 
 Func viewSettingsHandleEvent($idMsg)
     Switch $idMsg
+        Case $a_idToolBarBtn[0]
+            ; [Reset] - Reset settings to default values (English, Light)
+            GUICtrlSetData($hViewSettingsLangCombo, "English (en-us)")
+            GUICtrlSetData($hViewSettingsThemeCombo, "Light")
+            appSetStatus(i18nGet("status.title", "Status: ") & i18nGet("status.settings.reset", "Reset to default settings"))
+
         Case $a_idToolBarBtn[$iToolBarBtnCol - 2]
             ; [Save] - Save settings to config.ini and apply live changes
             ; Resolve selected language

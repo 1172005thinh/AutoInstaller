@@ -25,8 +25,34 @@ Global Const $rUnattendAutoXml = $rUnattendDir & "AutoInstaller.xml"
 ; Modules/XML
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+; Get path to sample.xml safely
+Func xmlGetSamplePath()
+    If FileExists($rUnattendSampleXml) Then Return $rUnattendSampleXml
+    Local $sCandidate = @ScriptDir & "\unattend\sample.xml"
+    If FileExists($sCandidate) Then Return $sCandidate
+    $sCandidate = @ScriptDir & "\..\unattend\sample.xml"
+    If FileExists($sCandidate) Then Return $sCandidate
+    $sCandidate = @ScriptDir & "\..\..\unattend\sample.xml"
+    If FileExists($sCandidate) Then Return $sCandidate
+    Return $rUnattendSampleXml
+EndFunc
+
+; Get path to AutoInstaller.xml safely
+Func xmlGetAutoPath()
+    If FileExists($rUnattendAutoXml) Then Return $rUnattendAutoXml
+    Local $sCandidate = @ScriptDir & "\unattend\AutoInstaller.xml"
+    If FileExists($sCandidate) Then Return $sCandidate
+    $sCandidate = @ScriptDir & "\..\unattend\AutoInstaller.xml"
+    If FileExists($sCandidate) Then Return $sCandidate
+    $sCandidate = @ScriptDir & "\..\..\unattend\AutoInstaller.xml"
+    If FileExists($sCandidate) Then Return $sCandidate
+    Return $rUnattendAutoXml
+EndFunc
+
 ; Ensure AutoInstaller.xml exists by copying sample.xml if missing
-Func xmlEnsureFile($sTargetFile = $rUnattendAutoXml, $sSampleFile = $rUnattendSampleXml)
+Func xmlEnsureFile($sTargetFile = "", $sSampleFile = "")
+    If $sTargetFile = "" Then $sTargetFile = xmlGetAutoPath()
+    If $sSampleFile = "" Then $sSampleFile = xmlGetSamplePath()
     If Not FileExists($sTargetFile) Then
         If FileExists($sSampleFile) Then
             FileCopy($sSampleFile, $sTargetFile, $FC_CREATEPATH)
@@ -64,6 +90,30 @@ Func _xmlSetText($oDoc, $sXPath, $sText)
         Return True
     EndIf
     Return False
+EndFunc
+
+; Validate XML file format and root unattend node
+Func xmlIsValid($sFilePath)
+    If Not FileExists($sFilePath) Then Return False
+    Local $oDoc = xmlCreateDoc()
+    If Not IsObj($oDoc) Then Return False
+    If Not $oDoc.load($sFilePath) Then Return False
+    Local $oRoot = $oDoc.documentElement
+    If Not IsObj($oRoot) Then Return False
+    If $oRoot.baseName <> "unattend" Then Return False
+    Return True
+EndFunc
+
+; Helper to create an element in unattend namespace with optional wcm:action attribute
+Func _xmlCreateElement($oDoc, $sTagName, $sText = "", $sWcmAction = "")
+    Local $oNode = $oDoc.createNode(1, $sTagName, "urn:schemas-microsoft-com:unattend")
+    If $sWcmAction <> "" Then
+        Local $oAttr = $oDoc.createNode(2, "wcm:action", "http://schemas.microsoft.com/WMIConfig/2002/State")
+        $oAttr.value = $sWcmAction
+        $oNode.setAttributeNode($oAttr)
+    EndIf
+    If $sText <> "" Then $oNode.text = $sText
+    Return $oNode
 EndFunc
 
 ; Load all values from XML file into a Scripting.Dictionary

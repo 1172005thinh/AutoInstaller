@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <unattend xmlns="urn:schemas-microsoft-com:unattend" xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State">
 	<!--https://schneegans.de/windows/unattend-generator-->
-	<!--https://github.com/1172005thinh/QuickWinstall-->
+	<!--https://github.com/1172005thinh/AutoInstaller-->
 	<settings pass="windowsPE">
 		<component name="Microsoft-Windows-International-Core-WinPE" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS">
 			<InputLocale>0409:00000409</InputLocale>
@@ -21,7 +21,7 @@
 						<CreatePartition wcm:action="add">
 							<Order>1</Order>
 							<Type>EFI</Type>
-							<Size>100</Size>
+							<Size>512</Size>
 						</CreatePartition>
 						<CreatePartition wcm:action="add">
 							<Order>2</Order>
@@ -31,12 +31,12 @@
 						<CreatePartition wcm:action="add">
 							<Order>3</Order>
 							<Type>Primary</Type>
-							<Size>153600</Size>
+							<Size>102400</Size>
 						</CreatePartition>
 						<CreatePartition wcm:action="add">
 							<Order>4</Order>
-							<Type>Primary</Type>
-							<Extend>true</Extend>
+							<Type>Recovery</Type>
+							<Size>1024</Size>
 						</CreatePartition>
 					</CreatePartitions>
 					<ModifyPartitions>
@@ -60,8 +60,7 @@
 						<ModifyPartition wcm:action="add">
 							<Order>4</Order>
 							<PartitionID>4</PartitionID>
-							<Label>Data</Label>
-							<Letter>D</Letter>
+							<Label>Recovery</Label>
 							<Format>NTFS</Format>
 						</ModifyPartition>
 					</ModifyPartitions>
@@ -170,22 +169,22 @@
 		<component name="Microsoft-Windows-Shell-Setup" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS">
 			<TimeZone>SE Asia Standard Time</TimeZone>
 			<AutoLogon>
-				<Username>OEM</Username>
+				<Username>Admin</Username>
 				<Enabled>true</Enabled>
 				<LogonCount>1</LogonCount>
 				<Password>
-					<Value></Value>
+					<Value>Password123</Value>
 					<PlainText>true</PlainText>
 				</Password>
 			</AutoLogon>
 			<UserAccounts>
 				<LocalAccounts>
 					<LocalAccount wcm:action="add">
-						<Name>OEM</Name>
-						<DisplayName>OEM</DisplayName>
+						<Name>Admin</Name>
+						<DisplayName>Administrator</DisplayName>
 						<Group>Administrators</Group>
 						<Password>
-							<Value></Value>
+							<Value>Password123</Value>
 							<PlainText>true</PlainText>
 						</Password>
 					</LocalAccount>

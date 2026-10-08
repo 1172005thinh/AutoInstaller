@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?><unattend xmlns="urn:schemas-microsoft-com:unattend" xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State">
 	<!--https://schneegans.de/windows/unattend-generator-->
-	<!--https://github.com/1172005thinh/QuickWinstall-->
+	<!--https://github.com/1172005thinh/AutoInstaller-->
 	<settings pass="windowsPE">
 		<component name="Microsoft-Windows-International-Core-WinPE" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS">
-			<InputLocale>0409:00000409</InputLocale>
+			<InputLocale></InputLocale>
 			<SystemLocale>en-US</SystemLocale>
 			<UILanguage>en-US</UILanguage>
 			<UserLocale>en-US</UserLocale>
@@ -16,54 +16,8 @@
 				<Disk wcm:action="add">
 					<DiskID>$$VT_WINDOWS_DISK_1ST_NONVTOY$$</DiskID>
 					<WillWipeDisk>true</WillWipeDisk>
-					<CreatePartitions>
-						<CreatePartition wcm:action="add">
-							<Order>1</Order>
-							<Type>EFI</Type>
-							<Size>100</Size>
-						</CreatePartition>
-						<CreatePartition wcm:action="add">
-							<Order>2</Order>
-							<Type>MSR</Type>
-							<Size>16</Size>
-						</CreatePartition>
-						<CreatePartition wcm:action="add">
-							<Order>3</Order>
-							<Type>Primary</Type>
-							<Size>153600</Size>
-						</CreatePartition>
-						<CreatePartition wcm:action="add">
-							<Order>4</Order>
-							<Type>Primary</Type>
-							<Extend>true</Extend>
-						</CreatePartition>
-					</CreatePartitions>
-					<ModifyPartitions>
-						<ModifyPartition wcm:action="add">
-							<Order>1</Order>
-							<PartitionID>1</PartitionID>
-							<Label>System</Label>
-							<Format>FAT32</Format>
-						</ModifyPartition>
-						<ModifyPartition wcm:action="add">
-							<Order>2</Order>
-							<PartitionID>2</PartitionID>
-						</ModifyPartition>
-						<ModifyPartition wcm:action="add">
-							<Order>3</Order>
-							<PartitionID>3</PartitionID>
-							<Label>Windows</Label>
-							<Letter>C</Letter>
-							<Format>NTFS</Format>
-						</ModifyPartition>
-						<ModifyPartition wcm:action="add">
-							<Order>4</Order>
-							<PartitionID>4</PartitionID>
-							<Label>Data</Label>
-							<Letter>D</Letter>
-							<Format>NTFS</Format>
-						</ModifyPartition>
-					</ModifyPartitions>
+					<CreatePartitions><CreatePartition wcm:action="add"><Order>1</Order><Type>EFI</Type><Size>512</Size></CreatePartition><CreatePartition wcm:action="add"><Order>2</Order><Type>MSR</Type><Size>16</Size></CreatePartition><CreatePartition wcm:action="add"><Order>3</Order><Type>Primary</Type><Size>102400</Size></CreatePartition><CreatePartition wcm:action="add"><Order>4</Order><Type>Recovery</Type><Size>1024</Size></CreatePartition></CreatePartitions>
+					<ModifyPartitions><ModifyPartition wcm:action="add"><Order>1</Order><PartitionID>1</PartitionID><Label>System</Label><Format>FAT32</Format></ModifyPartition><ModifyPartition wcm:action="add"><Order>2</Order><PartitionID>2</PartitionID></ModifyPartition><ModifyPartition wcm:action="add"><Order>3</Order><PartitionID>3</PartitionID><Label>Windows</Label><Letter>C</Letter><Format>NTFS</Format></ModifyPartition><ModifyPartition wcm:action="add"><Order>4</Order><PartitionID>4</PartitionID><Label>Recovery</Label><Format>NTFS</Format></ModifyPartition></ModifyPartitions>
 				</Disk>
 				<WillShowUI>OnError</WillShowUI>
 			</DiskConfiguration>
@@ -98,37 +52,13 @@
 			</DynamicUpdate>
 			<UseConfigurationSet>false</UseConfigurationSet>
 			<RunSynchronous>
-				<RunSynchronousCommand wcm:action="add">
-					<Order>1</Order>
-					<Path>reg.exe add "HKLM\SYSTEM\Setup\LabConfig" /v "BypassTPMCheck" /t REG_DWORD /d 1 /f</Path>
-					<Description>Add BypassTPMCheck</Description>
-				</RunSynchronousCommand>
-				<RunSynchronousCommand wcm:action="add">
-					<Order>2</Order>
-					<Path>reg.exe add "HKLM\SYSTEM\Setup\LabConfig" /v "BypassRAMCheck" /t REG_DWORD /d 1 /f</Path>
-					<Description>Add BypassRAMCheck</Description>
-				</RunSynchronousCommand>
-				<RunSynchronousCommand wcm:action="add">
-					<Order>3</Order>
-					<Path>reg.exe add "HKLM\SYSTEM\Setup\LabConfig" /v "BypassSecureBootCheck" /t REG_DWORD /d 1 /f</Path>
-					<Description>Add BypassSecureBootCheck</Description>
-				</RunSynchronousCommand>
-				<RunSynchronousCommand wcm:action="add">
-					<Order>4</Order>
-					<Path>reg.exe add "HKLM\SYSTEM\Setup\LabConfig" /v "BypassCPUCheck" /t REG_DWORD /d 1 /f</Path>
-					<Description>Add BypassCPUCheck</Description>
-				</RunSynchronousCommand>
-				<RunSynchronousCommand wcm:action="add">
-					<Order>5</Order>
-					<Path>reg.exe add "HKLM\SYSTEM\Setup\LabConfig" /v "BypassStorageCheck" /t REG_DWORD /d 1 /f</Path>
-					<Description>Add BypassStorageCheck</Description>
-				</RunSynchronousCommand>
-				<RunSynchronousCommand wcm:action="add">
-					<Order>6</Order>
-					<Path>reg.exe add "HKLM\SYSTEM\Setup\LabConfig" /v "BypassDiskCheck" /t REG_DWORD /d 1 /f</Path>
-					<Description>Add BypassDiskCheck</Description>
-				</RunSynchronousCommand>
-			</RunSynchronous>
+				
+				
+				
+				
+				
+				
+			<RunSynchronousCommand wcm:action="add"><Order>1</Order><Path>reg.exe add "HKLM\SYSTEM\Setup\LabConfig" /v "BypassTPMCheck" /t REG_DWORD /d 1 /f</Path><Description>Add BypassTPMCheck</Description></RunSynchronousCommand><RunSynchronousCommand wcm:action="add"><Order>2</Order><Path>reg.exe add "HKLM\SYSTEM\Setup\LabConfig" /v "BypassRAMCheck" /t REG_DWORD /d 1 /f</Path><Description>Add BypassRAMCheck</Description></RunSynchronousCommand><RunSynchronousCommand wcm:action="add"><Order>3</Order><Path>reg.exe add "HKLM\SYSTEM\Setup\LabConfig" /v "BypassSecureBootCheck" /t REG_DWORD /d 1 /f</Path><Description>Add BypassSecureBootCheck</Description></RunSynchronousCommand><RunSynchronousCommand wcm:action="add"><Order>4</Order><Path>reg.exe add "HKLM\SYSTEM\Setup\LabConfig" /v "BypassCPUCheck" /t REG_DWORD /d 1 /f</Path><Description>Add BypassCPUCheck</Description></RunSynchronousCommand><RunSynchronousCommand wcm:action="add"><Order>5</Order><Path>reg.exe add "HKLM\SYSTEM\Setup\LabConfig" /v "BypassStorageCheck" /t REG_DWORD /d 1 /f</Path><Description>Add BypassStorageCheck</Description></RunSynchronousCommand><RunSynchronousCommand wcm:action="add"><Order>6</Order><Path>reg.exe add "HKLM\SYSTEM\Setup\LabConfig" /v "BypassDiskCheck" /t REG_DWORD /d 1 /f</Path><Description>Add BypassDiskCheck</Description></RunSynchronousCommand></RunSynchronous>
 		</component>
 	</settings>
 	<settings pass="generalize"></settings>
@@ -161,7 +91,7 @@
 	<settings pass="auditUser"></settings>
 	<settings pass="oobeSystem">
 		<component name="Microsoft-Windows-International-Core" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS">
-			<InputLocale>0409:00000409</InputLocale>
+			<InputLocale></InputLocale>
 			<SystemLocale>en-US</SystemLocale>
 			<UILanguage>en-US</UILanguage>
 			<UserLocale>en-US</UserLocale>
@@ -169,26 +99,16 @@
 		<component name="Microsoft-Windows-Shell-Setup" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS">
 			<TimeZone>SE Asia Standard Time</TimeZone>
 			<AutoLogon>
-				<Username>OEM</Username>
+				<Username>Admin</Username>
 				<Enabled>true</Enabled>
 				<LogonCount>1</LogonCount>
 				<Password>
-					<Value></Value>
+					<Value>Password123</Value>
 					<PlainText>true</PlainText>
 				</Password>
 			</AutoLogon>
 			<UserAccounts>
-				<LocalAccounts>
-					<LocalAccount wcm:action="add">
-						<Name>OEM</Name>
-						<DisplayName>OEM</DisplayName>
-						<Group>Administrators</Group>
-						<Password>
-							<Value></Value>
-							<PlainText>true</PlainText>
-						</Password>
-					</LocalAccount>
-				</LocalAccounts>
+				<LocalAccounts><LocalAccount wcm:action="add"><Name>Admin</Name><DisplayName>Administrator</DisplayName><Group>Administrators</Group><Password><Value>Password123</Value><PlainText>true</PlainText></Password></LocalAccount></LocalAccounts>
 			</UserAccounts>
 			<FirstLogonCommands>
 				<SynchronousCommand wcm:action="add">
@@ -249,30 +169,30 @@ foreach( $file in $Document.unattend.Extensions.File ) {
 "[$ts] [ExtractScript] File extraction completed successfully." | Out-File -FilePath $logPath -Append -Encoding UTF8;
 		</ExtractScript>
 		<File path="C:\Windows\Setup\Scripts\RemovePackages.ps1">$selectors = @(
-	'Microsoft.Copilot';
 	'Clipchamp.Clipchamp';
-	'Microsoft.BingSearch';
+	'Microsoft.549981C3F5F10';
 	'Microsoft.BingNews';
-	'MicrosoftTeams';
-	'MSTeams';
-	'Microsoft.OutlookForWindows';
-	'Microsoft.MicrosoftSolitaireCollection';
+	'Microsoft.BingSearch';
+	'Microsoft.Copilot';
+	'Microsoft.GetHelp';
+	'Microsoft.Getstarted';
 	'Microsoft.Microsoft3DViewer';
-	'Microsoft.SkypeApp';
+	'Microsoft.MicrosoftOfficeHub';
+	'Microsoft.MicrosoftSolitaireCollection';
+	'Microsoft.MicrosoftStickyNotes';
+	'Microsoft.MixedReality.Portal';
+	'Microsoft.Office.OneNote';
+	'Microsoft.OutlookForWindows';
 	'Microsoft.People';
+	'Microsoft.SkypeApp';
 	'Microsoft.Todos';
 	'Microsoft.Wallet';
-	'Microsoft.WindowsMaps';
-	'Microsoft.Getstarted';
-	'Microsoft.GetHelp';
 	'Microsoft.WindowsFeedbackHub';
-	'Microsoft.Office.OneNote';
-	'Microsoft.MicrosoftOfficeHub';
-	'Microsoft.MixedReality.Portal';
-	'MicrosoftCorporationII.QuickAssist';
+	'Microsoft.WindowsMaps';
 	'MicrosoftCorporationII.MicrosoftFamily';
-	'Microsoft.MicrosoftStickyNotes';
-	'Microsoft.549981C3F5F10';
+	'MicrosoftCorporationII.QuickAssist';
+	'MicrosoftTeams';
+	'MSTeams';
 );
 $getCommand = {
   Get-AppxProvisionedPackage -Online;
