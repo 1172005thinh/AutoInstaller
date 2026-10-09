@@ -18,6 +18,7 @@
 #include <MsgBoxConstants.au3>
 #include <FileConstants.au3>
 #include <WinAPI.au3>
+#include <Misc.au3>
 
 ; Controls
 #include "gui/controls/button.au3"
@@ -72,6 +73,20 @@ Global $a_idToolBarBtn[$iToolBarBtnCol]
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; AutoInstaller
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+; Ensure single instance
+If _Singleton("AutoInstaller_GUI_Instance", 1) = 0 Then
+    Local $aConfig = configLoad()
+    i18nLoad($aConfig[0])
+    Local $hWnd = WinGetHandle("[REGEXPTITLE:(?i)^AutoInstaller]")
+    If $hWnd Then
+        WinSetState($hWnd, "", @SW_RESTORE)
+        WinActivate($hWnd)
+    EndIf
+    MsgBox(BitOR($MB_ICONINFORMATION, $MB_OK), i18nGet("info.dialog.title", "Information"), i18nGet("main.already_running", "AutoInstaller is already running."))
+    If $hWnd Then WinActivate($hWnd)
+    Exit 0
+EndIf
 
 Global $iX = 0
 Global $iY = 0

@@ -553,9 +553,9 @@ Func viewUnattendCreate($hViewPort, $iW, $iH)
     $iItemY += $iRowH
     $iListW = $iContentW - $iP * 4
     $iListH = $iRowH * 11 - $iP * 2
-    $idViewUnattendScriptsEditEdit = GUICtrlCreateEdit("", $iX, $iItemY, $iListW, $iListH)
+    $idViewUnattendScriptsEditEdit = GUICtrlCreateEdit("", $iX, $iItemY, $iListW, $iListH, BitOR($ES_WANTRETURN, $WS_VSCROLL, $WS_HSCROLL, $ES_AUTOVSCROLL, $ES_AUTOHSCROLL))
     GUICtrlSetFont($idViewUnattendScriptsEditEdit, $iPrimary)
-    GUICtrlSetLimit($idViewUnattendScriptsEditEdit, 4096)
+    GUICtrlSetLimit($idViewUnattendScriptsEditEdit, 65535)
     
     ;GUICtrlCreateGroup("", -99, -99, -99, -99)
 
@@ -813,7 +813,9 @@ Func viewUnattendPopulateFromDict($oData)
 
     ; 8. Custom Scripts
     If $oData.Exists("CustomScripts") Then
-        GUICtrlSetData($idViewUnattendScriptsEditEdit, $oData.Item("CustomScripts"))
+        Local $sScripts = $oData.Item("CustomScripts")
+        $sScripts = StringRegExpReplace($sScripts, '(\r\n|\r|\n)', @CRLF)
+        GUICtrlSetData($idViewUnattendScriptsEditEdit, $sScripts)
     EndIf
 EndFunc
 

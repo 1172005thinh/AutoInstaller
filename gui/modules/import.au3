@@ -57,8 +57,14 @@ Func unattendImportFromFile($sFilePath)
     $oDict.Item("UILang") = $sUIName
 
     Local $sKbTag = _xmlGetText($oDoc, "//u:settings[@pass='windowsPE']/u:component[@name='Microsoft-Windows-International-Core-WinPE']/u:InputLocale", "0409:00000409")
-    Local $sKbName = dataLookup("kblayouts.csv", $sKbTag, 1, 0)
-    If $sKbName = "" Then $sKbName = $sKbTag
+    Local $sKbId = $sKbTag
+    If StringInStr($sKbTag, ":") Then
+        Local $aParts = StringSplit($sKbTag, ":")
+        If $aParts[0] >= 2 Then $sKbId = $aParts[2]
+    EndIf
+    Local $sKbName = dataLookup("kblayouts.csv", $sKbId, 1, 0)
+    If $sKbName = "" Then $sKbName = dataLookup("kblayouts.csv", $sKbTag, 1, 0)
+    If $sKbName = "" Then $sKbName = "US"
     $oDict.Item("KbLayout") = $sKbName
 
     Local $sTZTag = _xmlGetText($oDoc, "//u:settings[@pass='oobeSystem']/u:component[@name='Microsoft-Windows-Shell-Setup']/u:TimeZone", "SE Asia Standard Time")
@@ -174,7 +180,8 @@ Func unattendImportFromFile($sFilePath)
 
     ; 8. Custom Scripts
     Local $oScriptFile = $oDoc.selectSingleNode("//*[@path='C:\Windows\Setup\Scripts\Specialize.ps1']")
-    $oDict.Item("CustomScripts") = IsObj($oScriptFile) ? $oScriptFile.text : ""
+    Local $sScriptText = IsObj($oScriptFile) ? $oScriptFile.text : ""
+    $oDict.Item("CustomScripts") = StringRegExpReplace($sScriptText, '(\r\n|\r|\n)', @CRLF)
 
     Return $oDict
 EndFunc

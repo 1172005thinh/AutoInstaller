@@ -1,44 +1,44 @@
 DisplayName,Tag,HexID
-Arabic (Saudi Arabia),ar-SA,0x0401
-Basque (Basque),eu-ES,0x042d
-Bulgarian (Bulgaria),bg-BG,0x0402
-Catalan,ca-ES,0x0403
-"Chinese (Simplified, China)",zh-CN,0x0804
-"Chinese (Traditional, Taiwan)",zh-TW,0x0404
-Croatian (Croatia),hr-HR,0x041a
-Czech (Czech Republic),cs-CZ,0x0405
-Danish (Denmark),da-DK,0x0406
-Dutch (Netherlands),nl-NL,0x0413
-English (United Kingdom),en-GB,0x0809
-English (United States),en-US,0x0409
-Estonian (Estonia),et-EE,0x0425
-Finnish (Finland),fi-FI,0x040b
-French (Canada),fr-CA,0x0c0c
-French (France),fr-FR,0x040c
-Galician,gl-ES,0x0456
-German (Germany),de-DE,0x0407
-Greek (Greece),el-GR,0x0408
-Hebrew (Israel),he-IL,0x040d
-Hungarian (Hungary),hu-HU,0x040e
-Indonesian (Indonesia),id-ID,0x0421
-Italian (Italy),it-IT,0x0410
-Japanese (Japan),ja-JP,0x0411
-Korean (Korea),ko-KR,0x0412
-Latvian (Latvia),lv-LV,0x0426
-Lithuanian (Lithuania),lt-LT,0x0427
-"Norwegian, Bokmål (Norway)",nb-NO,0x0414
-Polish (Poland),pl-PL,0x0415
-Portuguese (Brazil),pt-BR,0x0416
-Portuguese (Portugal),pt-PT,0x0816
-Romanian (Romania),ro-RO,0x0418
-Russian (Russia),ru-RU,0x0419
-"Serbian (Latin, Serbia)",sr-Latn-RS,0x241A
-Slovak (Slovakia),sk-SK,0x041b
-Slovenian (Slovenia),sl-SI,0x0424
-Spanish (Mexico),es-MX,0x080a
-Spanish (Spain),es-ES,0x0c0a
-Swedish (Sweden),sv-SE,0x041d
-Thai (Thailand),th-TH,0x041e
-Turkish (Türkiye),tr-TR,0x041f
-Ukrainian (Ukraine),uk-UA,0x0422
-Vietnamese,vi-VN,0x042a
+Arabic (Saudi Arabia),ar-SA,0401
+Basque (Basque),eu-ES,042d
+Bulgarian (Bulgaria),bg-BG,0402
+Catalan,ca-ES,0403
+"Chinese (Simplified, China)",zh-CN,0804
+"Chinese (Traditional, Taiwan)",zh-TW,0404
+Croatian (Croatia),hr-HR,041a
+Czech (Czech Republic),cs-CZ,0405
+Danish (Denmark),da-DK,0406
+Dutch (Netherlands),nl-NL,0413
+English (United Kingdom),en-GB,0809
+English (United States),en-US,0409
+Estonian (Estonia),et-EE,0425
+Finnish (Finland),fi-FI,040b
+French (Canada),fr-CA,0c0c
+French (France),fr-FR,040c
+Galician,gl-ES,0456
+German (Germany),de-DE,0407
+Greek (Greece),el-GR,0408
+Hebrew (Israel),he-IL,040d
+Hungarian (Hungary),hu-HU,040e
+Indonesian (Indonesia),id-ID,0421
+Italian (Italy),it-IT,0410
+Japanese (Japan),ja-JP,0411
+Korean (Korea),ko-KR,0412
+Latvian (Latvia),lv-LV,0426
+Lithuanian (Lithuania),lt-LT,0427
+"Norwegian, Bokmål (Norway)",nb-NO,0414
+Polish (Poland),pl-PL,0415
+Portuguese (Brazil),pt-BR,0416
+Portuguese (Portugal),pt-PT,0816
+Romanian (Romania),ro-RO,0418
+Russian (Russia),ru-RU,0419
+"Serbian (Latin, Serbia)",sr-Latn-RS,241a
+Slovak (Slovakia),sk-SK,041b
+Slovenian (Slovenia),sl-SI,0424
+Spanish (Mexico),es-MX,080a
+Spanish (Spain),es-ES,0c0a
+Swedish (Sweden),sv-SE,041d
+Thai (Thailand),th-TH,041e
+Turkish (Türkiye),tr-TR,041f
+Ukrainian (Ukraine),uk-UA,0422
+Vietnamese,vi-VN,042a

@@ -102,10 +102,10 @@ Func viewAppsCreate($hViewport, $iW, $iH)
         BitOR($LVS_EX_CHECKBOXES, $LVS_EX_FULLROWSELECT, $LVS_EX_GRIDLINES, $LVS_EX_DOUBLEBUFFER))
     $hViewAppsTable = GUICtrlGetHandle($idViewAppsTable)
 
-    Local $iCol0W = Int($iTableW * 30 / 100) ; Name (30%)
-    Local $iCol1W = Int($iTableW * 40 / 100) ; Description (40%)
-    Local $iCol2W = Int($iTableW * 10 / 100) ; Version (10%)
-    Local $iCol3W = Int($iTableW * 10 / 100) ; Shortcut (10%)
+    Local $iCol0W = Int($iTableW * 27 / 100) ; Name (27%)
+    Local $iCol1W = Int($iTableW * 37 / 100) ; Description (37%)
+    Local $iCol2W = Int($iTableW * 13 / 100) ; Version (13%)
+    Local $iCol3W = Int($iTableW * 13 / 100) ; Shortcut (13%)
     Local $iCol4W = $iTableW - ($iCol0W + $iCol1W + $iCol2W + $iCol3W) - $iPx ; Ready
 
     _GUICtrlListView_InsertColumn($idViewAppsTable, 0, i18nGet("apps.col.name", "Name"), $iCol0W)

@@ -218,6 +218,10 @@ Func xmlSaveValues($sFilePath, $oDict)
         _xmlSetText($oDoc, "//u:settings[@pass='oobeSystem']/u:component[@name='Microsoft-Windows-International-Core']/u:SystemLocale", $sLang)
         _xmlSetText($oDoc, "//u:settings[@pass='oobeSystem']/u:component[@name='Microsoft-Windows-International-Core']/u:UserLocale", $sLang)
     EndIf
+    If $oDict.Exists("InputLocale") Then
+        _xmlSetText($oDoc, "//u:settings[@pass='windowsPE']/u:component[@name='Microsoft-Windows-International-Core-WinPE']/u:InputLocale", $oDict.Item("InputLocale"))
+        _xmlSetText($oDoc, "//u:settings[@pass='oobeSystem']/u:component[@name='Microsoft-Windows-International-Core']/u:InputLocale", $oDict.Item("InputLocale"))
+    EndIf
 
     ; 3. OOBE & Privacy
     If $oDict.Exists("HideEULAPage") Then

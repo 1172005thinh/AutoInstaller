@@ -22,9 +22,13 @@ Global Const $rMainConfigPath = @ScriptDir & "/gui/config.ini"
 
 Func configLoad()
     Local $aSettings[2]
+    Local $sConfig = $rMainConfigPath
+    If FileExists(@ScriptDir & "/config.ini") And IniRead(@ScriptDir & "/config.ini", "Preferences", "Language", "") <> "" Then
+        $sConfig = @ScriptDir & "/config.ini"
+    EndIf
     ; Default: en-us, light
-    $aSettings[0] = IniRead($rMainConfigPath, "Preferences", "Language", "en-us")
-    $aSettings[1] = IniRead($rMainConfigPath, "Preferences", "Theme", "light")
+    $aSettings[0] = IniRead($sConfig, "Preferences", "Language", "en-us")
+    $aSettings[1] = IniRead($sConfig, "Preferences", "Theme", "light")
     Return $aSettings
 EndFunc
 

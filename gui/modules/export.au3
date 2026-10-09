@@ -59,21 +59,29 @@ Func unattendExportToFile($sFilePath, $oData, $sBaseSampleFile = "")
     Local $sUITag = dataLookup("uilangs.csv", $sUILang, 0, 1)
     If $sUITag = "" Then $sUITag = $sUILang
 
+    Local $sLangHex = dataLookup("uilangs.csv", $sUILang, 0, 2)
+    If $sLangHex = "" Then $sLangHex = "0409"
+
     Local $sKbLayout = $oData.Exists("KbLayout") ? $oData.Item("KbLayout") : "US"
     Local $sKbCode = dataLookup("kblayouts.csv", $sKbLayout, 0, 1)
     If $sKbCode = "" Then $sKbCode = $sKbLayout
+
+    Local $sFullInputLocale = $sKbCode
+    If Not StringInStr($sKbCode, ":") Then
+        $sFullInputLocale = $sLangHex & ":" & $sKbCode
+    EndIf
 
     Local $sTZ = $oData.Exists("TimeZone") ? $oData.Item("TimeZone") : "(UTC+07:00) SE Asia Standard Time"
     Local $sTZTag = dataLookup("timezones.csv", $sTZ, 0, 1)
     If $sTZTag = "" Then $sTZTag = $sTZ
 
-    _xmlSetText($oDoc, "//u:settings[@pass='windowsPE']/u:component[@name='Microsoft-Windows-International-Core-WinPE']/u:InputLocale", $sKbCode)
+    _xmlSetText($oDoc, "//u:settings[@pass='windowsPE']/u:component[@name='Microsoft-Windows-International-Core-WinPE']/u:InputLocale", $sFullInputLocale)
     _xmlSetText($oDoc, "//u:settings[@pass='windowsPE']/u:component[@name='Microsoft-Windows-International-Core-WinPE']/u:SystemLocale", $sSysTag)
     _xmlSetText($oDoc, "//u:settings[@pass='windowsPE']/u:component[@name='Microsoft-Windows-International-Core-WinPE']/u:UILanguage", $sUITag)
     _xmlSetText($oDoc, "//u:settings[@pass='windowsPE']/u:component[@name='Microsoft-Windows-International-Core-WinPE']/u:UserLocale", $sUsrTag)
     _xmlSetText($oDoc, "//u:settings[@pass='windowsPE']/u:component[@name='Microsoft-Windows-International-Core-WinPE']/u:SetupUILanguage/u:UILanguage", $sUITag)
 
-    _xmlSetText($oDoc, "//u:settings[@pass='oobeSystem']/u:component[@name='Microsoft-Windows-International-Core']/u:InputLocale", $sKbCode)
+    _xmlSetText($oDoc, "//u:settings[@pass='oobeSystem']/u:component[@name='Microsoft-Windows-International-Core']/u:InputLocale", $sFullInputLocale)
     _xmlSetText($oDoc, "//u:settings[@pass='oobeSystem']/u:component[@name='Microsoft-Windows-International-Core']/u:SystemLocale", $sSysTag)
     _xmlSetText($oDoc, "//u:settings[@pass='oobeSystem']/u:component[@name='Microsoft-Windows-International-Core']/u:UILanguage", $sUITag)
     _xmlSetText($oDoc, "//u:settings[@pass='oobeSystem']/u:component[@name='Microsoft-Windows-International-Core']/u:UserLocale", $sUsrTag)
@@ -146,12 +154,9 @@ Func unattendExportToFile($sFilePath, $oData, $sBaseSampleFile = "")
     ; 4. Bypass Hardware Checks
     Local $oRunSync = $oDoc.selectSingleNode("//u:settings[@pass='windowsPE']/u:component[@name='Microsoft-Windows-Setup']/u:RunSynchronous")
     If IsObj($oRunSync) Then
-        Local $oOldCmds = $oDoc.selectNodes("//u:settings[@pass='windowsPE']/u:component[@name='Microsoft-Windows-Setup']/u:RunSynchronous/u:RunSynchronousCommand[contains(u:Path, 'LabConfig')]")
-        If IsObj($oOldCmds) Then
-            For $i = 0 To $oOldCmds.length - 1
-                $oRunSync.removeChild($oOldCmds.item($i))
-            Next
-        EndIf
+        While $oRunSync.hasChildNodes()
+            $oRunSync.removeChild($oRunSync.firstChild)
+        WEnd
 
         Local $aBypasses[6][2] = [ _
             ["BypassTPMCheck", "BypassTPMCheck"], _
@@ -165,14 +170,22 @@ Func unattendExportToFile($sFilePath, $oData, $sBaseSampleFile = "")
         For $i = 0 To UBound($aBypasses, 1) - 1
             Local $sKey = $aBypasses[$i][0]
             If $oData.Exists($sKey) And Number($oData.Item($sKey)) = 1 Then
+                $oRunSync.appendChild($oDoc.createTextNode(@CRLF & @TAB & @TAB & @TAB & @TAB))
                 Local $oCmd = _xmlCreateElement($oDoc, "RunSynchronousCommand", "", "add")
+                $oCmd.appendChild($oDoc.createTextNode(@CRLF & @TAB & @TAB & @TAB & @TAB & @TAB))
                 $oCmd.appendChild(_xmlCreateElement($oDoc, "Order", String($iOrder)))
+                $oCmd.appendChild($oDoc.createTextNode(@CRLF & @TAB & @TAB & @TAB & @TAB & @TAB))
                 $oCmd.appendChild(_xmlCreateElement($oDoc, "Path", 'reg.exe add "HKLM\SYSTEM\Setup\LabConfig" /v "' & $aBypasses[$i][1] & '" /t REG_DWORD /d 1 /f'))
+                $oCmd.appendChild($oDoc.createTextNode(@CRLF & @TAB & @TAB & @TAB & @TAB & @TAB))
                 $oCmd.appendChild(_xmlCreateElement($oDoc, "Description", "Add " & $aBypasses[$i][1]))
+                $oCmd.appendChild($oDoc.createTextNode(@CRLF & @TAB & @TAB & @TAB & @TAB))
                 $oRunSync.appendChild($oCmd)
                 $iOrder += 1
             EndIf
         Next
+        If $iOrder > 1 Then
+            $oRunSync.appendChild($oDoc.createTextNode(@CRLF & @TAB & @TAB & @TAB))
+        EndIf
     EndIf
 
     ; 5. OOBE & Privacy Settings
