@@ -123,7 +123,7 @@
 				</SynchronousCommand>
 				<SynchronousCommand wcm:action="add">
 					<Order>3</Order>
-					<CommandLine>powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -Command "$marker='aea541d7f9574587656dc5125116e548.md5'; $root=Get-PSDrive -PSProvider FileSystem | ForEach-Object { if (Test-Path -LiteralPath (Join-Path $_.Root $marker)) { $_.Root.TrimEnd('\') } } | Select-Object -First 1; if ($root) { Start-Process -FilePath (Join-Path $root 'Auto-installer.exe') -ArgumentList '--full' -WorkingDirectory $root -Wait } else { exit 2 }"</CommandLine>
+					<CommandLine>powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -Command "$marker='aea541d7f9574587656dc5125116e548.md5'; $root=Get-PSDrive -PSProvider FileSystem | ForEach-Object { if (Test-Path -LiteralPath (Join-Path $_.Root $marker)) { $_.Root.TrimEnd('\') } } | Select-Object -First 1; if ($root) { Start-Process -FilePath (Join-Path $root 'run.exe') -ArgumentList '--full' -WorkingDirectory $root -Wait } else { exit 2 }"</CommandLine>
 					<Description>Install drivers, configured applications, and generate the report</Description>
 				</SynchronousCommand>
 			</FirstLogonCommands>
@@ -145,7 +145,7 @@ param(
     [xml] $Document
 );
 
-$logDir = 'C:\Auto-installer';
+$logDir = 'C:\AutoInstaller';
 if (-not (Test-Path -LiteralPath $logDir)) {
     $null = New-Item -ItemType Directory -Force -Path $logDir -ErrorAction SilentlyContinue;
 }
@@ -382,7 +382,7 @@ $scripts = @(
     "`r`n" * 3;
     $complete += $increment;
   }
-} *&gt;&amp;1 | Out-String -Width 1KB -Stream | ForEach-Object { $null = New-Item -ItemType Directory -Force -Path 'C:\Auto-installer' -ErrorAction SilentlyContinue; $_ | Out-File -FilePath 'C:\Windows\Setup\Scripts\Specialize.log' -Append -Encoding UTF8; $_ | Out-File -FilePath 'C:\Auto-installer\setup-scripts.log' -Append -Encoding UTF8; };
+} *&gt;&amp;1 | Out-String -Width 1KB -Stream | ForEach-Object { $null = New-Item -ItemType Directory -Force -Path 'C:\AutoInstaller' -ErrorAction SilentlyContinue; $_ | Out-File -FilePath 'C:\Windows\Setup\Scripts\Specialize.log' -Append -Encoding UTF8; $_ | Out-File -FilePath 'C:\AutoInstaller\setup-scripts.log' -Append -Encoding UTF8; };
 		</File>
 		<File path="C:\Windows\Setup\Scripts\UserOnce.ps1">
 $scripts = @(
@@ -485,7 +485,7 @@ $scripts = @(
     "`r`n" * 3;
     $complete += $increment;
   }
-} *&gt;&amp;1 | Out-String -Width 1KB -Stream | ForEach-Object { $null = New-Item -ItemType Directory -Force -Path 'C:\Auto-installer' -ErrorAction SilentlyContinue; $_ | Out-File -FilePath 'C:\Windows\Setup\Scripts\FirstLogon.log' -Append -Encoding UTF8; $_ | Out-File -FilePath 'C:\Auto-installer\setup-scripts.log' -Append -Encoding UTF8; };
+} *&gt;&amp;1 | Out-String -Width 1KB -Stream | ForEach-Object { $null = New-Item -ItemType Directory -Force -Path 'C:\AutoInstaller' -ErrorAction SilentlyContinue; $_ | Out-File -FilePath 'C:\Windows\Setup\Scripts\FirstLogon.log' -Append -Encoding UTF8; $_ | Out-File -FilePath 'C:\AutoInstaller\setup-scripts.log' -Append -Encoding UTF8; };
 		</File>
 	</Extensions>
 </unattend>

@@ -1,15 +1,39 @@
-; Version: v0.1.2
-; Author: 1172005thinh
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; File:     apps/MicrosoftOffice/install.au3
+; Author:   1172005thinh
+; Repo:     github.com/1172005thinh/AutoInstaller
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 #RequireAdmin
 #AutoIt3Wrapper_UseX64=y
 #NoTrayIcon
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Includes
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 #include <AutoItConstants.au3>
+#include <FileConstants.au3>
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Configuration & Parameters
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Includes
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+#include <AutoItConstants.au3>
+#include <FileConstants.au3>
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Configuration & Parameters
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ; Office 2024 installer (ODT-based).
 ; $CmdLine[1] = setup filename (e.g. "office2024.exe")  [optional, fallback "office2024.exe"]
 ; $CmdLine[2] = desktop shortcut flag ("true"/"false")   [optional, fallback false]
-; $CmdLine[4] = log path                                 [optional, fallback "C:\Auto-installer\install-apps.log"]
+; $CmdLine[4] = log path                                 [optional, fallback "C:\AutoInstaller\apps.log"]
 ;
 ; Detection: dynamically resolves Office root from ClickToRun registry configuration
 ; and verifies presence of core Office executables across 64-bit and 32-bit install paths.
@@ -21,9 +45,17 @@ If FileExists($g_sSetupFilename) Then $g_sSetupPath = $g_sSetupFilename
 Global Const $g_sXmlPath   = @ScriptDir & "\full_en.xml"
 
 Global $g_bShortcut = False
-Global $g_sLogPath = "C:\Auto-installer\install-apps.log"
+Global $g_sLogPath = "C:\AutoInstaller\apps.log"
 If $CmdLine[0] >= 4 Then $g_sLogPath = $CmdLine[4]
 If $CmdLine[0] >= 2 And StringLower($CmdLine[2]) = "true" Then $g_bShortcut = True
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Main Installation Execution
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Main Installation Execution
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 If Not FileExists($g_sSetupPath) Then
     _Log("ERROR: Setup file not found: " & $g_sSetupPath)
@@ -64,6 +96,14 @@ If _WaitForOffice2024(60) Then
 EndIf
 _CreateDesktopShortcuts()
 Exit 0
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Helper Functions
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Helper Functions
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 Func _GetOffice16Dir()
     Local $aRoots[2] = ["HKLM64", "HKLM"]
@@ -147,8 +187,9 @@ Func _CreateDesktopShortcuts()
 EndFunc
 
 Func _Log($sMsg)
-    Local $sLogPath = $g_sLogPath
-    Local $hLog = FileOpen($sLogPath, 1 + 256) ; FO_APPEND (1) + FO_UTF8_NOBOM (256)
+    Local $sDir = StringLeft($g_sLogPath, StringInStr($g_sLogPath, "\", 0, -1) - 1)
+    If $sDir <> "" And Not FileExists($sDir) Then DirCreate($sDir)
+    Local $hLog = FileOpen($g_sLogPath, BitOR($FO_APPEND, $FO_UTF8_NOBOM, $FO_CREATEPATH))
     If $hLog <> -1 Then
         FileWriteLine($hLog, "[" & @YEAR & "-" & StringFormat("%02d", @MON) & "-" & StringFormat("%02d", @MDAY) & " " & @HOUR & ":" & @MIN & ":" & @SEC & "] [" & StringReplace($g_sSetupFilename, ".exe", "") & "] " & $sMsg)
         FileClose($hLog)

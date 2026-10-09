@@ -1,0 +1,32 @@
+AppId,Name,Description
+7z,7-Zip,High compression ratio file archiver
+Brave,Brave Browser,Privacy-focused Chromium web browser
+Discord,Discord,Voice video and text communication platform
+Docker,Docker Desktop,Container runtime and development platform
+Fonts,Fonts,Core fonts collection including Cascadia Code and JetBrains Mono
+Git,Git,Distributed version control system
+GoogleChrome,Google Chrome,Fast and secure web browser by Google
+Java,Java Runtime (JRE),Java Platform Standard Edition runtime environment
+Kaspersky,Kaspersky Standard,Antivirus and internet security suite
+LibreOffice,LibreOffice,Free and open source office suite
+MicrosoftOffice,Microsoft Office 2024,Microsoft Office deployment package
+MPC-HC,MPC-HC,Lightweight open source media player
+MSYS2,MSYS2,Software distribution and building platform for Windows
+Notepad++,Notepad++,Extensible source code editor and text replacement tool
+OBS,OBS Studio,Free and open source software for video recording and live streaming
+PotPlayer,PotPlayer,Feature-rich multimedia player with hardware acceleration
+Python,Python,Python programming language runtime and environment
+qBittorrent,qBittorrent,Free and reliable BitTorrent client
+Shell,Nilesoft Shell,Context menu customizer for Windows File Explorer
+Tailscale,Tailscale,Zero config VPN built on WireGuard
+TeamViewer,TeamViewer,Remote desktop access and support tool
+UltraViewer,UltraViewer,Remote support software for Windows
+Unikey,UniKey,Vietnamese keyboard input method editor
+VCRedist,Visual C++ Redistributable AIO,All-in-one package for Microsoft Visual C++ Runtimes (2005-2022)
+VisualStudio,Visual Studio Community,Integrated development environment by Microsoft
+VLC,VLC Media Player,Cross-platform multimedia player and framework
+VSCode,Visual Studio Code,Source-code editor made by Microsoft
+WinRAR,WinRAR,Powerful archiver and archive manager
+WireGuard,WireGuard,Fast modern and secure VPN tunnel
+yt-dlp,yt-dlp,Command-line audio and video download tool
+Zalo,Zalo,Instant messaging and social networking app

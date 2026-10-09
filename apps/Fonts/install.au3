@@ -1,10 +1,34 @@
-; Version: v0.1.2
-; Author: 1172005thinh
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; File:     apps/Fonts/install.au3
+; Author:   1172005thinh
+; Repo:     github.com/1172005thinh/AutoInstaller
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 #RequireAdmin
 #AutoIt3Wrapper_UseX64=y
 #NoTrayIcon
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Includes
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 #include <AutoItConstants.au3>
+#include <FileConstants.au3>
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Configuration & Parameters
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Includes
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+#include <AutoItConstants.au3>
+#include <FileConstants.au3>
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Configuration & Parameters
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ; Font installer - batch-installs all .ttf / .otf / .ttc files in the same directory
 ; for ALL users (copies to C:\Windows\Fonts + registry, no Shell.Application dialogs).
@@ -14,7 +38,7 @@
 ; $CmdLine[3] = clean_after_installing ("true"/"false") - delete broken font files after install
 
 Global $g_sSetupFilename = "Fonts"
-Global $g_sLogPath = "C:\Auto-installer\install-apps.log"
+Global $g_sLogPath = "C:\AutoInstaller\apps.log"
 If $CmdLine[0] >= 4 Then $g_sLogPath = $CmdLine[4]
 If $CmdLine[0] >= 1 Then $g_sSetupFilename = $CmdLine[1]
 
@@ -24,6 +48,14 @@ If $CmdLine[0] >= 3 And StringLower($CmdLine[3]) = "true" Then $g_bClean = True
 Global $g_sFontDir = @ScriptDir
 If FileExists($g_sSetupFilename) Then $g_sFontDir = $g_sSetupFilename
 Global $g_sPsScript = @ScriptDir & "\install_fonts.ps1"
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Main Installation Execution
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Main Installation Execution
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 _Log("INFO: Starting batch font installation from: " & $g_sFontDir)
 _Log("INFO: clean_after_installing=" & String($g_bClean))
@@ -45,7 +77,7 @@ Local $sPsArgs = '-NonInteractive -NoProfile -ExecutionPolicy Bypass' & _
     ' -File "' & $g_sPsScript & '"' & _
     ' -FontDir "' & $g_sFontDir & '"' & _
     ' -ResultFile "' & $sResultFile & '"' & _
-    ' -LogFile "C:\Auto-installer\install-apps.log"' & _
+    ' -LogFile "' & $g_sLogPath & '"' & _
     ' -CleanBroken ' & ($g_bClean ? "true" : "false")
 
 Local $iPsExit = RunWait('powershell.exe ' & $sPsArgs, @SystemDir, @SW_HIDE)
@@ -72,10 +104,18 @@ _Log("INFO: Done. installed=" & $sInstalled & " skipped=" & $sSkipped & " failed
 
 Exit 0
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Helper Functions
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Helper Functions
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 Func _Log($sMsg)
-    Local $sLogPath = $g_sLogPath
-    DirCreate("C:\Auto-installer")
-    Local $hLog = FileOpen($sLogPath, 1 + 256) ; FO_APPEND + FO_UTF8_NOBOM
+    Local $sDir = StringLeft($g_sLogPath, StringInStr($g_sLogPath, "\", 0, -1) - 1)
+    If $sDir <> "" And Not FileExists($sDir) Then DirCreate($sDir)
+    Local $hLog = FileOpen($g_sLogPath, BitOR($FO_APPEND, $FO_UTF8_NOBOM, $FO_CREATEPATH))
     If $hLog <> -1 Then
         FileWriteLine($hLog, "[" & @YEAR & "-" & StringFormat("%02d", @MON) & "-" & StringFormat("%02d", @MDAY) & " " & @HOUR & ":" & @MIN & ":" & @SEC & "] [Fonts] " & $sMsg)
         FileClose($hLog)

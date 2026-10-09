@@ -1,0 +1,130 @@
+{
+  "version": "1.0.0",
+  "updated_at": "2026-10-09",
+  "apps": {
+    "7z": {
+      "version": "24.08",
+      "url": "https://www.7-zip.org/a/7z2408-x64.exe"
+    },
+    "Brave": {
+      "version": "1.70.126",
+      "url": "https://laptop-updates.brave.com/latest/winx64"
+    },
+    "Discord": {
+      "version": "1.0.9168",
+      "url": "https://discord.com/api/download?platform=win"
+    },
+    "Docker": {
+      "version": "4.34.2",
+      "url": "https://desktop.docker.com/win/main/amd64/Docker%20Desktop%20Installer.exe"
+    },
+    "Fonts": {
+      "version": "1.0.0",
+      "url": ""
+    },
+    "Git": {
+      "version": "2.46.2",
+      "url": "https://github.com/git-for-windows/git/releases/download/v2.46.2.windows.1/Git-2.46.2-64-bit.exe"
+    },
+    "GoogleChrome": {
+      "version": "129.0.6668.101",
+      "url": "https://dl.google.com/chrome/install/standalone/service/ChromeStandaloneSetup64.exe"
+    },
+    "Java": {
+      "version": "8u411",
+      "url": "https://javadl.oracle.com/webapps/download/AutoDL?BundleId=249553_43d62d6177e4429f9e2110e96a4cf2a6"
+    },
+    "Kaspersky": {
+      "version": "21.18.5",
+      "url": "https://dm.kaspersky-labs.com/en/Kaspersky4Win/21.18.5.438/startup.exe"
+    },
+    "LibreOffice": {
+      "version": "24.8.2",
+      "url": "https://download.documentfoundation.org/libreoffice/stable/24.8.2/win/x86_64/LibreOffice_24.8.2_Win_x86-64.msi"
+    },
+    "MicrosoftOffice": {
+      "version": "2024",
+      "url": "https://download.microsoft.com/download/2/7/A/27AF1BE6-DD20-4CB4-B154-EBAB8A7D4A7E/officedeploymenttool_17328-20162.exe"
+    },
+    "MPC-HC": {
+      "version": "2.3.5",
+      "url": "https://github.com/clsid2/mpc-hc/releases/download/2.3.5/MPC-HC.2.3.5.x64.exe"
+    },
+    "MSYS2": {
+      "version": "20240727",
+      "url": "https://github.com/msys2/msys2-installer/releases/download/2024-07-27/msys2-x86_64-20240727.exe"
+    },
+    "Notepad++": {
+      "version": "8.6.9",
+      "url": "https://github.com/notepad-plus-plus/notepad-plus-plus/releases/download/v8.6.9/npp.8.6.9.Installer.x64.exe"
+    },
+    "OBS": {
+      "version": "30.2.3",
+      "url": "https://cdn-fastly.obsproject.com/downloads/OBS-Studio-30.2.3-Windows-Installer.exe"
+    },
+    "PotPlayer": {
+      "version": "1.7.22271",
+      "url": "https://t1.daumcdn.net/potplayer/PotPlayer/Version/Latest/PotPlayerSetup64.exe"
+    },
+    "Python": {
+      "version": "3.12.6",
+      "url": "https://www.python.org/ftp/python/3.12.6/python-3.12.6-amd64.exe"
+    },
+    "qBittorrent": {
+      "version": "4.6.6",
+      "url": "https://downloads.sourceforge.net/project/qbittorrent/qbittorrent-win32/qbittorrent-4.6.6/qbittorrent_4.6.6_x64_setup.exe"
+    },
+    "Shell": {
+      "version": "1.9",
+      "url": "https://nilesoft.org/download/shell/shell.msi"
+    },
+    "Tailscale": {
+      "version": "1.74.4",
+      "url": "https://pkgs.tailscale.com/stable/tailscale-setup-latest.exe"
+    },
+    "TeamViewer": {
+      "version": "15.58.4",
+      "url": "https://download.teamviewer.com/download/TeamViewer_Setup_x64.exe"
+    },
+    "UltraViewer": {
+      "version": "6.6",
+      "url": "https://ultraviewer.net/en/UltraViewer_setup_6.6_en.exe"
+    },
+    "Unikey": {
+      "version": "4.6RC2",
+      "url": "https://www.unikey.org/assets/release/unikey46RC2-230919-win64.zip"
+    },
+    "VCRedist": {
+      "version": "0.82.0",
+      "url": "https://github.com/abbodi1406/vcredist/releases/download/v0.82.0/VisualCppRedist_AIO_x86_x64.exe"
+    },
+    "VisualStudio": {
+      "version": "2022",
+      "url": "https://c2rsetup.office.com/windows/installer/vs_community.exe"
+    },
+    "VLC": {
+      "version": "3.0.21",
+      "url": "https://get.videolan.org/vlc/3.0.21/win64/vlc-3.0.21-win64.exe"
+    },
+    "VSCode": {
+      "version": "1.93.1",
+      "url": "https://update.code.visualstudio.com/latest/win32-x64-user/stable"
+    },
+    "WinRAR": {
+      "version": "7.01",
+      "url": "https://www.rarlab.com/rar/winrar-x64-701.exe"
+    },
+    "WireGuard": {
+      "version": "0.5.3",
+      "url": "https://download.wireguard.com/windows-client/wireguard-installer.exe"
+    },
+    "yt-dlp": {
+      "version": "2024.08.06",
+      "url": "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe"
+    },
+    "Zalo": {
+      "version": "24.9.1",
+      "url": "https://res-download-pc-te-vn.zalo.me/pc/download/ZaloSetup.exe"
+    }
+  }
+}

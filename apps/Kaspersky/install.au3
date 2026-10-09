@@ -1,15 +1,39 @@
-; Version: v0.1.2
-; Author: 1172005thinh
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; File:     apps/Kaspersky/install.au3
+; Author:   1172005thinh
+; Repo:     github.com/1172005thinh/AutoInstaller
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 #RequireAdmin
 #AutoIt3Wrapper_UseX64=y
 #NoTrayIcon
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Includes
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 #include <AutoItConstants.au3>
+#include <FileConstants.au3>
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Configuration & Parameters
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Includes
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+#include <AutoItConstants.au3>
+#include <FileConstants.au3>
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Configuration & Parameters
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ; Kaspersky antivirus installer.
 ; $CmdLine[1] = setup filename (e.g. "kaspersky.exe")
 ; $CmdLine[2] = desktop shortcut flag ("true"/"false")
-; $CmdLine[4] = log path                                [optional, fallback "C:\Auto-installer\install-apps.log"]
+; $CmdLine[4] = log path                                [optional, fallback "C:\AutoInstaller\apps.log"]
 ;
 ; Detection: dynamically enumerates KasperskyLab registry hives across all versions,
 ; checks the Windows AVP service registration, and inspects Kaspersky installation directories.
@@ -20,9 +44,17 @@ Global $g_sSetupPath = @ScriptDir & "\" & $g_sSetupFilename
 If FileExists($g_sSetupFilename) Then $g_sSetupPath = $g_sSetupFilename
 
 Global $g_bShortcut = False
-Global $g_sLogPath = "C:\Auto-installer\install-apps.log"
+Global $g_sLogPath = "C:\AutoInstaller\apps.log"
 If $CmdLine[0] >= 4 Then $g_sLogPath = $CmdLine[4]
 If $CmdLine[0] >= 2 And StringLower($CmdLine[2]) = "true" Then $g_bShortcut = True
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Main Installation Execution
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Main Installation Execution
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 If Not FileExists($g_sSetupPath) Then
     _Log("ERROR: Setup file not found: " & $g_sSetupPath)
@@ -56,6 +88,14 @@ If _WaitForKaspersky(300) Then
 EndIf
 _Log("ERROR: Installation validation timed out.")
 Exit 22
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Helper Functions
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Helper Functions
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 Func _GetKasperskyExecutable()
     Local $aRoots[2] = ["HKLM64", "HKLM"]
@@ -161,8 +201,9 @@ Func _CreateDesktopShortcut()
 EndFunc
 
 Func _Log($sMsg)
-    Local $sLogPath = $g_sLogPath
-    Local $hLog = FileOpen($sLogPath, 1 + 256) ; FO_APPEND (1) + FO_UTF8_NOBOM (256)
+    Local $sDir = StringLeft($g_sLogPath, StringInStr($g_sLogPath, "\", 0, -1) - 1)
+    If $sDir <> "" And Not FileExists($sDir) Then DirCreate($sDir)
+    Local $hLog = FileOpen($g_sLogPath, BitOR($FO_APPEND, $FO_UTF8_NOBOM, $FO_CREATEPATH))
     If $hLog <> -1 Then
         FileWriteLine($hLog, "[" & @YEAR & "-" & StringFormat("%02d", @MON) & "-" & StringFormat("%02d", @MDAY) & " " & @HOUR & ":" & @MIN & ":" & @SEC & "] [" & StringReplace($g_sSetupFilename, ".exe", "") & "] " & $sMsg)
         FileClose($hLog)

@@ -1,20 +1,53 @@
-; Version: v0.1.2
-; Author: 1172005thinh
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; File:     apps/VCRedist/install.au3
+; Author:   1172005thinh
+; Repo:     github.com/1172005thinh/AutoInstaller
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 #RequireAdmin
 #AutoIt3Wrapper_UseX64=y
 #NoTrayIcon
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Includes
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 #include <AutoItConstants.au3>
+#include <FileConstants.au3>
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Configuration & Parameters
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Includes
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+#include <AutoItConstants.au3>
+#include <FileConstants.au3>
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Configuration & Parameters
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ; Visual C++ Redistributable AIO installer (2005-2026, x86 + x64).
 ; $CmdLine[1] = setup filename (e.g. "vcredist-AIO-2005-2026.exe")
 ; $CmdLine[2] = desktop shortcut flag (ignored - no launchable EXE)
 ;
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Main Installation Execution
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Main Installation Execution
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 ; Detection: checks that both the x64 and x86 2026 runtimes are present,
 ; which the AIO always installs last and which cover 2015-2026 inclusive.
 
 Global $g_sSetupFilename = "vcredist-AIO.exe"
-Global $g_sLogPath = "C:\Auto-installer\install-apps.log"
+Global $g_sLogPath = "C:\AutoInstaller\apps.log"
 If $CmdLine[0] >= 4 Then $g_sLogPath = $CmdLine[4]
 If $CmdLine[0] >= 1 Then $g_sSetupFilename = $CmdLine[1]
 Global $g_sSetupPath = @ScriptDir & "\" & $g_sSetupFilename
@@ -54,6 +87,14 @@ EndIf
 _Log("ERROR: VCRedist installation validation timed out.")
 Exit 22
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Helper Functions
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Helper Functions
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 Func _IsVCRedistInstalled()
     ; Check for vcruntime140.dll which covers 2015-2026 Redistributables
     Local $bX64 = FileExists(@SystemDir & "\vcruntime140.dll")
@@ -64,8 +105,9 @@ Func _IsVCRedistInstalled()
 EndFunc
 
 Func _Log($sMsg)
-    Local $sLogPath = $g_sLogPath
-    Local $hLog = FileOpen($sLogPath, 1 + 256) ; FO_APPEND (1) + FO_UTF8_NOBOM (256)
+    Local $sDir = StringLeft($g_sLogPath, StringInStr($g_sLogPath, "\", 0, -1) - 1)
+    If $sDir <> "" And Not FileExists($sDir) Then DirCreate($sDir)
+    Local $hLog = FileOpen($g_sLogPath, BitOR($FO_APPEND, $FO_UTF8_NOBOM, $FO_CREATEPATH))
     If $hLog <> -1 Then
         FileWriteLine($hLog, "[" & @YEAR & "-" & StringFormat("%02d", @MON) & "-" & StringFormat("%02d", @MDAY) & " " & @HOUR & ":" & @MIN & ":" & @SEC & "] [VCRedist] " & $sMsg)
         FileClose($hLog)

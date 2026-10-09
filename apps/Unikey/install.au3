@@ -1,15 +1,48 @@
-; Version: v0.1.2
-; Author: 1172005thinh
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; File:     apps/Unikey/install.au3
+; Author:   1172005thinh
+; Repo:     github.com/1172005thinh/AutoInstaller
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 #RequireAdmin
 #AutoIt3Wrapper_UseX64=y
 #NoTrayIcon
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Includes
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 #include <AutoItConstants.au3>
+#include <FileConstants.au3>
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Configuration & Parameters
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Includes
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+#include <AutoItConstants.au3>
+#include <FileConstants.au3>
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Configuration & Parameters
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ; UniKey Vietnamese keyboard input method installer.
 ; $CmdLine[1] = setup filename (e.g. "unikey-4.6RC2.exe")
 ; $CmdLine[2] = desktop shortcut flag ("true"/"false")
 ;
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Main Installation Execution
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Main Installation Execution
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 ; UniKey is a portable application -- there is no installer.
 ; Installation steps (per user comment):
 ;   1. Create C:\Program Files\UniKey\
@@ -25,7 +58,7 @@ Global Const $g_sInstallDir  = @ProgramFilesDir & "\UniKey"
 Global Const $g_sInstallExe  = $g_sInstallDir & "\" & ($CmdLine[0] >= 1 ? $CmdLine[1] : "unikey.exe")
 
 Global $g_bShortcut = False
-Global $g_sLogPath = "C:\Auto-installer\install-apps.log"
+Global $g_sLogPath = "C:\AutoInstaller\apps.log"
 If $CmdLine[0] >= 4 Then $g_sLogPath = $CmdLine[4]
 If $CmdLine[0] >= 2 And StringLower($CmdLine[2]) = "true" Then $g_bShortcut = True
 
@@ -86,6 +119,14 @@ Run('"' & $g_sInstallExe & '"', $g_sInstallDir, @SW_HIDE)
 _CreateDesktopShortcut()
 Exit 0
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Helper Functions
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Helper Functions
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 Func _IsUniKeyInstalled()
     ; Check if any unikey*.exe exists in the install directory
     Return FileExists($g_sInstallExe) Or (FileFindFirstFile($g_sInstallDir & "\unikey*.exe") <> -1)
@@ -101,8 +142,9 @@ EndFunc
 
 
 Func _Log($sMsg)
-    Local $sLogPath = $g_sLogPath
-    Local $hLog = FileOpen($sLogPath, 1 + 256) ; FO_APPEND (1) + FO_UTF8_NOBOM (256)
+    Local $sDir = StringLeft($g_sLogPath, StringInStr($g_sLogPath, "\", 0, -1) - 1)
+    If $sDir <> "" And Not FileExists($sDir) Then DirCreate($sDir)
+    Local $hLog = FileOpen($g_sLogPath, BitOR($FO_APPEND, $FO_UTF8_NOBOM, $FO_CREATEPATH))
     If $hLog <> -1 Then
         FileWriteLine($hLog, "[" & @YEAR & "-" & StringFormat("%02d", @MON) & "-" & StringFormat("%02d", @MDAY) & " " & @HOUR & ":" & @MIN & ":" & @SEC & "] [" & StringReplace($g_sSetupFilename, ".exe", "") & "] " & $sMsg)
         FileClose($hLog)
