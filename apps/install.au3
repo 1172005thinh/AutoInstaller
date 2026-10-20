@@ -83,7 +83,16 @@ Func _SuperInstallerInit()
         EndIf
 
         Local $sCfgLog = IniRead($sConfig, "Configuration", "log_path", "")
-        If $CmdLine[0] < 4 And $sCfgLog <> "" Then $g_sLogPath = $sCfgLog
+        If $CmdLine[0] < 4 And $sCfgLog <> "" Then
+            $sCfgLog = StringReplace($sCfgLog, "/", "\")
+            If StringRight($sCfgLog, 1) = "\" Then
+                $g_sLogPath = $sCfgLog & "apps.log"
+            ElseIf FileExists($sCfgLog) And StringInStr(FileGetAttrib($sCfgLog), "D") Then
+                $g_sLogPath = $sCfgLog & "\apps.log"
+            Else
+                $g_sLogPath = $sCfgLog
+            EndIf
+        EndIf
     EndIf
 EndFunc
 

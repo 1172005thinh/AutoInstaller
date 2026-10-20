@@ -45,7 +45,16 @@ Func _InitEnvironment()
         If $g_iMaxIteration < 1 Then $g_iMaxIteration = 1
 
         Local $sLog = IniRead($g_sConfigPath, "Configuration", "log_path", "")
-        If $sLog <> "" Then $g_sLogPath = $sLog
+        If $sLog <> "" Then
+            $sLog = StringReplace($sLog, "/", "\")
+            If StringRight($sLog, 1) = "\" Then
+                $g_sLogPath = $sLog & "apps.log"
+            ElseIf FileExists($sLog) And StringInStr(FileGetAttrib($sLog), "D") Then
+                $g_sLogPath = $sLog & "\apps.log"
+            Else
+                $g_sLogPath = $sLog
+            EndIf
+        EndIf
     EndIf
 EndFunc
 

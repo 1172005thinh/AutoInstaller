@@ -32,28 +32,44 @@
 
 Global $hViewApps = 0
 Global $idViewAppsTitle = 0
-Global $hViewAppsGroup = 0
+
+; Section 1: Apps Library
+Global $hViewAppsLibraryGroup = 0
 Global $idViewAppsAvailableLbl = 0
 Global $idViewAppsResetBtn = 0
 
 Global $idViewAppsTable = 0
 Global $hViewAppsTable = 0
 
+Global $idViewAppsNameInput = 0
+Global $idViewAppsDescInput = 0
+Global $idViewAppsVerInput = 0
 Global $idViewAppsShortcutCmb = 0
+Global $idViewAppsReadyInput = 0
 
 Global $idViewAppsDownloadBtn = 0
+Global $idViewAppsRefreshBtn = 0
+Global $idViewAppsClearBtn = 0
+Global $idViewAppsSaveBtn = 0
+Global $idViewAppsCancelBtn = 0
+
+Global $idViewAppsStatusLbl = 0
 Global $idViewAppsProgressBar = 0
 
+; Section 2: Auto-installation
+Global $hViewAppsInstallGroup = 0
 Global $idViewAppsMaxIterLbl = 0
 Global $idViewAppsMaxIterInput = 0
 Global $idViewAppsMaxIterUpDown = 0
 
 Global $idViewAppsLogPathLbl = 0
 Global $idViewAppsLogPathInput = 0
+Global $idViewAppsLogBrowseBtn = 0
 
 Global $g_aViewAppsAppIds[64]
 Global $g_iViewAppsAppCount = 0
 Global $g_iViewAppsSelectedRow = -1
+Global $g_sViewAppsCurStatusKey = "apps.status.not_downloaded"
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; View Creation
@@ -63,15 +79,18 @@ Func viewAppsCreate($hViewport, $iW, $iH)
     #forceref $iW, $iH
     Local $iContentW = scrollGetContentWidth($iP)
     Local $iContentH = $iH
-    If $iContentH < 680 Then $iContentH = 680
+    If $iContentH < 800 Then $iContentH = 800
 
     $hViewApps = scrollCreateCanvas($hViewport, $iContentH)
     GUISwitch($hViewApps)
 
     Local $iPx = $iLblH * 20 / 100
     Local $iRowH = $iLblH + $iP * 2
+    Local $iInputH = $iLblH + $iPx * 2
+    Local $iLblW = ($iContentW - $iP * 6) * 35 / 100
+    Local $iInputW = ($iContentW - $iP * 6) * 58 / 100
 
-    ; 1. Title
+    ; 1. View Title
     Local $iX = $iP
     Local $iY = $iP
     Local $iCtrlW = $iContentW
@@ -79,34 +98,36 @@ Func viewAppsCreate($hViewport, $iW, $iH)
     $idViewAppsTitle = GUICtrlCreateLabel("", $iX, $iY, $iCtrlW, $iCtrlH)
     GUICtrlSetFont(-1, $iHeader, 800)
 
-    ; 2. Group Box
+    ; =========================================
+    ; Section 1: Apps Library
+    ; =========================================
     $iY += $iCtrlH + $iP
-    Local $iGroupH = $iRowH * 14 + $iP * 8
-    $hViewAppsGroup = GUICtrlCreateGroup("", $iX, $iY, $iContentW, $iGroupH)
+    Local $iLibGroupH = $iRowH * 12 + $iP * 8
+    $hViewAppsLibraryGroup = GUICtrlCreateGroup("", $iX, $iY, $iContentW, $iLibGroupH)
 
-    ; 3. Table Header & Reset Button Row
+    ; Table Header & Reset Button Row
     $iX = $iP * 3
     Local $iItemY = $iY + $iP * 3
     Local $iTableW = $iContentW - $iP * 4
-    Local $iBtnW = 100
+    Local $iBtnW = ($iTableW * 92 / 100 - 4 * $iP) / 5
 
     $idViewAppsAvailableLbl = GUICtrlCreateLabel("", $iX, $iItemY + $iPx, $iTableW - $iBtnW - $iP, $iLblH)
     $idViewAppsResetBtn = GUICtrlCreateButton(i18nGet("apps.btn.reset", "Reset"), ($iX + $iTableW) - $iBtnW, $iItemY - $iPx, $iBtnW, $iBtnH)
     GUICtrlSetTip($idViewAppsResetBtn, i18nGet("apps.btn.reset.tip", "Deselect all applications for installation"))
 
-    ; 4. Applications Table Control (10 rows visible)
+    ; Applications Table Control
     $iItemY += $iRowH + $iP
-    Local $iTableH = $iRowH * 9 + $iP * 2
+    Local $iTableH = $iRowH * 8
     $idViewAppsTable = GUICtrlCreateListView("", $iX, $iItemY, $iTableW, $iTableH, _
         BitOR($LVS_REPORT, $LVS_SHOWSELALWAYS, $WS_BORDER), _
         BitOR($LVS_EX_CHECKBOXES, $LVS_EX_FULLROWSELECT, $LVS_EX_GRIDLINES, $LVS_EX_DOUBLEBUFFER))
     $hViewAppsTable = GUICtrlGetHandle($idViewAppsTable)
 
     Local $iCol0W = Int($iTableW * 27 / 100) ; Name (27%)
-    Local $iCol1W = Int($iTableW * 37 / 100) ; Description (37%)
+    Local $iCol1W = Int($iTableW * 34 / 100) ; Description (34%)
     Local $iCol2W = Int($iTableW * 13 / 100) ; Version (13%)
-    Local $iCol3W = Int($iTableW * 13 / 100) ; Shortcut (13%)
-    Local $iCol4W = $iTableW - ($iCol0W + $iCol1W + $iCol2W + $iCol3W) - $iPx ; Ready
+    Local $iCol3W = Int($iTableW * 12 / 100) ; Shortcut (12%)
+    Local $iCol4W = Int($iTableW * 10 / 100) ; Ready (10%)
 
     _GUICtrlListView_InsertColumn($idViewAppsTable, 0, i18nGet("apps.col.name", "Name"), $iCol0W)
     _GUICtrlListView_InsertColumn($idViewAppsTable, 1, i18nGet("apps.col.description", "Description"), $iCol1W)
@@ -115,38 +136,60 @@ Func viewAppsCreate($hViewport, $iW, $iH)
     _GUICtrlListView_InsertColumn($idViewAppsTable, 4, i18nGet("apps.col.ready", "Ready"), $iCol4W)
     GUICtrlSetTip($idViewAppsTable, i18nGet("apps.tbl.tip", "Interactive software catalog: check apps to install, view readiness and versions"))
 
-    ; 5. Row 1 below Table: Input Fields (Shortcut ComboBox aligned with Column 3)
+    ; Edit Row (aligned with columns 0..4)
     $iItemY += $iTableH + $iP
-    Local $iShortcutX = $iX + $iCol0W + $iCol1W + $iCol2W + $iPx
-    Local $iShortcutW = $iCol3W - 2 * $iPx
-    $idViewAppsShortcutCmb = GUICtrlCreateCombo("", $iShortcutX, $iItemY, $iShortcutW, $iBtnH, $CBS_DROPDOWNLIST)
+    Local $iEditX = $iX
+    $idViewAppsNameInput = GUICtrlCreateInput("", $iEditX, $iItemY, $iCol0W - $iPx, $iInputH, BitOR($ES_READONLY, $ES_AUTOHSCROLL))
+    $iEditX += $iCol0W
+    $idViewAppsDescInput = GUICtrlCreateInput("", $iEditX + $iPx, $iItemY, $iCol1W - 2 * $iPx, $iInputH, BitOR($ES_READONLY, $ES_AUTOHSCROLL))
+    $iEditX += $iCol1W
+    $idViewAppsVerInput = GUICtrlCreateInput("", $iEditX + $iPx, $iItemY, $iCol2W - 2 * $iPx, $iInputH, BitOR($ES_READONLY, $ES_AUTOHSCROLL))
+    $iEditX += $iCol2W
+    $idViewAppsShortcutCmb = GUICtrlCreateCombo("", $iEditX + $iPx, $iItemY, $iCol3W - 2 * $iPx, $iInputH, $CBS_DROPDOWNLIST)
     GUICtrlSetData($idViewAppsShortcutCmb, i18nGet("apps.status.yes", "Yes") & "|" & i18nGet("apps.status.no", "No"), i18nGet("apps.status.no", "No"))
-    GUICtrlSetTip($idViewAppsShortcutCmb, i18nGet("apps.entry.shortcut.tip", "Create desktop shortcut after installation"))
+    $iEditX += $iCol3W
+    $idViewAppsReadyInput = GUICtrlCreateInput("", $iEditX + $iPx, $iItemY, ($iX + $iTableW) - ($iEditX + $iPx), $iInputH, BitOR($ES_READONLY, $ES_AUTOHSCROLL))
 
-    ; 6. Row 2 below Table: Download Component (Download button + Progress Bar)
+    ; Control Edit Row Buttons (right-aligned to table width)
+    $iItemY += $iRowH
+    Local $iBtnRowW = 5 * $iBtnW + 4 * $iP
+    Local $iBtnStartX = ($iX + $iTableW) - $iBtnRowW
+    $idViewAppsDownloadBtn = GUICtrlCreateButton(i18nGet("apps.entry.download.btn", "Download"), $iBtnStartX, $iItemY, $iBtnW, $iBtnH)
+    $idViewAppsRefreshBtn = GUICtrlCreateButton(i18nGet("apps.btn.refresh", "Refresh"), $iBtnStartX + $iBtnW + $iP, $iItemY, $iBtnW, $iBtnH)
+    $idViewAppsClearBtn = GUICtrlCreateButton(i18nGet("apps.btn.clear", "Clear"), $iBtnStartX + ($iBtnW + $iP) * 2, $iItemY, $iBtnW, $iBtnH)
+    $idViewAppsSaveBtn = GUICtrlCreateButton(i18nGet("apps.btn.save", "Save"), $iBtnStartX + ($iBtnW + $iP) * 3, $iItemY, $iBtnW, $iBtnH)
+    $idViewAppsCancelBtn = GUICtrlCreateButton(i18nGet("apps.btn.cancel", "Cancel"), $iBtnStartX + ($iBtnW + $iP) * 4, $iItemY, $iBtnW, $iBtnH)
+
+    ; Additional Controls Edit Info (Download status label + Download progress bar)
     $iItemY += $iRowH + $iP
-    Local $iDlBtnW = 110
-    $idViewAppsDownloadBtn = GUICtrlCreateButton(i18nGet("apps.entry.download.btn", "Download"), $iX, $iItemY, $iDlBtnW, $iBtnH)
-    GUICtrlSetTip($idViewAppsDownloadBtn, i18nGet("apps.entry.download.tip", "Download setup file for the selected application"))
+    Local $iStatusLblW = Int($iTableW * 35 / 100)
+    $idViewAppsStatusLbl = GUICtrlCreateLabel("", $iX, $iItemY + $iPx, $iStatusLblW, $iLblH)
+    $idViewAppsProgressBar = GUICtrlCreateProgress($iX + $iStatusLblW + $iP, $iItemY, $iTableW - $iStatusLblW - $iP, $iInputH, $PBS_SMOOTH)
 
-    $idViewAppsProgressBar = GUICtrlCreateProgress($iX + $iDlBtnW + $iP, $iItemY + $iPx, $iTableW - $iDlBtnW - $iP, $iBtnH - $iPx * 2, $PBS_SMOOTH)
-    GUICtrlSetTip($idViewAppsProgressBar, i18nGet("apps.entry.progress.tip", "Real-time download progress for the selected application"))
+    ; =========================================
+    ; Section 2: Auto-installation
+    ; =========================================
+    $iX = $iP
+    $iY += $iLibGroupH + $iP
+    Local $iInstallGroupH = $iRowH * 2 + $iP * 3
+    $hViewAppsInstallGroup = GUICtrlCreateGroup("", $iX, $iY, $iContentW, $iInstallGroupH)
 
-    ; 7. Row 3 below Table: Configuration Settings (Max Iteration + Log Path)
-    $iItemY += $iRowH + $iP
-    Local $iMaxIterLblW = 130
-    Local $iMaxIterInputW = 60
-    $idViewAppsMaxIterLbl = GUICtrlCreateLabel(i18nGet("apps.maxiter.label", "Max Iteration: "), $iX, $iItemY + $iPx, $iMaxIterLblW, $iLblH)
-    $idViewAppsMaxIterInput = GUICtrlCreateInput("2", $iX + $iMaxIterLblW, $iItemY, $iMaxIterInputW, $iBtnH, $ES_NUMBER)
+    ; Max Iteration Row
+    $iX = $iP * 3
+    $iItemY = $iY + $iP * 3
+    $idViewAppsMaxIterLbl = GUICtrlCreateLabel(i18nGet("apps.maxiter.label", "Max Iteration: "), $iX, $iItemY, $iLblW, $iLblH)
+    $idViewAppsMaxIterInput = GUICtrlCreateInput("2", $iX + $iLblW, $iItemY - $iPx, $iInputW / 3, $iInputH, $ES_NUMBER)
     $idViewAppsMaxIterUpDown = GUICtrlCreateUpdown($idViewAppsMaxIterInput)
     GUICtrlSetLimit($idViewAppsMaxIterUpDown, 5, 1)
 
-    Local $iLogPathLblW = 130
-    Local $iLogX = $iX + $iMaxIterLblW + $iMaxIterInputW + $iP * 3
-    $idViewAppsLogPathLbl = GUICtrlCreateLabel(i18nGet("apps.logpath.label", "Log Path: "), $iLogX, $iItemY + $iPx, $iLogPathLblW, $iLblH)
-    $idViewAppsLogPathInput = GUICtrlCreateInput("C:\AutoInstaller\apps.log", $iLogX + $iLogPathLblW, $iItemY, ($iX + $iTableW) - ($iLogX + $iLogPathLblW), $iBtnH)
+    ; Log Path Row
+    $iItemY += $iRowH
+    Local $iLogInputW = $iTableW - $iLblW - $iBtnW - $iP
+    $idViewAppsLogPathLbl = GUICtrlCreateLabel(i18nGet("apps.logpath.label", "Log Path: "), $iX, $iItemY, $iLblW, $iLblH)
+    $idViewAppsLogPathInput = GUICtrlCreateInput("C:\AutoInstaller\apps.log", $iX + $iLblW, $iItemY - $iPx, $iLogInputW, $iInputH)
+    $idViewAppsLogBrowseBtn = GUICtrlCreateButton(i18nGet("apps.btn.browse", "Browse"), ($iX + $iTableW) - $iBtnW, $iItemY - $iPx, $iBtnW, $iInputH)
 
-    Local $iTotalContentH = $iY + $iGroupH + $iP * 2
+    Local $iTotalContentH = $iY + $iInstallGroupH + $iP * 2
     scrollSetContentHeight($hViewApps, $iTotalContentH)
 
     ; Load table data from apps.csv and config.ini
@@ -228,6 +271,24 @@ Func _AppsGetAppDesc($sAppId, $sDefault)
         Case Else
             Return $sDefault
     EndSwitch
+EndFunc
+
+Func _ViewAppsSetDownloadStatus($sStatusKey)
+    $g_sViewAppsCurStatusKey = $sStatusKey
+    Local $sStatusText = ""
+    Switch $sStatusKey
+        Case "apps.status.ready"
+            $sStatusText = i18nGet("apps.status.ready", "Ready")
+        Case "apps.status.downloading"
+            $sStatusText = i18nGet("apps.status.downloading", "Downloading setup file...")
+        Case "apps.status.download_done"
+            $sStatusText = i18nGet("apps.status.download_done", "Download completed successfully")
+        Case "apps.status.download_failed"
+            $sStatusText = i18nGet("apps.status.download_failed", "Failed to download setup file")
+        Case Else
+            $sStatusText = i18nGet("apps.status.not_downloaded", "Not downloaded")
+    EndSwitch
+    GUICtrlSetData($idViewAppsStatusLbl, i18nGet("apps.status.label", "Download Status: ") & $sStatusText)
 EndFunc
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -320,20 +381,32 @@ Func _ViewAppsOnSelectRow($iIdx = -1)
     $g_iViewAppsSelectedRow = $iIdx
     Local $sApp = $g_aViewAppsAppIds[$iIdx]
 
-    ; Check readiness
-    Local $bReady = downloadIsAppReady($sApp)
-    If $bReady Then
-        GUICtrlSetData($idViewAppsProgressBar, 100)
-    Else
-        GUICtrlSetData($idViewAppsProgressBar, 0)
-    EndIf
-
-    ; Sync shortcut combo
+    ; Populate edit row fields from selected table row
+    Local $sName = _GUICtrlListView_GetItemText($hViewAppsTable, $iIdx, 0)
+    Local $sDesc = _GUICtrlListView_GetItemText($hViewAppsTable, $iIdx, 1)
+    Local $sVer = _GUICtrlListView_GetItemText($hViewAppsTable, $iIdx, 2)
     Local $sSc = _GUICtrlListView_GetItemText($hViewAppsTable, $iIdx, 3)
+    Local $sReady = _GUICtrlListView_GetItemText($hViewAppsTable, $iIdx, 4)
+
+    GUICtrlSetData($idViewAppsNameInput, $sName)
+    GUICtrlSetData($idViewAppsDescInput, $sDesc)
+    GUICtrlSetData($idViewAppsVerInput, $sVer)
+    GUICtrlSetData($idViewAppsReadyInput, $sReady)
+
     If $sSc = i18nGet("apps.status.yes", "Yes") Or StringLower($sSc) = "yes" Then
         GUICtrlSetData($idViewAppsShortcutCmb, i18nGet("apps.status.yes", "Yes"))
     Else
         GUICtrlSetData($idViewAppsShortcutCmb, i18nGet("apps.status.no", "No"))
+    EndIf
+
+    ; Check readiness for progress bar and status label
+    Local $bReady = downloadIsAppReady($sApp)
+    If $bReady Then
+        GUICtrlSetData($idViewAppsProgressBar, 100)
+        _ViewAppsSetDownloadStatus("apps.status.ready")
+    Else
+        GUICtrlSetData($idViewAppsProgressBar, 0)
+        _ViewAppsSetDownloadStatus("apps.status.not_downloaded")
     EndIf
 EndFunc
 
@@ -341,22 +414,82 @@ Func _ViewAppsDownloadSelectedRow()
     If $g_iViewAppsSelectedRow < 0 Or $g_iViewAppsSelectedRow >= $g_iViewAppsAppCount Then Return
 
     Local $sApp = $g_aViewAppsAppIds[$g_iViewAppsSelectedRow]
+    _ViewAppsSetDownloadStatus("apps.status.downloading")
     appSetStatus(i18nGet("status.title", "Status: ") & i18nGet("apps.status.downloading", "Downloading setup file...") & " (" & $sApp & ")")
 
     Local $bSuccess = downloadApp($sApp, True, "_ViewAppsDownloadCallback")
     If $bSuccess Then
         GUICtrlSetData($idViewAppsProgressBar, 100)
-        _GUICtrlListView_SetItemText($hViewAppsTable, $g_iViewAppsSelectedRow, i18nGet("apps.status.yes", "Yes"), 4)
+        _ViewAppsSetDownloadStatus("apps.status.download_done")
+        Local $sYes = i18nGet("apps.status.yes", "Yes")
+        _GUICtrlListView_SetItemText($hViewAppsTable, $g_iViewAppsSelectedRow, $sYes, 4)
+        GUICtrlSetData($idViewAppsReadyInput, $sYes)
 
         Local $sVer = downloadGetAppVersion($sApp)
-        If $sVer <> "Unknown" Then _GUICtrlListView_SetItemText($hViewAppsTable, $g_iViewAppsSelectedRow, $sVer, 2)
+        If $sVer <> "Unknown" Then
+            _GUICtrlListView_SetItemText($hViewAppsTable, $g_iViewAppsSelectedRow, $sVer, 2)
+            GUICtrlSetData($idViewAppsVerInput, $sVer)
+        EndIf
 
         appSetStatus(i18nGet("status.title", "Status: ") & i18nGet("apps.status.download_done", "Download completed successfully") & " (" & $sApp & ")")
     Else
         GUICtrlSetData($idViewAppsProgressBar, 0)
-        _GUICtrlListView_SetItemText($hViewAppsTable, $g_iViewAppsSelectedRow, i18nGet("apps.status.no", "No"), 4)
+        _ViewAppsSetDownloadStatus("apps.status.download_failed")
+        Local $sNo = i18nGet("apps.status.no", "No")
+        _GUICtrlListView_SetItemText($hViewAppsTable, $g_iViewAppsSelectedRow, $sNo, 4)
+        GUICtrlSetData($idViewAppsReadyInput, $sNo)
         MsgBox(BitOR($MB_ICONERROR, $MB_OK), i18nGet("error.dialog.title", "Error"), i18nGet("apps.status.download_failed", "Failed to download setup file") & " (" & $sApp & ")")
         appSetStatus(i18nGet("status.title", "Status: ") & i18nGet("apps.status.download_failed", "Failed to download setup file"))
+    EndIf
+EndFunc
+
+Func _ViewAppsRefreshSelectedRow()
+    If $g_iViewAppsSelectedRow < 0 Or $g_iViewAppsSelectedRow >= $g_iViewAppsAppCount Then Return
+
+    Local $sApp = $g_aViewAppsAppIds[$g_iViewAppsSelectedRow]
+    Local $sVer = downloadGetAppVersion($sApp)
+    If $sVer = "Unknown" Then $sVer = i18nGet("apps.status.unknown", "Unknown")
+
+    Local $bReady = downloadIsAppReady($sApp)
+    Local $sReady = $bReady ? i18nGet("apps.status.yes", "Yes") : i18nGet("apps.status.no", "No")
+
+    _GUICtrlListView_SetItemText($hViewAppsTable, $g_iViewAppsSelectedRow, $sVer, 2)
+    _GUICtrlListView_SetItemText($hViewAppsTable, $g_iViewAppsSelectedRow, $sReady, 4)
+
+    _ViewAppsOnSelectRow($g_iViewAppsSelectedRow)
+    appSetStatus(i18nGet("status.title", "Status: ") & i18nGet("apps.status.refreshed", "Refreshed application information") & " (" & $sApp & ")")
+EndFunc
+
+Func _ViewAppsOnClear()
+    GUICtrlSetData($idViewAppsShortcutCmb, i18nGet("apps.status.no", "No"))
+    appSetStatus(i18nGet("status.title", "Status: ") & i18nGet("apps.status.row_cleared", "Cleared edit row fields"))
+EndFunc
+
+Func _ViewAppsOnSave()
+    If $g_iViewAppsSelectedRow < 0 Or $g_iViewAppsSelectedRow >= $g_iViewAppsAppCount Then Return
+
+    Local $sNewSc = GUICtrlRead($idViewAppsShortcutCmb)
+    _GUICtrlListView_SetItemText($hViewAppsTable, $g_iViewAppsSelectedRow, $sNewSc, 3)
+    appSetStatus(i18nGet("status.title", "Status: ") & i18nGet("apps.status.row_saved", "Saved changes to application entry"))
+EndFunc
+
+Func _ViewAppsOnCancel()
+    If $g_iViewAppsSelectedRow < 0 Or $g_iViewAppsSelectedRow >= $g_iViewAppsAppCount Then Return
+
+    _ViewAppsOnSelectRow($g_iViewAppsSelectedRow)
+    appSetStatus(i18nGet("status.title", "Status: ") & i18nGet("apps.status.row_canceled", "Reverted edit row changes"))
+EndFunc
+
+Func _ViewAppsBrowseLogPath()
+    Local $sCurPath = GUICtrlRead($idViewAppsLogPathInput)
+    Local $sInitDir = $sCurPath
+    If StringInStr($sInitDir, "\") Then
+        $sInitDir = StringLeft($sInitDir, StringInStr($sInitDir, "\", 0, -1))
+    EndIf
+    Local $sSelected = FileSelectFolder(i18nGet("apps.dialog.browse.title", "Select Log Folder"), $sInitDir)
+    If Not @error And $sSelected <> "" Then
+        If StringRight($sSelected, 1) <> "\" Then $sSelected &= "\"
+        GUICtrlSetData($idViewAppsLogPathInput, $sSelected & "apps.log")
     EndIf
 EndFunc
 
@@ -390,15 +523,25 @@ Func _ViewAppsDownloadAllSelected()
             _GUICtrlListView_SetItemSelected($hViewAppsTable, $i, True, True)
             _ViewAppsOnSelectRow($i)
 
+            _ViewAppsSetDownloadStatus("apps.status.downloading")
             appSetStatus(i18nGet("status.title", "Status: ") & i18nGet("apps.status.downloading", "Downloading setup file...") & " (" & $sApp & ")")
             Local $bOk = downloadApp($sApp, True, "_ViewAppsDownloadCallback")
             If $bOk Then
-                _GUICtrlListView_SetItemText($hViewAppsTable, $i, i18nGet("apps.status.yes", "Yes"), 4)
+                Local $sYes = i18nGet("apps.status.yes", "Yes")
+                _GUICtrlListView_SetItemText($hViewAppsTable, $i, $sYes, 4)
+                GUICtrlSetData($idViewAppsReadyInput, $sYes)
                 Local $sVer = downloadGetAppVersion($sApp)
-                If $sVer <> "Unknown" Then _GUICtrlListView_SetItemText($hViewAppsTable, $i, $sVer, 2)
+                If $sVer <> "Unknown" Then
+                    _GUICtrlListView_SetItemText($hViewAppsTable, $i, $sVer, 2)
+                    GUICtrlSetData($idViewAppsVerInput, $sVer)
+                EndIf
+                _ViewAppsSetDownloadStatus("apps.status.download_done")
                 $iDownloaded += 1
             Else
-                _GUICtrlListView_SetItemText($hViewAppsTable, $i, i18nGet("apps.status.no", "No"), 4)
+                Local $sNo = i18nGet("apps.status.no", "No")
+                _GUICtrlListView_SetItemText($hViewAppsTable, $i, $sNo, 4)
+                GUICtrlSetData($idViewAppsReadyInput, $sNo)
+                _ViewAppsSetDownloadStatus("apps.status.download_failed")
             EndIf
         EndIf
     Next
@@ -422,8 +565,10 @@ EndFunc
 
 Func viewAppsApplyLang()
     GUICtrlSetData($idViewAppsTitle, i18nGet("apps.title", "Customize App Installation"))
-    GUICtrlSetData($hViewAppsGroup, i18nGet("apps.group.title", "Applications Installation"))
-    GUICtrlSetTip($hViewAppsGroup, i18nGet("apps.group.tip", "Manage and select applications to deploy during setup"))
+
+    ; Section 1: Apps Library
+    GUICtrlSetData($hViewAppsLibraryGroup, i18nGet("apps.library.title", "Apps Library"))
+    GUICtrlSetTip($hViewAppsLibraryGroup, i18nGet("apps.library.tip", "Software catalog and individual application management"))
 
     GUICtrlSetData($idViewAppsAvailableLbl, i18nGet("apps.available.label", "Available Applications: "))
     GUICtrlSetTip($idViewAppsAvailableLbl, i18nGet("apps.available.tip", "List of software applications available in the library"))
@@ -436,25 +581,52 @@ Func viewAppsApplyLang()
     _GUICtrlListView_SetColumn($idViewAppsTable, 3, i18nGet("apps.col.shortcut", "Shortcut"))
     _GUICtrlListView_SetColumn($idViewAppsTable, 4, i18nGet("apps.col.ready", "Ready"))
 
-    GUICtrlSetData($idViewAppsDownloadBtn, i18nGet("apps.entry.download.btn", "Download"))
-    GUICtrlSetTip($idViewAppsDownloadBtn, i18nGet("apps.entry.download.tip", "Download setup file for the selected application"))
-    GUICtrlSetTip($idViewAppsProgressBar, i18nGet("apps.entry.progress.tip", "Real-time download progress for the selected application"))
+    ; Edit row tooltips & combobox
+    GUICtrlSetTip($idViewAppsNameInput, i18nGet("apps.entry.name.tip", "Selected application name (read-only)"))
+    GUICtrlSetTip($idViewAppsDescInput, i18nGet("apps.entry.desc.tip", "Selected application description (read-only)"))
+    GUICtrlSetTip($idViewAppsVerInput, i18nGet("apps.entry.version.tip", "Selected application version (read-only)"))
+    GUICtrlSetTip($idViewAppsReadyInput, i18nGet("apps.entry.ready.tip", "Selected application setup file readiness (read-only)"))
 
     Local $sCurSc = GUICtrlRead($idViewAppsShortcutCmb)
     Local $bWasYes = ($sCurSc = "Yes" Or $sCurSc = i18nGet("apps.status.yes", "Yes"))
     GUICtrlSetData($idViewAppsShortcutCmb, "|" & i18nGet("apps.status.yes", "Yes") & "|" & i18nGet("apps.status.no", "No"), $bWasYes ? i18nGet("apps.status.yes", "Yes") : i18nGet("apps.status.no", "No"))
     GUICtrlSetTip($idViewAppsShortcutCmb, i18nGet("apps.entry.shortcut.tip", "Create desktop shortcut after installation"))
 
-    ; Max Iteration controls
+    ; Edit row buttons
+    GUICtrlSetData($idViewAppsDownloadBtn, i18nGet("apps.entry.download.btn", "Download"))
+    GUICtrlSetTip($idViewAppsDownloadBtn, i18nGet("apps.entry.download.tip", "Download setup file for the selected application"))
+
+    GUICtrlSetData($idViewAppsRefreshBtn, i18nGet("apps.btn.refresh", "Refresh"))
+    GUICtrlSetTip($idViewAppsRefreshBtn, i18nGet("apps.btn.refresh.tip", "Refresh version and readiness information for the selected application"))
+
+    GUICtrlSetData($idViewAppsClearBtn, i18nGet("apps.btn.clear", "Clear"))
+    GUICtrlSetTip($idViewAppsClearBtn, i18nGet("apps.btn.clear.tip", "Reset edit row fields to default values"))
+
+    GUICtrlSetData($idViewAppsSaveBtn, i18nGet("apps.btn.save", "Save"))
+    GUICtrlSetTip($idViewAppsSaveBtn, i18nGet("apps.btn.save.tip", "Save edit row changes to the selected application"))
+
+    GUICtrlSetData($idViewAppsCancelBtn, i18nGet("apps.btn.cancel", "Cancel"))
+    GUICtrlSetTip($idViewAppsCancelBtn, i18nGet("apps.btn.cancel.tip", "Discard edit row changes and revert to the selected application state"))
+
+    ; Additional controls edit info
+    _ViewAppsSetDownloadStatus($g_sViewAppsCurStatusKey)
+    GUICtrlSetTip($idViewAppsProgressBar, i18nGet("apps.entry.progress.tip", "Real-time download progress for the selected application"))
+
+    ; Section 2: Auto-installation
+    GUICtrlSetData($hViewAppsInstallGroup, i18nGet("apps.autoinstall.title", "Auto-installation"))
+    GUICtrlSetTip($hViewAppsInstallGroup, i18nGet("apps.autoinstall.tip", "Configuration settings for unattended application deployment"))
+
     GUICtrlSetData($idViewAppsMaxIterLbl, i18nGet("apps.maxiter.label", "Max Iteration: "))
     GUICtrlSetTip($idViewAppsMaxIterLbl, i18nGet("apps.maxiter.tip", "Maximum number of installation attempts for each application. Increasing this value may help with applications that fail to install on the first attempt."))
     GUICtrlSetTip($idViewAppsMaxIterInput, i18nGet("apps.maxiter.tip", "Maximum number of installation attempts for each application. Increasing this value may help with applications that fail to install on the first attempt."))
     GUICtrlSetTip($idViewAppsMaxIterUpDown, i18nGet("apps.maxiter.tip", "Maximum number of installation attempts for each application. Increasing this value may help with applications that fail to install on the first attempt."))
 
-    ; Log Path controls
     GUICtrlSetData($idViewAppsLogPathLbl, i18nGet("apps.logpath.label", "Log Path: "))
     GUICtrlSetTip($idViewAppsLogPathLbl, i18nGet("apps.logpath.tip", "File path where installation logs will be saved. Changing this value may help with troubleshooting installation issues."))
     GUICtrlSetTip($idViewAppsLogPathInput, i18nGet("apps.logpath.tip", "File path where installation logs will be saved. Changing this value may help with troubleshooting installation issues."))
+
+    GUICtrlSetData($idViewAppsLogBrowseBtn, i18nGet("apps.btn.browse", "Browse"))
+    GUICtrlSetTip($idViewAppsLogBrowseBtn, i18nGet("apps.btn.browse.tip", "Select destination folder for installation logs"))
 
     ; Reload descriptions in table for current language
     Local $aApps = dataLoadCsv("apps.csv")
@@ -463,6 +635,10 @@ Func viewAppsApplyLang()
             Local $sDesc = _AppsGetAppDesc($aApps[$j][0], $aApps[$j][2])
             _GUICtrlListView_SetItemText($hViewAppsTable, $j - 1, $sDesc, 1)
         Next
+    EndIf
+
+    If $g_iViewAppsSelectedRow >= 0 And $g_iViewAppsSelectedRow < $g_iViewAppsAppCount Then
+        GUICtrlSetData($idViewAppsDescInput, _GUICtrlListView_GetItemText($hViewAppsTable, $g_iViewAppsSelectedRow, 1))
     EndIf
 
     If $g_hCurrentView = $hViewApps Then
@@ -519,17 +695,27 @@ Func viewAppsApplyTheme()
     GUICtrlSetColor($idViewAppsAvailableLbl, themeColor("text.primary"))
     GUICtrlSetBkColor($idViewAppsAvailableLbl, themeColor("main.view.bg"))
 
+    GUICtrlSetColor($idViewAppsStatusLbl, themeColor("text.primary"))
+    GUICtrlSetBkColor($idViewAppsStatusLbl, themeColor("main.view.bg"))
+
     GUICtrlSetColor($idViewAppsMaxIterLbl, themeColor("text.primary"))
     GUICtrlSetBkColor($idViewAppsMaxIterLbl, themeColor("main.view.bg"))
 
     GUICtrlSetColor($idViewAppsLogPathLbl, themeColor("text.primary"))
     GUICtrlSetBkColor($idViewAppsLogPathLbl, themeColor("main.view.bg"))
 
-    GUICtrlSetColor($idViewAppsMaxIterInput, themeColor("text.primary"))
-    GUICtrlSetBkColor($idViewAppsMaxIterInput, themeColor("main.view.bg"))
-
-    GUICtrlSetColor($idViewAppsLogPathInput, themeColor("text.primary"))
-    GUICtrlSetBkColor($idViewAppsLogPathInput, themeColor("main.view.bg"))
+    Local $aInputs[] = [ _
+        $idViewAppsNameInput, _
+        $idViewAppsDescInput, _
+        $idViewAppsVerInput, _
+        $idViewAppsReadyInput, _
+        $idViewAppsMaxIterInput, _
+        $idViewAppsLogPathInput _
+    ]
+    For $i = 0 To UBound($aInputs) - 1
+        GUICtrlSetColor($aInputs[$i], themeColor("text.primary"))
+        GUICtrlSetBkColor($aInputs[$i], themeColor("main.view.bg"))
+    Next
 
     _GUICtrlListView_SetTextColor($idViewAppsTable, themeColor("text.primary"))
     _GUICtrlListView_SetTextBkColor($idViewAppsTable, themeColor("main.view.bg"))
@@ -541,6 +727,15 @@ EndFunc
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 Func viewAppsHandleEvent($idMsg)
+    ; Track ListView row selection changes
+    Local $sSel = _GUICtrlListView_GetSelectedIndices($hViewAppsTable)
+    If $sSel <> "" Then
+        Local $iCurSel = Number($sSel)
+        If $iCurSel <> $g_iViewAppsSelectedRow Then
+            _ViewAppsOnSelectRow($iCurSel)
+        EndIf
+    EndIf
+
     Switch $idMsg
         ; In-View Reset Button
         Case $idViewAppsResetBtn
@@ -550,16 +745,25 @@ Func viewAppsHandleEvent($idMsg)
         Case $idViewAppsTable
             _ViewAppsOnSelectRow()
 
-        ; Single app download button
+        ; Edit Row Control Buttons
         Case $idViewAppsDownloadBtn
             _ViewAppsDownloadSelectedRow()
 
-        ; Shortcut combo change
-        Case $idViewAppsShortcutCmb
-            If $g_iViewAppsSelectedRow >= 0 And $g_iViewAppsSelectedRow < $g_iViewAppsAppCount Then
-                Local $sNewSc = GUICtrlRead($idViewAppsShortcutCmb)
-                _GUICtrlListView_SetItemText($hViewAppsTable, $g_iViewAppsSelectedRow, $sNewSc, 3)
-            EndIf
+        Case $idViewAppsRefreshBtn
+            _ViewAppsRefreshSelectedRow()
+
+        Case $idViewAppsClearBtn
+            _ViewAppsOnClear()
+
+        Case $idViewAppsSaveBtn
+            _ViewAppsOnSave()
+
+        Case $idViewAppsCancelBtn
+            _ViewAppsOnCancel()
+
+        ; Auto-installation Log Path Browse Button
+        Case $idViewAppsLogBrowseBtn
+            _ViewAppsBrowseLogPath()
 
         ; Toolbar Button 0: [Reset]
         Case $a_idToolBarBtn[0]
