@@ -193,6 +193,7 @@ foreach( $file in $Document.unattend.Extensions.File ) {
 "[$ts] [ExtractScript] File extraction completed successfully." | Out-File -FilePath $logPath -Append -Encoding UTF8;
 		</ExtractScript>
 		<File path="C:\Windows\Setup\Scripts\RemovePackages.ps1">$selectors = @(
+	'App.Support.QuickAssist';
 	'Clipchamp.Clipchamp';
 	'Microsoft.549981C3F5F10';
 	'Microsoft.BingNews';

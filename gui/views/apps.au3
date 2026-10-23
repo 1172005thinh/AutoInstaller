@@ -298,7 +298,7 @@ Func viewAppsCreate($hViewport, $iW, $iH)
     ; =========================================
     $iX = $iP
     $iY += $iOfflineGroupH + $iP
-    Local $iFontsGroupH = $iRowH * 10 + $iP * 12
+    Local $iFontsGroupH = $iRowH * 10 + $iP * 13
     $hViewAppsFontsGroup = GUICtrlCreateGroup("", $iX, $iY, $iContentW, $iFontsGroupH)
 
     $iX = $iP * 3
