@@ -47,7 +47,8 @@ Global $idViewAppsModeSlider = 0
 Global $idViewAppsModeDisLbl = 0
 Global $idViewAppsModeOffLbl = 0
 Global $idViewAppsModeOnlLbl = 0
-Global $g_iViewAppsCurMode = 2 ; 0: Disabled, 1: Offline, 2: Online (default)
+Global $idViewAppsModeHybLbl = 0
+Global $g_iViewAppsCurMode = 3 ; 0: Disabled, 1: Offline, 2: Online, 3: Hybrid (default)
 
 ; Section 1: Online Apps Library
 Global $hViewAppsOnlineGroup = 0
@@ -114,6 +115,7 @@ Global $g_iViewAppsSelectedRow = -1
 Global $g_sViewAppsCurStatusKey = "apps.status.not_downloaded"
 Global $g_iViewAppsOnlineSelectedRow = -1
 Global $g_aViewAppsOnlineIds[128]
+Global $g_aViewAppsOnlineManagers[128]
 Global $g_iViewAppsOnlineCount = 0
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -160,14 +162,30 @@ Func viewAppsCreate($hViewport, $iW, $iH)
     $idViewAppsModeLbl = GUICtrlCreateLabel(i18nGet("apps.mode.label", "Installation Mode: "), $iX, $iItemY, $iLblW, $iLblH)
 
     $idViewAppsModeSlider = GUICtrlCreateSlider($iP * 3 + $iLblW, $iItemY - $iPx, $iInputW, $iInputH)
-    GUICtrlSetLimit($idViewAppsModeSlider, 2, 0)
-    GUICtrlSetData($idViewAppsModeSlider, 2) ; Default: Online
+    GUICtrlSetLimit($idViewAppsModeSlider, 3, 0)
+    GUICtrlSetData($idViewAppsModeSlider, 3) ; Default: Hybrid
 
+    Local $iSliderX = $iP * 3 + $iLblW
     Local $iTickLblY = $iItemY + $iLblH + $iPx
-    Local $iTickColW = $iInputW / 3
-    $idViewAppsModeDisLbl = GUICtrlCreateLabel(i18nGet("apps.mode.disabled.label", "Disabled"), $iP * 3 + $iLblW, $iTickLblY, $iTickColW, $iLblH)
-    $idViewAppsModeOffLbl = GUICtrlCreateLabel(i18nGet("apps.mode.offline.label", "Offline"), $iP * 3 + $iLblW + $iTickColW, $iTickLblY, $iTickColW, $iLblH, $SS_CENTER)
-    $idViewAppsModeOnlLbl = GUICtrlCreateLabel(i18nGet("apps.mode.online.label", "Online"), $iP * 3 + $iLblW + $iTickColW * 2, $iTickLblY, $iTickColW, $iLblH, $SS_RIGHT)
+
+    ; Calculate 3 equal interval steps across the slider track
+    ; Track margin is approx 14px on each side (thumb radius)
+    Local $iMargin = 14
+    Local $iStepW = ($iInputW - ($iMargin * 2)) / 3
+
+    Local $iSplit1 = Int($iMargin + ($iStepW / 2))
+    Local $iSplit2 = Int($iMargin + ($iStepW * 1.5))
+    Local $iSplit3 = Int($iMargin + ($iStepW * 2.5))
+
+    Local $iCol0W = $iSplit1
+    Local $iCol1W = $iSplit2 - $iSplit1
+    Local $iCol2W = $iSplit3 - $iSplit2
+    Local $iCol3W = $iInputW - $iSplit3
+
+    $idViewAppsModeDisLbl = GUICtrlCreateLabel(i18nGet("apps.mode.disabled.label", "Disabled"), $iSliderX, $iTickLblY, $iCol0W, $iLblH)
+    $idViewAppsModeOffLbl = GUICtrlCreateLabel(i18nGet("apps.mode.offline.label", "Offline"), $iSliderX + $iSplit1, $iTickLblY, $iCol1W, $iLblH, $SS_CENTER)
+    $idViewAppsModeOnlLbl = GUICtrlCreateLabel(i18nGet("apps.mode.online.label", "Online"), $iSliderX + $iSplit2, $iTickLblY, $iCol2W, $iLblH, $SS_CENTER)
+    $idViewAppsModeHybLbl = GUICtrlCreateLabel(i18nGet("apps.mode.hybrid.label", "Hybrid"), $iSliderX + $iSplit3, $iTickLblY, $iCol3W, $iLblH, $SS_RIGHT)
 
     ; =========================================
     ; Section 1: Online Apps Library
@@ -191,7 +209,7 @@ Func viewAppsCreate($hViewport, $iW, $iH)
         i18nGet("apps.online.col.description", "Description") & "|" & _
         i18nGet("apps.online.col.version", "Version") & "|" & _
         i18nGet("apps.online.col.shortcut", "Shortcut") & "|" & _
-        i18nGet("apps.online.col.location", "Location")
+        i18nGet("apps.online.col.location", "Path")
     $idViewAppsOnlineTable = GUICtrlCreateListView($sOnlineHeaders, $iX, $iItemY, $iTableW, $iOnlineTableH)
     $hViewAppsOnlineTable = GUICtrlGetHandle($idViewAppsOnlineTable)
     _GUICtrlListView_SetExtendedListViewStyle($idViewAppsOnlineTable, BitOR($LVS_EX_CHECKBOXES, $LVS_EX_FULLROWSELECT, $LVS_EX_GRIDLINES))
@@ -234,7 +252,7 @@ Func viewAppsCreate($hViewport, $iW, $iH)
 
     $iItemY += $iRowH + $iP
     Local $iTableH = $iRowH * 8
-    Local $sOfflineHeaders = i18nGet("apps.col.name", "Name") & "|" & _
+    Local $sOfflineHeaders = i18nGet("apps.col.name", "App name") & "|" & _
         i18nGet("apps.col.description", "Description") & "|" & _
         i18nGet("apps.col.version", "Version") & "|" & _
         i18nGet("apps.col.shortcut", "Shortcut") & "|" & _
@@ -323,7 +341,7 @@ Func viewAppsCreate($hViewport, $iW, $iH)
     $iItemY += $iRowH + $iP
     Local $iFontsTableH = $iRowH * 8
     Local $sFontsHeaders = i18nGet("apps.fonts.col.name", "Font name") & "|" & _
-        i18nGet("apps.fonts.col.location", "Location")
+        i18nGet("apps.fonts.col.location", "Path")
 
     $idViewAppsFontsTable = GUICtrlCreateListView($sFontsHeaders, $iX, $iItemY, $iTableW, $iFontsTableH)
     $hViewAppsFontsTable = GUICtrlGetHandle($idViewAppsFontsTable)
@@ -404,6 +422,11 @@ Func _ViewAppsUpdateModeState($iMode)
             $iOnState = $GUI_ENABLE
             $iOffState = $GUI_DISABLE
             appSetStatus(i18nGet("status.title", "Status: ") & i18nGet("apps.mode.status.online", "Installation mode: Online (using winget package manager)"))
+
+        Case 3 ; Hybrid
+            $iOnState = $GUI_ENABLE
+            $iOffState = $GUI_ENABLE
+            appSetStatus(i18nGet("status.title", "Status: ") & i18nGet("apps.mode.status.hybrid", "Installation mode: Hybrid (both Online and Offline libraries enabled)"))
     EndSwitch
 
     ; Online controls
@@ -550,7 +573,7 @@ Func viewAppsLoadData()
     Local $sConfig = downloadGetConfigPath()
 
     ; Read mode and fonts_state from [Configuration]
-    Local $iMode = Int(IniRead($sConfig, "Configuration", "mode", "2"))
+    Local $iMode = Int(IniRead($sConfig, "Configuration", "mode", "3"))
     _ViewAppsUpdateModeState($iMode)
 
     Local $iFontsState = Int(IniRead($sConfig, "Configuration", "fonts_state", "1"))
@@ -594,6 +617,7 @@ Func viewAppsLoadData()
     $g_iViewAppsOnlineSelectedRow = -1
     For $r = 0 To UBound($g_aViewAppsOnlineIds) - 1
         $g_aViewAppsOnlineIds[$r] = ""
+        If $r < UBound($g_aViewAppsOnlineManagers) Then $g_aViewAppsOnlineManagers[$r] = ""
     Next
 
     Local $aSections = IniReadSectionNames($sConfig)
@@ -610,15 +634,21 @@ Func viewAppsLoadData()
                 Local $sLoc = IniRead($sConfig, $sSec, "location", i18nGet("apps.online.status.default", "Default"))
                 Local $bInstall = (StringLower(IniRead($sConfig, $sSec, "install", "true")) = "true")
 
+                Local $sManager = IniRead($sConfig, $sSec, "manager", "winget")
                 Local $iOnItem = _GUICtrlListView_AddItem($hViewAppsOnlineTable, $sName)
-                _GUICtrlListView_AddSubItem($hViewAppsOnlineTable, $iOnItem, $sDesc, 1)
-                _GUICtrlListView_AddSubItem($hViewAppsOnlineTable, $iOnItem, $sVer, 2)
-                _GUICtrlListView_AddSubItem($hViewAppsOnlineTable, $iOnItem, $sShortcut, 3)
-                _GUICtrlListView_AddSubItem($hViewAppsOnlineTable, $iOnItem, $sLoc, 4)
+                _GUICtrlListView_AddSubItem($hViewAppsOnlineTable, $iOnItem, $sManager, 1)
+                _GUICtrlListView_AddSubItem($hViewAppsOnlineTable, $iOnItem, $sDesc, 2)
+                _GUICtrlListView_AddSubItem($hViewAppsOnlineTable, $iOnItem, $sVer, 3)
+                _GUICtrlListView_AddSubItem($hViewAppsOnlineTable, $iOnItem, $sShortcut, 4)
+                _GUICtrlListView_AddSubItem($hViewAppsOnlineTable, $iOnItem, $sLoc, 5)
                 _GUICtrlListView_SetItemChecked($hViewAppsOnlineTable, $iOnItem, $bInstall)
 
-                If $iOnItem >= UBound($g_aViewAppsOnlineIds) Then ReDim $g_aViewAppsOnlineIds[$iOnItem + 32]
+                If $iOnItem >= UBound($g_aViewAppsOnlineIds) Then
+                    ReDim $g_aViewAppsOnlineIds[$iOnItem + 32]
+                    ReDim $g_aViewAppsOnlineManagers[$iOnItem + 32]
+                EndIf
                 $g_aViewAppsOnlineIds[$iOnItem] = $sId
+                $g_aViewAppsOnlineManagers[$iOnItem] = $sManager
                 $g_iViewAppsOnlineCount = $iOnItem + 1
             EndIf
         Next
@@ -670,17 +700,19 @@ Func viewAppsSaveData()
     Local $iOnlineCount = _GUICtrlListView_GetItemCount($hViewAppsOnlineTable)
     For $j = 0 To $iOnlineCount - 1
         Local $sName = _GUICtrlListView_GetItemText($hViewAppsOnlineTable, $j, 0)
-        Local $sDesc = _GUICtrlListView_GetItemText($hViewAppsOnlineTable, $j, 1)
-        Local $sVer = _GUICtrlListView_GetItemText($hViewAppsOnlineTable, $j, 2)
-        Local $sSc = _GUICtrlListView_GetItemText($hViewAppsOnlineTable, $j, 3)
+        Local $sManager = _GUICtrlListView_GetItemText($hViewAppsOnlineTable, $j, 1)
+        Local $sDesc = _GUICtrlListView_GetItemText($hViewAppsOnlineTable, $j, 2)
+        Local $sVer = _GUICtrlListView_GetItemText($hViewAppsOnlineTable, $j, 3)
+        Local $sSc = _GUICtrlListView_GetItemText($hViewAppsOnlineTable, $j, 4)
         Local $bShortcut = ($sSc = i18nGet("apps.status.yes", "Yes") Or StringLower($sSc) = "yes")
-        Local $sLoc = _GUICtrlListView_GetItemText($hViewAppsOnlineTable, $j, 4)
+        Local $sLoc = _GUICtrlListView_GetItemText($hViewAppsOnlineTable, $j, 5)
         Local $bInstall = _GUICtrlListView_GetItemChecked($hViewAppsOnlineTable, $j)
         Local $sId = ($j < $g_iViewAppsOnlineCount And $g_aViewAppsOnlineIds[$j] <> "") ? $g_aViewAppsOnlineIds[$j] : $sName
 
         Local $sSection = "Online_" & $sId
         IniWrite($sConfig, $sSection, "name", $sName)
         IniWrite($sConfig, $sSection, "id", $sId)
+        IniWrite($sConfig, $sSection, "manager", $sManager)
         IniWrite($sConfig, $sSection, "description", $sDesc)
         IniWrite($sConfig, $sSection, "version", $sVer)
         IniWrite($sConfig, $sSection, "shortcut", $bShortcut ? "true" : "false")
@@ -900,6 +932,7 @@ Func _ViewAppsOnlineReset()
     $g_iViewAppsOnlineCount = 0
     For $r = 0 To UBound($g_aViewAppsOnlineIds) - 1
         $g_aViewAppsOnlineIds[$r] = ""
+        If $r < UBound($g_aViewAppsOnlineManagers) Then $g_aViewAppsOnlineManagers[$r] = ""
     Next
     GUICtrlSetState($idViewAppsOnlineEditBtn, $GUI_DISABLE)
     appSetStatus(i18nGet("status.title", "Status: ") & i18nGet("apps.online.btn.reset.tip", "Reset online applications list to empty"))
@@ -921,8 +954,10 @@ Func _ViewAppsOnlineRemove()
     If $iIdx < $g_iViewAppsOnlineCount Then
         For $k = $iIdx To $g_iViewAppsOnlineCount - 2
             $g_aViewAppsOnlineIds[$k] = $g_aViewAppsOnlineIds[$k + 1]
+            $g_aViewAppsOnlineManagers[$k] = $g_aViewAppsOnlineManagers[$k + 1]
         Next
         $g_aViewAppsOnlineIds[$g_iViewAppsOnlineCount - 1] = ""
+        $g_aViewAppsOnlineManagers[$g_iViewAppsOnlineCount - 1] = ""
         $g_iViewAppsOnlineCount -= 1
     EndIf
     $g_iViewAppsOnlineSelectedRow = -1
@@ -934,7 +969,7 @@ Func _ViewAppsOnlineOnSelect()
     Local $sSel = _GUICtrlListView_GetSelectedIndices($hViewAppsOnlineTable)
     If $sSel <> "" Then
         $g_iViewAppsOnlineSelectedRow = Number($sSel)
-        If $g_iViewAppsCurMode = 2 Then GUICtrlSetState($idViewAppsOnlineEditBtn, $GUI_ENABLE)
+        If $g_iViewAppsCurMode = 2 Or $g_iViewAppsCurMode = 3 Then GUICtrlSetState($idViewAppsOnlineEditBtn, $GUI_ENABLE)
     Else
         $g_iViewAppsOnlineSelectedRow = -1
         GUICtrlSetState($idViewAppsOnlineEditBtn, $GUI_DISABLE)
@@ -945,36 +980,46 @@ EndFunc
 ; Winget Search Engine & Fallback Catalog
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-Func _ViewAppsSearchWinget($sQuery)
-    Local $aResults[0][4] ; [Name, Id, Desc, Versions]
+Func _GetChocoPath()
+    If FileExists(@ScriptDir & "\tools\Chocolatey\choco.exe") Then Return @ScriptDir & "\tools\Chocolatey\choco.exe"
+    If FileExists(@ScriptDir & "\..\tools\Chocolatey\choco.exe") Then Return @ScriptDir & "\..\tools\Chocolatey\choco.exe"
+    Local $sSysChoco = @SystemDir & "\choco.exe"
+    If FileExists($sSysChoco) Then Return $sSysChoco
+    Return "choco.exe"
+EndFunc
+
+Func _ViewAppsSearchPackages($sQuery)
+    Local $aResults[0][5] ; [Name, Id, Manager, Desc, Versions]
     If StringStripWS($sQuery, 3) = "" Then Return $aResults
 
-        ; Fallback Curated Catalog with rich descriptions and version options
-    Local $aCatalog[11][4] = [ _
-        ["Git", "Git.Git", "Fast, scalable, distributed revision control system", "Latest|2.55.0|2.54.0|2.53.0"], _
-        ["Google Chrome", "Google.Chrome", "Fast and secure web browser by Google", "Latest"], _
-        ["Visual Studio Code", "Microsoft.VisualStudioCode", "Code editing redefined by Microsoft", "Latest|1.94.0|1.93.0"], _
-        ["7-Zip", "7zip.7zip", "High compression ratio file archiver", "Latest|24.08|23.01"], _
-        ["Discord", "Discord.Discord", "Voice, video and text communication service", "Latest"], _
-        ["VLC media player", "VideoLAN.VLC", "Free and open source cross-platform multimedia player", "Latest|3.0.21|3.0.20"], _
-        ["Notepad++", "Notepad++.Notepad++", "Free source code editor and Notepad replacement", "Latest|8.7.0|8.6.9"], _
-        ["Python 3.12", "Python.Python.3.12", "High-level programming language with dynamic semantics", "Latest|3.12.7|3.12.6"], _
-        ["Docker Desktop", "Docker.DockerDesktop", "Container application development platform", "Latest|4.35.0|4.34.0"], _
-        ["Brave Browser", "Brave.Brave", "Privacy-oriented browser blocking trackers and ads", "Latest"], _
-        ["Zalo", "VNGCorp.Zalo", "Instant messaging and social networking app", "Latest|26.10.20"] _
+    ; Curated Catalog with rich descriptions and version options
+    Local $aCatalog[11][5] = [ _
+        ["Git", "Git.Git", "winget", "Fast, scalable, distributed revision control system", "Latest|2.55.0|2.54.0|2.53.0"], _
+        ["Google Chrome", "Google.Chrome", "winget", "Fast and secure web browser by Google", "Latest"], _
+        ["Visual Studio Code", "Microsoft.VisualStudioCode", "winget", "Code editing redefined by Microsoft", "Latest|1.94.0|1.93.0"], _
+        ["7-Zip", "7zip.7zip", "winget", "High compression ratio file archiver", "Latest|24.08|23.01"], _
+        ["Discord", "Discord.Discord", "winget", "Voice, video and text communication service", "Latest"], _
+        ["VLC media player", "VideoLAN.VLC", "winget", "Free and open source cross-platform multimedia player", "Latest|3.0.21|3.0.20"], _
+        ["Notepad++", "Notepad++.Notepad++", "winget", "Free source code editor and Notepad replacement", "Latest|8.7.0|8.6.9"], _
+        ["Python 3.12", "Python.Python.3.12", "winget", "High-level programming language with dynamic semantics", "Latest|3.12.7|3.12.6"], _
+        ["Docker Desktop", "Docker.DockerDesktop", "winget", "Container application development platform", "Latest|4.35.0|4.34.0"], _
+        ["Brave Browser", "Brave.Brave", "winget", "Privacy-oriented browser blocking trackers and ads", "Latest"], _
+        ["Zalo", "VNGCorp.Zalo", "winget", "Instant messaging and social networking app", "Latest|26.10.20"] _
     ]
 
-    ; Attempt CLI winget search
-    Local $sTempOut = @TempDir & "\winget_search_" & @AutoItPID & ".txt"
-    If FileExists($sTempOut) Then FileDelete($sTempOut)
+    ; ----------------------------------------------------
+    ; 1. Query WinGet Repository
+    ; ----------------------------------------------------
+    Local $sWingetOut = @TempDir & "\winget_search_" & @AutoItPID & ".txt"
+    If FileExists($sWingetOut) Then FileDelete($sWingetOut)
 
-    Local $iExit = RunWait(@ComSpec & ' /c chcp 65001 >nul & winget search "' & $sQuery & '" --accept-source-agreements > "' & $sTempOut & '"', @SystemDir, @SW_HIDE)
-    If $iExit = 0 And FileExists($sTempOut) Then
-        Local $hFile = FileOpen($sTempOut, BitOR($FO_READ, $FO_UTF8_NOBOM))
+    Local $iExit = RunWait(@ComSpec & ' /c chcp 65001 >nul & winget search "' & $sQuery & '" --accept-source-agreements > "' & $sWingetOut & '"', @SystemDir, @SW_HIDE)
+    If $iExit = 0 And FileExists($sWingetOut) Then
+        Local $hFile = FileOpen($sWingetOut, BitOR($FO_READ, $FO_UTF8_NOBOM))
         If $hFile <> -1 Then
             Local $sText = FileRead($hFile)
             FileClose($hFile)
-            FileDelete($sTempOut)
+            FileDelete($sWingetOut)
 
             Local $aLines = StringSplit(StringStripCR($sText), @LF)
             Local $iHeaderLine = -1
@@ -1019,7 +1064,6 @@ Func _ViewAppsSearchWinget($sQuery)
                         EndIf
                     EndIf
 
-                    ; Fallback regex if column parsing yielded empty ID
                     If $sId = "" Then
                         Local $aParts = StringRegExp($sLine, '^(.+?)\s+([^\s]+)\s+([^\s]+)', 1)
                         If Not @error And UBound($aParts) >= 3 Then
@@ -1036,8 +1080,8 @@ Func _ViewAppsSearchWinget($sQuery)
 
                         For $c = 0 To UBound($aCatalog, 1) - 1
                             If StringCompare($aCatalog[$c][1], $sId, 1) = 0 Or StringCompare($aCatalog[$c][0], $sName, 1) = 0 Then
-                                $sDesc = $aCatalog[$c][2]
-                                $sVersions = $aCatalog[$c][3]
+                                $sDesc = $aCatalog[$c][3]
+                                $sVersions = $aCatalog[$c][4]
                                 ExitLoop
                             EndIf
                         Next
@@ -1047,30 +1091,94 @@ Func _ViewAppsSearchWinget($sQuery)
                         EndIf
 
                         Local $iNewIdx = UBound($aResults, 1)
-                        ReDim $aResults[$iNewIdx + 1][4]
+                        ReDim $aResults[$iNewIdx + 1][5]
                         $aResults[$iNewIdx][0] = $sName
                         $aResults[$iNewIdx][1] = $sId
-                        $aResults[$iNewIdx][2] = $sDesc
-                        $aResults[$iNewIdx][3] = $sVersions
+                        $aResults[$iNewIdx][2] = "winget"
+                        $aResults[$iNewIdx][3] = $sDesc
+                        $aResults[$iNewIdx][4] = $sVersions
                     EndIf
                 Next
             EndIf
         EndIf
     EndIf
-    If FileExists($sTempOut) Then FileDelete($sTempOut)
+    If FileExists($sWingetOut) Then FileDelete($sWingetOut)
 
-    ; If winget search gave results, return them
+    ; ----------------------------------------------------
+    ; 2. Query Chocolatey Repository (tools/Chocolatey/choco.exe)
+    ; ----------------------------------------------------
+    Local $sChocoExe = _GetChocoPath()
+    If FileExists($sChocoExe) Then
+        Local $sChocoDir = StringLeft($sChocoExe, StringInStr($sChocoExe, "\", 0, -1) - 1)
+        EnvSet("ChocolateyInstall", $sChocoDir)
+
+        Local $sChocoOut = @TempDir & "\choco_search_" & @AutoItPID & ".txt"
+        If FileExists($sChocoOut) Then FileDelete($sChocoOut)
+
+        Local $iChocoExit = RunWait(@ComSpec & ' /c chcp 65001 >nul & "' & $sChocoExe & '" search "' & $sQuery & '" --limit-output > "' & $sChocoOut & '"', $sChocoDir, @SW_HIDE)
+        If $iChocoExit = 0 And FileExists($sChocoOut) Then
+            Local $hChocoFile = FileOpen($sChocoOut, BitOR($FO_READ, $FO_UTF8_NOBOM))
+            If $hChocoFile <> -1 Then
+                Local $sChocoText = FileRead($hChocoFile)
+                FileClose($hChocoFile)
+                FileDelete($sChocoOut)
+
+                Local $aChocoLines = StringSplit(StringStripCR($sChocoText), @LF)
+                For $c = 1 To $aChocoLines[0]
+                    Local $sCLine = StringStripWS($aChocoLines[$c], 3)
+                    If $sCLine = "" Or StringInStr($sCLine, "Directory '") Or StringInStr($sCLine, "Chocolatey v") Then ContinueLoop
+
+                    If StringInStr($sCLine, "|") Then
+                        Local $aCParts = StringSplit($sCLine, "|")
+                        If $aCParts[0] >= 2 Then
+                            Local $sCId = StringStripWS($aCParts[1], 3)
+                            Local $sCVer = StringStripWS($aCParts[2], 3)
+                            Local $sCName = $sCId
+
+                            Local $sCDesc = ""
+                            Local $sCVers = "Latest|" & $sCVer
+
+                            For $cat = 0 To UBound($aCatalog, 1) - 1
+                                If StringCompare($aCatalog[$cat][1], $sCId, 1) = 0 Then
+                                    $sCName = $aCatalog[$cat][0]
+                                    $sCDesc = $aCatalog[$cat][3]
+                                    $sCVers = $aCatalog[$cat][4]
+                                    ExitLoop
+                                EndIf
+                            Next
+
+                            If $sCDesc = "" Then
+                                $sCDesc = StringFormat(i18nGet("apps.online.desc.choco", "%s package from Chocolatey repository"), $sCName)
+                            EndIf
+
+                            Local $iCIdx = UBound($aResults, 1)
+                            ReDim $aResults[$iCIdx + 1][5]
+                            $aResults[$iCIdx][0] = $sCName
+                            $aResults[$iCIdx][1] = $sCId
+                            $aResults[$iCIdx][2] = "choco"
+                            $aResults[$iCIdx][3] = $sCDesc
+                            $aResults[$iCIdx][4] = $sCVers
+                        EndIf
+                    EndIf
+                Next
+            EndIf
+        EndIf
+        If FileExists($sChocoOut) Then FileDelete($sChocoOut)
+    EndIf
+
+    ; If search gave results, return them
     If UBound($aResults, 1) > 0 Then Return $aResults
 
     ; Fallback Catalog matching
-    For $j = 0 To UBound($aCatalog, 1) - 1
-        If StringInStr($aCatalog[$j][0], $sQuery) > 0 Or StringInStr($aCatalog[$j][1], $sQuery) > 0 Then
+    For $k = 0 To UBound($aCatalog, 1) - 1
+        If StringInStr($aCatalog[$k][0], $sQuery) > 0 Or StringInStr($aCatalog[$k][1], $sQuery) > 0 Then
             Local $iCur = UBound($aResults, 1)
-            ReDim $aResults[$iCur + 1][4]
-            $aResults[$iCur][0] = $aCatalog[$j][0]
-            $aResults[$iCur][1] = $aCatalog[$j][1]
-            $aResults[$iCur][2] = $aCatalog[$j][2]
-            $aResults[$iCur][3] = $aCatalog[$j][3]
+            ReDim $aResults[$iCur + 1][5]
+            $aResults[$iCur][0] = $aCatalog[$k][0]
+            $aResults[$iCur][1] = $aCatalog[$k][1]
+            $aResults[$iCur][2] = $aCatalog[$k][2]
+            $aResults[$iCur][3] = $aCatalog[$k][3]
+            $aResults[$iCur][4] = $aCatalog[$k][4]
         EndIf
     Next
 
@@ -1090,7 +1198,7 @@ Func _ViewAppsShowAddDialog()
     _GUICtrlStatusBar_SetText($hStatus, i18nGet("apps.dialog.status.ready", "Ready"), 0)
 
     ; Group 1: Search & Selection
-    Local $idSearchGroup = GUICtrlCreateGroup(i18nGet("apps.dialog.group.search", "Search & Selection"), 12, 10, 536, 205)
+    Local $idSearchGroup = GUICtrlCreateGroup(i18nGet("apps.dialog.group.search", "Search Apps"), 12, 10, 536, 205)
     Local $idNameInput = GUICtrlCreateInput("", 24, 34, 406, 24)
     _SetCueBannerW($idNameInput, i18nGet("apps.dialog.appname.placeholder", "App Name"), True)
     GUICtrlSetTip($idNameInput, i18nGet("apps.dialog.appname.tip", "Enter app name to search in winget repository"))
@@ -1105,12 +1213,14 @@ Func _ViewAppsShowAddDialog()
     ; Search Results List (Columns: Name, ID, Version)
     Local $sColHeaders = i18nGet("apps.dialog.col.name", "App name") & "|" & _
         i18nGet("apps.dialog.col.id", "App ID") & "|" & _
+        i18nGet("apps.dialog.col.manager", "Manager") & "|" & _
         i18nGet("apps.dialog.col.version", "Version")
     Local $idResultsList = GUICtrlCreateListView($sColHeaders, 24, 68, 512, 136)
     _GUICtrlListView_SetExtendedListViewStyle($idResultsList, BitOR($LVS_EX_FULLROWSELECT, $LVS_EX_GRIDLINES))
-    _GUICtrlListView_SetColumnWidth($idResultsList, 0, 180)
-    _GUICtrlListView_SetColumnWidth($idResultsList, 1, 200)
-    _GUICtrlListView_SetColumnWidth($idResultsList, 2, 110)
+    _GUICtrlListView_SetColumnWidth($idResultsList, 0, 160)
+    _GUICtrlListView_SetColumnWidth($idResultsList, 1, 165)
+    _GUICtrlListView_SetColumnWidth($idResultsList, 2, 75)
+    _GUICtrlListView_SetColumnWidth($idResultsList, 3, 95)
     GUICtrlCreateGroup("", -99, -99, 1, 1)
 
     ; Group 2: Package Configuration
@@ -1168,6 +1278,7 @@ Func _ViewAppsShowAddDialog()
     Local $aCurSearchResults[0][4]
     Local $sLastSelIndices = "-1"
     Local $sCurSelectedId = ""
+    Local $sCurSelectedManager = "winget"
     Local $bApplied = False
 
     While 1
@@ -1178,11 +1289,13 @@ Func _ViewAppsShowAddDialog()
             Local $iIdx = Number($sCurSel)
             If $iIdx >= 0 And $iIdx < UBound($aCurSearchResults, 1) Then
                 $sCurSelectedId = $aCurSearchResults[$iIdx][1]
+                $sCurSelectedManager = $aCurSearchResults[$iIdx][2]
+                Local $sSelectedMgr = $aCurSearchResults[$iIdx][2]
                 GUICtrlSetData($idAppNameInput, $aCurSearchResults[$iIdx][0])
-                GUICtrlSetData($idDescInput, $aCurSearchResults[$iIdx][2])
+                GUICtrlSetData($idDescInput, $aCurSearchResults[$iIdx][3])
 
                 ; Update Version dropdown options
-                Local $sAppVers = $aCurSearchResults[$iIdx][3]
+                Local $sAppVers = $aCurSearchResults[$iIdx][4]
                 If $sAppVers = "" Then $sAppVers = i18nGet("apps.online.status.latest", "Latest")
                 If Not StringInStr($sAppVers, i18nGet("apps.online.status.latest", "Latest")) Then
                     $sAppVers = i18nGet("apps.online.status.latest", "Latest") & "|" & $sAppVers
@@ -1216,17 +1329,18 @@ Func _ViewAppsShowAddDialog()
                 _GUICtrlListView_DeleteAllItems(GUICtrlGetHandle($idResultsList))
                 $sLastSelIndices = "-1"
                 $sCurSelectedId = ""
-                $aCurSearchResults = _ViewAppsSearchWinget($sQ)
+                $aCurSearchResults = _ViewAppsSearchPackages($sQ)
                 If UBound($aCurSearchResults, 1) > 0 Then
                     For $k = 0 To UBound($aCurSearchResults, 1) - 1
                         Local $iRow = _GUICtrlListView_AddItem(GUICtrlGetHandle($idResultsList), $aCurSearchResults[$k][0])
                         _GUICtrlListView_AddSubItem(GUICtrlGetHandle($idResultsList), $iRow, $aCurSearchResults[$k][1], 1)
-                        Local $sFirstVer = $aCurSearchResults[$k][3]
+                        _GUICtrlListView_AddSubItem(GUICtrlGetHandle($idResultsList), $iRow, $aCurSearchResults[$k][2], 2) ; Manager
+                        Local $sFirstVer = $aCurSearchResults[$k][4]
                         If StringInStr($sFirstVer, "|") Then
                             Local $aVParts = StringSplit($sFirstVer, "|")
                             $sFirstVer = ($aVParts[0] >= 2) ? $aVParts[2] : $aVParts[1]
                         EndIf
-                        _GUICtrlListView_AddSubItem(GUICtrlGetHandle($idResultsList), $iRow, $sFirstVer, 2)
+                        _GUICtrlListView_AddSubItem(GUICtrlGetHandle($idResultsList), $iRow, $sFirstVer, 3)
                     Next
                     _GUICtrlListView_SetItemSelected(GUICtrlGetHandle($idResultsList), 0, True, True)
                     _GUICtrlStatusBar_SetText($hStatus, i18nGet("apps.dialog.status.ready", "Ready"), 0)
@@ -1285,14 +1399,19 @@ Func _ViewAppsShowAddDialog()
                 Local $sFinalId = ($sCurSelectedId <> "") ? $sCurSelectedId : $sFinalName
 
                 Local $iNewItem = _GUICtrlListView_AddItem($hViewAppsOnlineTable, $sFinalName)
-                _GUICtrlListView_AddSubItem($hViewAppsOnlineTable, $iNewItem, $sFinalDesc, 1)
-                _GUICtrlListView_AddSubItem($hViewAppsOnlineTable, $iNewItem, $sFinalVer, 2)
-                _GUICtrlListView_AddSubItem($hViewAppsOnlineTable, $iNewItem, $sFinalSc, 3)
-                _GUICtrlListView_AddSubItem($hViewAppsOnlineTable, $iNewItem, $sFinalLoc, 4)
+                _GUICtrlListView_AddSubItem($hViewAppsOnlineTable, $iNewItem, $sCurSelectedManager, 1)
+                _GUICtrlListView_AddSubItem($hViewAppsOnlineTable, $iNewItem, $sFinalDesc, 2)
+                _GUICtrlListView_AddSubItem($hViewAppsOnlineTable, $iNewItem, $sFinalVer, 3)
+                _GUICtrlListView_AddSubItem($hViewAppsOnlineTable, $iNewItem, $sFinalSc, 4)
+                _GUICtrlListView_AddSubItem($hViewAppsOnlineTable, $iNewItem, $sFinalLoc, 5)
                 _GUICtrlListView_SetItemChecked($hViewAppsOnlineTable, $iNewItem, True)
 
-                If $iNewItem >= UBound($g_aViewAppsOnlineIds) Then ReDim $g_aViewAppsOnlineIds[$iNewItem + 32]
+                If $iNewItem >= UBound($g_aViewAppsOnlineIds) Then
+                    ReDim $g_aViewAppsOnlineIds[$iNewItem + 32]
+                    ReDim $g_aViewAppsOnlineManagers[$iNewItem + 32]
+                EndIf
                 $g_aViewAppsOnlineIds[$iNewItem] = $sFinalId
+                $g_aViewAppsOnlineManagers[$iNewItem] = $sCurSelectedManager
                 $g_iViewAppsOnlineCount = $iNewItem + 1
 
                 $bApplied = True
@@ -1314,10 +1433,11 @@ Func _ViewAppsShowEditDialog()
     Local $iRow = Number($sSel)
 
     Local $sCurName = _GUICtrlListView_GetItemText($hViewAppsOnlineTable, $iRow, 0)
-    Local $sCurDesc = _GUICtrlListView_GetItemText($hViewAppsOnlineTable, $iRow, 1)
-    Local $sCurVer = _GUICtrlListView_GetItemText($hViewAppsOnlineTable, $iRow, 2)
-    Local $sCurSc = _GUICtrlListView_GetItemText($hViewAppsOnlineTable, $iRow, 3)
-    Local $sCurLoc = _GUICtrlListView_GetItemText($hViewAppsOnlineTable, $iRow, 4)
+    Local $sCurManager = _GUICtrlListView_GetItemText($hViewAppsOnlineTable, $iRow, 1)
+    Local $sCurDesc = _GUICtrlListView_GetItemText($hViewAppsOnlineTable, $iRow, 2)
+    Local $sCurVer = _GUICtrlListView_GetItemText($hViewAppsOnlineTable, $iRow, 3)
+    Local $sCurSc = _GUICtrlListView_GetItemText($hViewAppsOnlineTable, $iRow, 4)
+    Local $sCurLoc = _GUICtrlListView_GetItemText($hViewAppsOnlineTable, $iRow, 5)
 
     Local $hEditDlg = GUICreate(i18nGet("apps.dialog.edit.title", "Edit App") & " - " & $sCurName, 560, 420, -1, -1, BitOR($WS_CAPTION, $WS_SYSMENU), $WS_EX_TOPMOST, $hViewApps)
     GUISetBkColor(themeColor("main.view.bg"), $hEditDlg)
@@ -1438,9 +1558,9 @@ Func _ViewAppsShowEditDialog()
                 Local $sNewSc = GUICtrlRead($idShortcutCmb)
                 Local $sNewLoc = (GUICtrlRead($idCustomPathCkbx) = $GUI_CHECKED And StringStripWS(GUICtrlRead($idLocationInput), 3) <> "") ? GUICtrlRead($idLocationInput) : i18nGet("apps.online.status.default", "Default")
 
-                _GUICtrlListView_SetItemText($hViewAppsOnlineTable, $iRow, $sNewVer, 2)
-                _GUICtrlListView_SetItemText($hViewAppsOnlineTable, $iRow, $sNewSc, 3)
-                _GUICtrlListView_SetItemText($hViewAppsOnlineTable, $iRow, $sNewLoc, 4)
+                _GUICtrlListView_SetItemText($hViewAppsOnlineTable, $iRow, $sNewVer, 3)
+                _GUICtrlListView_SetItemText($hViewAppsOnlineTable, $iRow, $sNewSc, 4)
+                _GUICtrlListView_SetItemText($hViewAppsOnlineTable, $iRow, $sNewLoc, 5)
 
                 $bApplied = True
                 ExitLoop
@@ -1524,7 +1644,7 @@ EndFunc
 
 Func _ViewAppsResetAllSettings()
     ; 1. Reset Mode Slider to Online (2)
-    _ViewAppsUpdateModeState(2)
+    _ViewAppsUpdateModeState(3)
 
     ; 2. Reset Online Apps list to empty
     _ViewAppsOnlineReset()
@@ -1553,7 +1673,7 @@ Func viewAppsApplyLang()
 
     ; Header Mode Slider
     GUICtrlSetData($hViewAppsModeGroup, i18nGet("apps.mode.title", "Installation Mode"))
-    GUICtrlSetTip($hViewAppsModeGroup, i18nGet("apps.mode.tip", "Switch between Disabled, Offline, and Online installation modes"))
+    GUICtrlSetTip($hViewAppsModeGroup, i18nGet("apps.mode.tip", "Switch between Disabled, Offline, Online, and Hybrid installation modes"))
     GUICtrlSetData($idViewAppsModeLbl, i18nGet("apps.mode.label", "Installation Mode: "))
     GUICtrlSetData($idViewAppsModeDisLbl, i18nGet("apps.mode.disabled.label", "Disabled"))
     GUICtrlSetTip($idViewAppsModeDisLbl, i18nGet("apps.mode.disabled.tip", "Disable all apps installation"))
@@ -1561,6 +1681,8 @@ Func viewAppsApplyLang()
     GUICtrlSetTip($idViewAppsModeOffLbl, i18nGet("apps.mode.offline.tip", "Install applications from local offline packages"))
     GUICtrlSetData($idViewAppsModeOnlLbl, i18nGet("apps.mode.online.label", "Online"))
     GUICtrlSetTip($idViewAppsModeOnlLbl, i18nGet("apps.mode.online.tip", "Install applications online using winget package manager"))
+    GUICtrlSetData($idViewAppsModeHybLbl, i18nGet("apps.mode.hybrid.label", "Hybrid"))
+    GUICtrlSetTip($idViewAppsModeHybLbl, i18nGet("apps.mode.hybrid.tip", "Install applications from both Online and Offline libraries"))
 
     ; Section 1: Online Apps Library
     GUICtrlSetData($hViewAppsOnlineGroup, i18nGet("apps.online.title", "Online Apps Library"))
@@ -1570,10 +1692,11 @@ Func viewAppsApplyLang()
     GUICtrlSetTip($idViewAppsOnlineResetBtn, i18nGet("apps.online.btn.reset.tip", "Reset online applications list to empty"))
 
     _GUICtrlListView_SetColumn($idViewAppsOnlineTable, 0, i18nGet("apps.online.col.name", "App name"))
-    _GUICtrlListView_SetColumn($idViewAppsOnlineTable, 1, i18nGet("apps.online.col.description", "Description"))
-    _GUICtrlListView_SetColumn($idViewAppsOnlineTable, 2, i18nGet("apps.online.col.version", "Version"))
-    _GUICtrlListView_SetColumn($idViewAppsOnlineTable, 3, i18nGet("apps.online.col.shortcut", "Shortcut"))
-    _GUICtrlListView_SetColumn($idViewAppsOnlineTable, 4, i18nGet("apps.online.col.location", "Location"))
+    _GUICtrlListView_SetColumn($idViewAppsOnlineTable, 1, i18nGet("apps.online.col.manager", "Manager"))
+    _GUICtrlListView_SetColumn($idViewAppsOnlineTable, 2, i18nGet("apps.online.col.description", "Description"))
+    _GUICtrlListView_SetColumn($idViewAppsOnlineTable, 3, i18nGet("apps.online.col.version", "Version"))
+    _GUICtrlListView_SetColumn($idViewAppsOnlineTable, 4, i18nGet("apps.online.col.shortcut", "Shortcut"))
+    _GUICtrlListView_SetColumn($idViewAppsOnlineTable, 5, i18nGet("apps.online.col.location", "Path"))
 
     GUICtrlSetData($idViewAppsOnlineSelectAllBtn, i18nGet("apps.online.btn.select_all", "Select All"))
     GUICtrlSetTip($idViewAppsOnlineSelectAllBtn, i18nGet("apps.online.btn.select_all.tip", "Select all applications in the online list"))
@@ -1592,7 +1715,7 @@ Func viewAppsApplyLang()
     GUICtrlSetData($idViewAppsResetBtn, i18nGet("apps.btn.reset", "Reset"))
     GUICtrlSetTip($idViewAppsResetBtn, i18nGet("apps.btn.reset.tip", "Deselect all applications for installation"))
 
-    _GUICtrlListView_SetColumn($idViewAppsTable, 0, i18nGet("apps.col.name", "Name"))
+    _GUICtrlListView_SetColumn($idViewAppsTable, 0, i18nGet("apps.col.name", "App name"))
     _GUICtrlListView_SetColumn($idViewAppsTable, 1, i18nGet("apps.col.description", "Description"))
     _GUICtrlListView_SetColumn($idViewAppsTable, 2, i18nGet("apps.col.version", "Version"))
     _GUICtrlListView_SetColumn($idViewAppsTable, 3, i18nGet("apps.col.shortcut", "Shortcut"))
@@ -1636,7 +1759,7 @@ Func viewAppsApplyLang()
     GUICtrlSetTip($idViewAppsFontsResetBtn, i18nGet("apps.fonts.btn.reset.tip", "Reload all fonts from apps/Fonts directory and select all"))
 
     _GUICtrlListView_SetColumn($idViewAppsFontsTable, 0, i18nGet("apps.fonts.col.name", "Font name"))
-    _GUICtrlListView_SetColumn($idViewAppsFontsTable, 1, i18nGet("apps.fonts.col.location", "Location"))
+    _GUICtrlListView_SetColumn($idViewAppsFontsTable, 1, i18nGet("apps.fonts.col.location", "Path"))
 
     GUICtrlSetData($idViewAppsFontsSelectAllBtn, i18nGet("apps.fonts.btn.select_all", "Select All"))
     GUICtrlSetTip($idViewAppsFontsSelectAllBtn, i18nGet("apps.fonts.btn.select_all.tip", "Select all fonts in the table"))
@@ -1737,6 +1860,8 @@ Func viewAppsApplyTheme()
     GUICtrlSetBkColor($idViewAppsModeOffLbl, themeColor("main.view.bg"))
     GUICtrlSetColor($idViewAppsModeOnlLbl, themeColor("text.primary"))
     GUICtrlSetBkColor($idViewAppsModeOnlLbl, themeColor("main.view.bg"))
+    GUICtrlSetColor($idViewAppsModeHybLbl, themeColor("text.primary"))
+    GUICtrlSetBkColor($idViewAppsModeHybLbl, themeColor("main.view.bg"))
 
     GUICtrlSetColor($idViewAppsOnlineInfoLbl, themeColor("text.primary"))
     GUICtrlSetBkColor($idViewAppsOnlineInfoLbl, themeColor("main.view.bg"))
@@ -1821,6 +1946,9 @@ Func viewAppsHandleEvent($idMsg)
 
         Case $idViewAppsModeOnlLbl
             _ViewAppsUpdateModeState(2)
+
+        Case $idViewAppsModeHybLbl
+            _ViewAppsUpdateModeState(3)
 
         Case $idViewAppsModeSlider
             _ViewAppsUpdateModeState(GUICtrlRead($idViewAppsModeSlider))

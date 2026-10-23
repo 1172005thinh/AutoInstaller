@@ -244,12 +244,12 @@ EndFunc
 
 _InitEnvironment()
 
-Local $iMode = Int(IniRead($g_sConfigPath, "Configuration", "mode", "2"))
+Local $iMode = Int(IniRead($g_sConfigPath, "Configuration", "mode", "3"))
 If $iMode = 0 Then
     _LogRunner("Applications installation is disabled (mode=0). Skipping.")
     Exit 0
-ElseIf $iMode = 2 Then
-    _LogRunner("Online mode configured (mode=2). Delegating to apps/install.au3...")
+ElseIf $iMode = 2 Or $iMode = 3 Then
+    _LogRunner("Mode " & $iMode & " configured. Delegating to apps/install.au3...")
     Local $sAutoItExe = @AutoItExe
     If Not FileExists($sAutoItExe) Then $sAutoItExe = @ScriptDir & "\..\tools\AutoIt\AutoIt3_x64.exe"
     If Not FileExists($sAutoItExe) Then $sAutoItExe = "AutoIt3.exe"

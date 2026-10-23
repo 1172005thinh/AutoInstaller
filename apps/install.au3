@@ -130,6 +130,22 @@ EndFunc
 ; System & Network Prerequisite Checks
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+Func _GetChocoPath()
+    If FileExists(@ScriptDir & "\tools\Chocolatey\choco.exe") Then Return @ScriptDir & "\tools\Chocolatey\choco.exe"
+    If FileExists(@ScriptDir & "\..\tools\Chocolatey\choco.exe") Then Return @ScriptDir & "\..\tools\Chocolatey\choco.exe"
+    If FileExists(_GetAppsDir() & "\..\tools\Chocolatey\choco.exe") Then Return _GetAppsDir() & "\..\tools\Chocolatey\choco.exe"
+    Local $sSysChoco = @SystemDir & "\choco.exe"
+    If FileExists($sSysChoco) Then Return $sSysChoco
+    Return "choco.exe"
+EndFunc
+
+Func _IsChocoAvailable()
+    Local $sChocoExe = _GetChocoPath()
+    If FileExists($sChocoExe) Then Return True
+    Local $iExit = RunWait(@ComSpec & " /c choco --version", @SystemDir, @SW_HIDE)
+    Return ($iExit = 0)
+EndFunc
+
 Func _IsWingetAvailable()
     Local $iExit = RunWait(@ComSpec & " /c winget --version", @SystemDir, @SW_HIDE)
     Return ($iExit = 0)
@@ -182,6 +198,54 @@ Func _InstallOnlineApp($sId, $sName, $sVersion = "Latest", $sLocation = "Default
         Return 10
     Else
         _Log("ERROR: winget failed for " & $sName & " with exit code: " & $iExitCode)
+        Return $iExitCode
+    EndIf
+EndFunc
+
+Func _InstallChocoApp($sId, $sName, $sVersion = "Latest", $sLocation = "Default", $bShortcut = False)
+    If Not _IsChocoAvailable() Then
+        _Log("WARNING: choco package manager is not available. Skipping online installation for: " & $sName & " (" & $sId & ")")
+        Return 0
+    EndIf
+
+    If Not _IsInternetAvailable() Then
+        _Log("WARNING: No active Internet connection detected. Skipping online installation for: " & $sName & " (" & $sId & ")")
+        Return 0
+    EndIf
+
+    Local $sChocoExe = _GetChocoPath()
+    Local $sChocoDir = @TempDir
+    If FileExists($sChocoExe) Then
+        $sChocoDir = StringLeft($sChocoExe, StringInStr($sChocoExe, "\", 0, -1) - 1)
+        EnvSet("ChocolateyInstall", $sChocoDir)
+    EndIf
+
+    Local $sCmd = '"' & $sChocoExe & '" install "' & $sId & '" -y --no-progress --accept-license'
+    If $sVersion <> "" And StringLower($sVersion) <> "latest" Then
+        $sCmd &= ' --version="' & $sVersion & '"'
+    EndIf
+    If $sLocation <> "" And StringLower($sLocation) <> "default" Then
+        $sCmd &= ' --install-args="INSTALLDIR=\"' & $sLocation & '\""'
+    EndIf
+
+    _Log("INFO: Installing online package: " & $sName & " (" & $sId & ") via choco: " & $sCmd)
+    Local $iExitCode = RunWait($sCmd, $sChocoDir, @SW_HIDE)
+    _Log("INFO: choco process completed for " & $sId & " with exit code: " & $iExitCode)
+
+    If ($iExitCode = 0 Or $iExitCode = 3010 Or $iExitCode = 1641) Then
+        _Log("INFO: Online installation succeeded for " & $sName & ".")
+        If $bShortcut Then
+            _CreateOnlineShortcut($sName)
+        EndIf
+        Return 0
+    ElseIf $iExitCode = 10 Then
+        _Log("INFO: Online package " & $sName & " is already installed (code 10).")
+        If $bShortcut Then
+            _CreateOnlineShortcut($sName)
+        EndIf
+        Return 10
+    Else
+        _Log("ERROR: choco failed for " & $sName & " with exit code: " & $iExitCode)
         Return $iExitCode
     EndIf
 EndFunc
@@ -260,11 +324,16 @@ Func _RunOnlineBatch()
 
             Local $sId = IniRead($sConfig, $sSec, "id", StringTrimLeft($sSec, 7))
             Local $sName = IniRead($sConfig, $sSec, "name", $sId)
+            Local $sManager = StringLower(IniRead($sConfig, $sSec, "manager", "winget"))
             Local $sVer = IniRead($sConfig, $sSec, "version", "Latest")
             Local $sLoc = IniRead($sConfig, $sSec, "location", "Default")
             Local $bSc = (StringLower(IniRead($sConfig, $sSec, "shortcut", "false")) = "true")
 
-            _InstallOnlineApp($sId, $sName, $sVer, $sLoc, $bSc)
+            If $sManager = "choco" Or $sManager = "chocolatey" Then
+                _InstallChocoApp($sId, $sName, $sVer, $sLoc, $bSc)
+            Else
+                _InstallOnlineApp($sId, $sName, $sVer, $sLoc, $bSc)
+            EndIf
         EndIf
     Next
 EndFunc
@@ -287,7 +356,7 @@ Func _RunBatchInstallation()
         Exit 20
     EndIf
 
-    Local $iMode = Int(IniRead($sConfig, "Configuration", "mode", "2"))
+    Local $iMode = Int(IniRead($sConfig, "Configuration", "mode", "3"))
     _Log("INFO: Master apps installation started with configured mode: " & $iMode)
 
     Switch $iMode
@@ -301,17 +370,21 @@ Func _RunBatchInstallation()
 
         Case 2 ; Online Mode
             _Log("INFO: Running Online applications installation...")
-            If Not _IsWingetAvailable() Then
-                _Log("WARNING: winget package manager is not available. Skipping online apps installation to proceed to next step.")
-                Exit 0
-            EndIf
-
             If Not _IsInternetAvailable() Then
                 _Log("WARNING: No active Internet connection detected. Skipping online apps installation to proceed to next step.")
                 Exit 0
             EndIf
-
             _RunOnlineBatch()
+
+        Case 3 ; Hybrid Mode (Offline first, then Online)
+            _Log("INFO: Running Hybrid applications installation (Offline first, then Online)...")
+            _RunOfflineBatch()
+
+            If Not _IsInternetAvailable() Then
+                _Log("WARNING: No active Internet connection detected. Skipping online apps installation in Hybrid mode.")
+            Else
+                _RunOnlineBatch()
+            EndIf
 
         Case Else
             _Log("WARNING: Unrecognized installation mode: " & $iMode & ". Skipping.")
@@ -537,10 +610,17 @@ If $g_sAppId = "" Or $g_sAppId = "--all" Or $g_sAppId = "--batch" Then
 ElseIf StringLeft($g_sAppId, 7) = "Online_" Or (StringInStr($g_sAppId, ".") > 0 And Not FileExists($g_sAppId)) Then
     Local $sConfig = _GetConfigPath()
     Local $sSec = (StringLeft($g_sAppId, 7) = "Online_") ? $g_sAppId : "Online_" & $g_sAppId
-    Local $sName = IniRead($sConfig, $sSec, "name", $g_sAppId)
+    Local $sId = IniRead($sConfig, $sSec, "id", (StringLeft($g_sAppId, 7) = "Online_") ? StringTrimLeft($g_sAppId, 7) : $g_sAppId)
+    Local $sName = IniRead($sConfig, $sSec, "name", $sId)
+    Local $sManager = StringLower(IniRead($sConfig, $sSec, "manager", "winget"))
     Local $sVer = IniRead($sConfig, $sSec, "version", "Latest")
     Local $sLoc = IniRead($sConfig, $sSec, "location", "Default")
-    Local $iExit = _InstallOnlineApp($g_sAppId, $sName, $sVer, $sLoc, $g_bShortcut)
+    Local $iExit = 0
+    If $sManager = "choco" Or $sManager = "chocolatey" Then
+        $iExit = _InstallChocoApp($sId, $sName, $sVer, $sLoc, $g_bShortcut)
+    Else
+        $iExit = _InstallOnlineApp($sId, $sName, $sVer, $sLoc, $g_bShortcut)
+    EndIf
     Exit $iExit
 Else
     _RunInstallation()
