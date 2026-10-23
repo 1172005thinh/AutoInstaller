@@ -315,7 +315,7 @@ Func viewAppsCreate($hViewport, $iW, $iH)
     $idViewAppsFontsInstLbl = GUICtrlCreateLabel(i18nGet("apps.fonts.install.label", "Install"), $iP * 3 + $iLblW + $iFontsTickColW, $iFontsTickY, $iFontsTickColW, $iLblH, $SS_RIGHT)
 
     ; Fonts Table Header & Reset Button
-    $iItemY += $iRowH + $iP
+    $iItemY += $iRowH + $iP * 2
     $idViewAppsFontsAvailableLbl = GUICtrlCreateLabel(i18nGet("apps.fonts.available.label", "Available Fonts: "), $iX, $iItemY + $iPx, $iTableW - $iBtnW - $iP, $iLblH)
     $idViewAppsFontsResetBtn = GUICtrlCreateButton(i18nGet("apps.fonts.btn.reset", "Reset"), ($iX + $iTableW) - $iBtnW, $iItemY - $iPx, $iBtnW, $iBtnH)
 
