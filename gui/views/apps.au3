@@ -102,7 +102,7 @@ Func viewAppsCreate($hViewport, $iW, $iH)
     ; Section 1: Apps Library
     ; =========================================
     $iY += $iCtrlH + $iP
-    Local $iLibGroupH = $iRowH * 12 + $iP * 8
+    Local $iLibGroupH = $iRowH * 12 + $iP * 6
     $hViewAppsLibraryGroup = GUICtrlCreateGroup("", $iX, $iY, $iContentW, $iLibGroupH)
 
     ; Table Header & Reset Button Row
