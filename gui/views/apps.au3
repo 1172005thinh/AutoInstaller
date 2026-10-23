@@ -152,7 +152,7 @@ Func viewAppsCreate($hViewport, $iW, $iH)
     ; Header: Mode Selection Slider
     ; =========================================
     $iY += $iCtrlH + $iP
-    Local $iModeGroupH = $iRowH * 2 + $iP * 4
+    Local $iModeGroupH = $iRowH * 2 + $iP * 2
     $hViewAppsModeGroup = GUICtrlCreateGroup("", $iX, $iY, $iContentW, $iModeGroupH)
 
     $iX = $iP * 3
@@ -174,7 +174,7 @@ Func viewAppsCreate($hViewport, $iW, $iH)
     ; =========================================
     $iX = $iP
     $iY += $iModeGroupH + $iP
-    Local $iOnlineGroupH = $iRowH * 10 + $iP * 8
+    Local $iOnlineGroupH = $iRowH * 10 + $iP * 7
     $hViewAppsOnlineGroup = GUICtrlCreateGroup("", $iX, $iY, $iContentW, $iOnlineGroupH)
 
     $iX = $iP * 3
@@ -186,7 +186,7 @@ Func viewAppsCreate($hViewport, $iW, $iH)
     $idViewAppsOnlineResetBtn = GUICtrlCreateButton(i18nGet("apps.online.btn.reset", "Reset"), ($iX + $iTableW) - $iBtnW, $iItemY - $iPx, $iBtnW, $iBtnH)
 
     $iItemY += $iRowH + $iP
-    Local $iOnlineTableH = $iRowH * 6
+    Local $iOnlineTableH = $iRowH * 8
     Local $sOnlineHeaders = i18nGet("apps.online.col.name", "App name") & "|" & _
         i18nGet("apps.online.col.description", "Description") & "|" & _
         i18nGet("apps.online.col.version", "Version") & "|" & _
@@ -196,11 +196,11 @@ Func viewAppsCreate($hViewport, $iW, $iH)
     $hViewAppsOnlineTable = GUICtrlGetHandle($idViewAppsOnlineTable)
     _GUICtrlListView_SetExtendedListViewStyle($idViewAppsOnlineTable, BitOR($LVS_EX_CHECKBOXES, $LVS_EX_FULLROWSELECT, $LVS_EX_GRIDLINES))
 
-    Local $iOnCol0W = Int($iTableW * 25 / 100) ; App name
-    Local $iOnCol1W = Int($iTableW * 32 / 100) ; Description
+    Local $iOnCol0W = Int($iTableW * 27 / 100) ; App name
+    Local $iOnCol1W = Int($iTableW * 34 / 100) ; Description
     Local $iOnCol2W = Int($iTableW * 13 / 100) ; Version
-    Local $iOnCol3W = Int($iTableW * 10 / 100) ; Shortcut
-    Local $iOnCol4W = $iTableW - ($iOnCol0W + $iOnCol1W + $iOnCol2W + $iOnCol3W) - $iPx ; Location
+    Local $iOnCol3W = Int($iTableW * 12 / 100) ; Shortcut
+    Local $iOnCol4W = $iTableW - ($iOnCol0W + $iOnCol1W + $iOnCol2W + $iOnCol3W) - 2 * $iP - 2 * $iPx ; Location
 
     _GUICtrlListView_SetColumnWidth($idViewAppsOnlineTable, 0, $iOnCol0W)
     _GUICtrlListView_SetColumnWidth($idViewAppsOnlineTable, 1, $iOnCol1W)
@@ -223,7 +223,7 @@ Func viewAppsCreate($hViewport, $iW, $iH)
     ; =========================================
     $iX = $iP
     $iY += $iOnlineGroupH + $iP
-    Local $iOfflineGroupH = $iRowH * 12 + $iP * 8
+    Local $iOfflineGroupH = $iRowH * 12 + $iP * 6
     $hViewAppsOfflineGroup = GUICtrlCreateGroup("", $iX, $iY, $iContentW, $iOfflineGroupH)
 
     $iX = $iP * 3
@@ -247,7 +247,7 @@ Func viewAppsCreate($hViewport, $iW, $iH)
     Local $iCol1W = Int($iTableW * 34 / 100) ; Description
     Local $iCol2W = Int($iTableW * 13 / 100) ; Version
     Local $iCol3W = Int($iTableW * 12 / 100) ; Shortcut
-    Local $iCol4W = $iTableW - ($iCol0W + $iCol1W + $iCol2W + $iCol3W) - $iPx ; Ready
+    Local $iCol4W = $iTableW - ($iCol0W + $iCol1W + $iCol2W + $iCol3W) - 2 * $iP - 2 * $iPx ; Ready
 
     _GUICtrlListView_SetColumnWidth($idViewAppsTable, 0, $iCol0W)
     _GUICtrlListView_SetColumnWidth($idViewAppsTable, 1, $iCol1W)
@@ -298,7 +298,7 @@ Func viewAppsCreate($hViewport, $iW, $iH)
     ; =========================================
     $iX = $iP
     $iY += $iOfflineGroupH + $iP
-    Local $iFontsGroupH = $iRowH * 10 + $iP * 8
+    Local $iFontsGroupH = $iRowH * 10 + $iP * 12
     $hViewAppsFontsGroup = GUICtrlCreateGroup("", $iX, $iY, $iContentW, $iFontsGroupH)
 
     $iX = $iP * 3
@@ -321,7 +321,7 @@ Func viewAppsCreate($hViewport, $iW, $iH)
 
     ; Fonts ListView Table
     $iItemY += $iRowH + $iP
-    Local $iFontsTableH = $iRowH * 5
+    Local $iFontsTableH = $iRowH * 8
     Local $sFontsHeaders = i18nGet("apps.fonts.col.name", "Font name") & "|" & _
         i18nGet("apps.fonts.col.location", "Location")
 
@@ -329,8 +329,8 @@ Func viewAppsCreate($hViewport, $iW, $iH)
     $hViewAppsFontsTable = GUICtrlGetHandle($idViewAppsFontsTable)
     _GUICtrlListView_SetExtendedListViewStyle($idViewAppsFontsTable, BitOR($LVS_EX_CHECKBOXES, $LVS_EX_FULLROWSELECT, $LVS_EX_GRIDLINES))
 
-    Local $iFCol0W = Int($iTableW * 38 / 100) ; Font name
-    Local $iFCol1W = $iTableW - $iFCol0W - $iPx ; Location
+    Local $iFCol0W = Int($iTableW * 27 / 100) ; Font name
+    Local $iFCol1W = $iTableW - $iFCol0W - 2 * $iP - 2 * $iPx ; Location
 
     _GUICtrlListView_SetColumnWidth($idViewAppsFontsTable, 0, $iFCol0W)
     _GUICtrlListView_SetColumnWidth($idViewAppsFontsTable, 1, $iFCol1W)
@@ -348,7 +348,7 @@ Func viewAppsCreate($hViewport, $iW, $iH)
     ; =========================================
     $iX = $iP
     $iY += $iFontsGroupH + $iP
-    Local $iInstallGroupH = $iRowH * 2 + $iP * 5
+    Local $iInstallGroupH = $iRowH * 2 + $iP * 3
     $hViewAppsInstallGroup = GUICtrlCreateGroup("", $iX, $iY, $iContentW, $iInstallGroupH)
 
     ; Max Iteration Row
@@ -949,8 +949,8 @@ Func _ViewAppsSearchWinget($sQuery)
     Local $aResults[0][4] ; [Name, Id, Desc, Versions]
     If StringStripWS($sQuery, 3) = "" Then Return $aResults
 
-    ; Fallback Curated Catalog with rich descriptions and version options
-    Local $aCatalog[10][4] = [ _
+        ; Fallback Curated Catalog with rich descriptions and version options
+    Local $aCatalog[11][4] = [ _
         ["Git", "Git.Git", "Fast, scalable, distributed revision control system", "Latest|2.55.0|2.54.0|2.53.0"], _
         ["Google Chrome", "Google.Chrome", "Fast and secure web browser by Google", "Latest"], _
         ["Visual Studio Code", "Microsoft.VisualStudioCode", "Code editing redefined by Microsoft", "Latest|1.94.0|1.93.0"], _
@@ -960,39 +960,79 @@ Func _ViewAppsSearchWinget($sQuery)
         ["Notepad++", "Notepad++.Notepad++", "Free source code editor and Notepad replacement", "Latest|8.7.0|8.6.9"], _
         ["Python 3.12", "Python.Python.3.12", "High-level programming language with dynamic semantics", "Latest|3.12.7|3.12.6"], _
         ["Docker Desktop", "Docker.DockerDesktop", "Container application development platform", "Latest|4.35.0|4.34.0"], _
-        ["Brave Browser", "Brave.Brave", "Privacy-oriented browser blocking trackers and ads", "Latest"] _
+        ["Brave Browser", "Brave.Brave", "Privacy-oriented browser blocking trackers and ads", "Latest"], _
+        ["Zalo", "VNGCorp.Zalo", "Instant messaging and social networking app", "Latest|26.10.20"] _
     ]
 
     ; Attempt CLI winget search
     Local $sTempOut = @TempDir & "\winget_search_" & @AutoItPID & ".txt"
     If FileExists($sTempOut) Then FileDelete($sTempOut)
 
-    Local $iExit = RunWait(@ComSpec & ' /c winget search "' & $sQuery & '" --accept-source-agreements > "' & $sTempOut & '"', @SystemDir, @SW_HIDE)
+    Local $iExit = RunWait(@ComSpec & ' /c chcp 65001 >nul & winget search "' & $sQuery & '" --accept-source-agreements > "' & $sTempOut & '"', @SystemDir, @SW_HIDE)
     If $iExit = 0 And FileExists($sTempOut) Then
-        Local $hFile = FileOpen($sTempOut, $FO_READ)
+        Local $hFile = FileOpen($sTempOut, BitOR($FO_READ, $FO_UTF8_NOBOM))
         If $hFile <> -1 Then
             Local $sText = FileRead($hFile)
             FileClose($hFile)
             FileDelete($sTempOut)
 
             Local $aLines = StringSplit(StringStripCR($sText), @LF)
-            Local $bHeaderFound = False
-            For $i = 1 To $aLines[0]
-                Local $sLine = StringStripWS($aLines[$i], 3)
-                If StringInStr($sLine, "---") And StringInStr($sLine, "---") > 0 Then
-                    $bHeaderFound = True
-                    ContinueLoop
-                EndIf
-                If $bHeaderFound And $sLine <> "" Then
-                    ; Parse columns: Name, Id, Version
-                    Local $aParts = StringRegExp($sLine, '^(.+?)\s{2,}([^\s]+)\s{2,}([^\s]+)', 1)
-                    If Not @error And UBound($aParts) >= 3 Then
-                        Local $sName = StringStripWS($aParts[0], 3)
-                        Local $sId = StringStripWS($aParts[1], 3)
-                        Local $sVer = StringStripWS($aParts[2], 3)
+            Local $iHeaderLine = -1
+            Local $iSepLine = -1
 
+            For $i = 1 To $aLines[0]
+                If StringInStr($aLines[$i], "---") Then
+                    $iSepLine = $i
+                    $iHeaderLine = $i - 1
+                    ExitLoop
+                EndIf
+            Next
+
+            If $iHeaderLine > 0 Then
+                Local $sHeader = $aLines[$iHeaderLine]
+                Local $iIdPos = StringInStr($sHeader, "Id")
+                Local $iVerPos = StringInStr($sHeader, "Version")
+                Local $iMatchPos = StringInStr($sHeader, "Match")
+                Local $iSourcePos = StringInStr($sHeader, "Source")
+
+                Local $iNextPos = -1
+                If $iMatchPos > $iVerPos Then $iNextPos = $iMatchPos
+                If $iSourcePos > $iVerPos And ($iNextPos = -1 Or $iSourcePos < $iNextPos) Then $iNextPos = $iSourcePos
+
+                For $j = $iSepLine + 1 To $aLines[0]
+                    Local $sLine = $aLines[$j]
+                    If StringStripWS($sLine, 3) = "" Then ContinueLoop
+
+                    Local $sName = "", $sId = "", $sVer = ""
+                    If $iIdPos > 1 Then
+                        $sName = StringStripWS(StringMid($sLine, 1, $iIdPos - 1), 3)
+                        If $iVerPos > $iIdPos Then
+                            $sId = StringStripWS(StringMid($sLine, $iIdPos, $iVerPos - $iIdPos), 3)
+                        Else
+                            $sId = StringStripWS(StringMid($sLine, $iIdPos), 3)
+                        EndIf
+
+                        If $iNextPos > $iVerPos Then
+                            $sVer = StringStripWS(StringMid($sLine, $iVerPos, $iNextPos - $iVerPos), 3)
+                        ElseIf $iVerPos > 0 Then
+                            $sVer = StringStripWS(StringMid($sLine, $iVerPos), 3)
+                        EndIf
+                    EndIf
+
+                    ; Fallback regex if column parsing yielded empty ID
+                    If $sId = "" Then
+                        Local $aParts = StringRegExp($sLine, '^(.+?)\s+([^\s]+)\s+([^\s]+)', 1)
+                        If Not @error And UBound($aParts) >= 3 Then
+                            $sName = StringStripWS($aParts[0], 3)
+                            $sId = StringStripWS($aParts[1], 3)
+                            $sVer = StringStripWS($aParts[2], 3)
+                        EndIf
+                    EndIf
+
+                    If $sId <> "" And $sName <> "" Then
                         Local $sDesc = ""
-                        Local $sVersions = "Latest|" & $sVer
+                        Local $sVersions = "Latest"
+                        If $sVer <> "" And $sVer <> "Unknown" Then $sVersions &= "|" & $sVer
 
                         For $c = 0 To UBound($aCatalog, 1) - 1
                             If StringCompare($aCatalog[$c][1], $sId, 1) = 0 Or StringCompare($aCatalog[$c][0], $sName, 1) = 0 Then
@@ -1013,8 +1053,8 @@ Func _ViewAppsSearchWinget($sQuery)
                         $aResults[$iNewIdx][2] = $sDesc
                         $aResults[$iNewIdx][3] = $sVersions
                     EndIf
-                EndIf
-            Next
+                Next
+            EndIf
         EndIf
     EndIf
     If FileExists($sTempOut) Then FileDelete($sTempOut)
