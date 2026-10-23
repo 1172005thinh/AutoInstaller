@@ -13,7 +13,14 @@
 #include <ProgressConstants.au3>
 #include <ComboConstants.au3>
 #include <EditConstants.au3>
+#include <StaticConstants.au3>
+#include <SliderConstants.au3>
+#include <FileConstants.au3>
+#include <GuiStatusBar.au3>
 #include <GuiListView.au3>
+#include <ButtonConstants.au3>
+#include <GuiEdit.au3>
+#include <GuiComboBox.au3>
 
 ; Controls
 #include "../controls/button.au3"
@@ -33,11 +40,30 @@
 Global $hViewApps = 0
 Global $idViewAppsTitle = 0
 
-; Section 1: Apps Library
-Global $hViewAppsLibraryGroup = 0
+; Mode Selection Header
+Global $hViewAppsModeGroup = 0
+Global $idViewAppsModeLbl = 0
+Global $idViewAppsModeSlider = 0
+Global $idViewAppsModeDisLbl = 0
+Global $idViewAppsModeOffLbl = 0
+Global $idViewAppsModeOnlLbl = 0
+Global $g_iViewAppsCurMode = 2 ; 0: Disabled, 1: Offline, 2: Online (default)
+
+; Section 1: Online Apps Library
+Global $hViewAppsOnlineGroup = 0
+Global $idViewAppsOnlineInfoLbl = 0
+Global $idViewAppsOnlineResetBtn = 0
+Global $idViewAppsOnlineTable = 0
+Global $hViewAppsOnlineTable = 0
+Global $idViewAppsOnlineSelectAllBtn = 0
+Global $idViewAppsOnlineAddBtn = 0
+Global $idViewAppsOnlineRemoveBtn = 0
+Global $idViewAppsOnlineEditBtn = 0
+
+; Section 2: Offline Apps Library
+Global $hViewAppsOfflineGroup = 0
 Global $idViewAppsAvailableLbl = 0
 Global $idViewAppsResetBtn = 0
-
 Global $idViewAppsTable = 0
 Global $hViewAppsTable = 0
 
@@ -56,7 +82,22 @@ Global $idViewAppsCancelBtn = 0
 Global $idViewAppsStatusLbl = 0
 Global $idViewAppsProgressBar = 0
 
-; Section 2: Auto-installation
+; Section 3: Fonts Library
+Global $hViewAppsFontsGroup = 0
+Global $idViewAppsFontsSliderLbl = 0
+Global $idViewAppsFontsSlider = 0
+Global $idViewAppsFontsDisLbl = 0
+Global $idViewAppsFontsInstLbl = 0
+Global $g_iViewAppsFontsState = 1 ; 0: Disabled, 1: Install (default)
+Global $idViewAppsFontsAvailableLbl = 0
+Global $idViewAppsFontsResetBtn = 0
+Global $idViewAppsFontsTable = 0
+Global $hViewAppsFontsTable = 0
+Global $idViewAppsFontsSelectAllBtn = 0
+Global $idViewAppsFontsAddBtn = 0
+Global $idViewAppsFontsRemoveBtn = 0
+
+; Section 4: Auto-installation
 Global $hViewAppsInstallGroup = 0
 Global $idViewAppsMaxIterLbl = 0
 Global $idViewAppsMaxIterInput = 0
@@ -66,10 +107,19 @@ Global $idViewAppsLogPathLbl = 0
 Global $idViewAppsLogPathInput = 0
 Global $idViewAppsLogBrowseBtn = 0
 
+; Internal State Tracking
 Global $g_aViewAppsAppIds[64]
 Global $g_iViewAppsAppCount = 0
 Global $g_iViewAppsSelectedRow = -1
 Global $g_sViewAppsCurStatusKey = "apps.status.not_downloaded"
+Global $g_iViewAppsOnlineSelectedRow = -1
+Global $g_aViewAppsOnlineIds[128]
+Global $g_iViewAppsOnlineCount = 0
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Helper Functions
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; View Creation
@@ -79,7 +129,7 @@ Func viewAppsCreate($hViewport, $iW, $iH)
     #forceref $iW, $iH
     Local $iContentW = scrollGetContentWidth($iP)
     Local $iContentH = $iH
-    If $iContentH < 800 Then $iContentH = 800
+    If $iContentH < 1350 Then $iContentH = 1350
 
     $hViewApps = scrollCreateCanvas($hViewport, $iContentH)
     GUISwitch($hViewApps)
@@ -90,7 +140,7 @@ Func viewAppsCreate($hViewport, $iW, $iH)
     Local $iLblW = ($iContentW - $iP * 6) * 35 / 100
     Local $iInputW = ($iContentW - $iP * 6) * 58 / 100
 
-    ; 1. View Title
+    ; 1. Title
     Local $iX = $iP
     Local $iY = $iP
     Local $iCtrlW = $iContentW
@@ -99,58 +149,135 @@ Func viewAppsCreate($hViewport, $iW, $iH)
     GUICtrlSetFont(-1, $iHeader, 800)
 
     ; =========================================
-    ; Section 1: Apps Library
+    ; Header: Mode Selection Slider
     ; =========================================
     $iY += $iCtrlH + $iP
-    Local $iLibGroupH = $iRowH * 12 + $iP * 6
-    $hViewAppsLibraryGroup = GUICtrlCreateGroup("", $iX, $iY, $iContentW, $iLibGroupH)
+    Local $iModeGroupH = $iRowH * 2 + $iP * 4
+    $hViewAppsModeGroup = GUICtrlCreateGroup("", $iX, $iY, $iContentW, $iModeGroupH)
 
-    ; Table Header & Reset Button Row
     $iX = $iP * 3
     Local $iItemY = $iY + $iP * 3
+    $idViewAppsModeLbl = GUICtrlCreateLabel(i18nGet("apps.mode.label", "Installation Mode: "), $iX, $iItemY, $iLblW, $iLblH)
+
+    $idViewAppsModeSlider = GUICtrlCreateSlider($iP * 3 + $iLblW, $iItemY - $iPx, $iInputW, $iInputH)
+    GUICtrlSetLimit($idViewAppsModeSlider, 2, 0)
+    GUICtrlSetData($idViewAppsModeSlider, 2) ; Default: Online
+
+    Local $iTickLblY = $iItemY + $iLblH + $iPx
+    Local $iTickColW = $iInputW / 3
+    $idViewAppsModeDisLbl = GUICtrlCreateLabel(i18nGet("apps.mode.disabled.label", "Disabled"), $iP * 3 + $iLblW, $iTickLblY, $iTickColW, $iLblH)
+    $idViewAppsModeOffLbl = GUICtrlCreateLabel(i18nGet("apps.mode.offline.label", "Offline"), $iP * 3 + $iLblW + $iTickColW, $iTickLblY, $iTickColW, $iLblH, $SS_CENTER)
+    $idViewAppsModeOnlLbl = GUICtrlCreateLabel(i18nGet("apps.mode.online.label", "Online"), $iP * 3 + $iLblW + $iTickColW * 2, $iTickLblY, $iTickColW, $iLblH, $SS_RIGHT)
+
+    ; =========================================
+    ; Section 1: Online Apps Library
+    ; =========================================
+    $iX = $iP
+    $iY += $iModeGroupH + $iP
+    Local $iOnlineGroupH = $iRowH * 10 + $iP * 8
+    $hViewAppsOnlineGroup = GUICtrlCreateGroup("", $iX, $iY, $iContentW, $iOnlineGroupH)
+
+    $iX = $iP * 3
+    $iItemY = $iY + $iP * 3
     Local $iTableW = $iContentW - $iP * 4
     Local $iBtnW = ($iTableW * 92 / 100 - 4 * $iP) / 5
 
+    $idViewAppsOnlineInfoLbl = GUICtrlCreateLabel(i18nGet("apps.online.info.label", "Requires an active internet connection."), $iX, $iItemY + $iPx, $iTableW - $iBtnW - $iP, $iLblH)
+    $idViewAppsOnlineResetBtn = GUICtrlCreateButton(i18nGet("apps.online.btn.reset", "Reset"), ($iX + $iTableW) - $iBtnW, $iItemY - $iPx, $iBtnW, $iBtnH)
+
+    $iItemY += $iRowH + $iP
+    Local $iOnlineTableH = $iRowH * 6
+    Local $sOnlineHeaders = i18nGet("apps.online.col.name", "App name") & "|" & _
+        i18nGet("apps.online.col.description", "Description") & "|" & _
+        i18nGet("apps.online.col.version", "Version") & "|" & _
+        i18nGet("apps.online.col.shortcut", "Shortcut") & "|" & _
+        i18nGet("apps.online.col.location", "Location")
+    $idViewAppsOnlineTable = GUICtrlCreateListView($sOnlineHeaders, $iX, $iItemY, $iTableW, $iOnlineTableH)
+    $hViewAppsOnlineTable = GUICtrlGetHandle($idViewAppsOnlineTable)
+    _GUICtrlListView_SetExtendedListViewStyle($idViewAppsOnlineTable, BitOR($LVS_EX_CHECKBOXES, $LVS_EX_FULLROWSELECT, $LVS_EX_GRIDLINES))
+
+    Local $iOnCol0W = Int($iTableW * 25 / 100) ; App name
+    Local $iOnCol1W = Int($iTableW * 32 / 100) ; Description
+    Local $iOnCol2W = Int($iTableW * 13 / 100) ; Version
+    Local $iOnCol3W = Int($iTableW * 10 / 100) ; Shortcut
+    Local $iOnCol4W = $iTableW - ($iOnCol0W + $iOnCol1W + $iOnCol2W + $iOnCol3W) - $iPx ; Location
+
+    _GUICtrlListView_SetColumnWidth($idViewAppsOnlineTable, 0, $iOnCol0W)
+    _GUICtrlListView_SetColumnWidth($idViewAppsOnlineTable, 1, $iOnCol1W)
+    _GUICtrlListView_SetColumnWidth($idViewAppsOnlineTable, 2, $iOnCol2W)
+    _GUICtrlListView_SetColumnWidth($idViewAppsOnlineTable, 3, $iOnCol3W)
+    _GUICtrlListView_SetColumnWidth($idViewAppsOnlineTable, 4, $iOnCol4W)
+
+    ; Online Action Buttons
+    $iItemY += $iOnlineTableH + $iP
+    Local $iOnBtnRowW = 4 * $iBtnW + 3 * $iP
+    Local $iOnBtnStartX = ($iX + $iTableW) - $iOnBtnRowW
+    $idViewAppsOnlineSelectAllBtn = GUICtrlCreateButton(i18nGet("apps.online.btn.select_all", "Select All"), $iOnBtnStartX, $iItemY, $iBtnW, $iBtnH)
+    $idViewAppsOnlineAddBtn = GUICtrlCreateButton(i18nGet("apps.online.btn.add", "Add"), $iOnBtnStartX + $iBtnW + $iP, $iItemY, $iBtnW, $iBtnH)
+    $idViewAppsOnlineRemoveBtn = GUICtrlCreateButton(i18nGet("apps.online.btn.remove", "Remove"), $iOnBtnStartX + ($iBtnW + $iP) * 2, $iItemY, $iBtnW, $iBtnH)
+    $idViewAppsOnlineEditBtn = GUICtrlCreateButton(i18nGet("apps.online.btn.edit", "Edit"), $iOnBtnStartX + ($iBtnW + $iP) * 3, $iItemY, $iBtnW, $iBtnH)
+    GUICtrlSetState($idViewAppsOnlineEditBtn, $GUI_DISABLE)
+
+    ; =========================================
+    ; Section 2: Offline Apps Library
+    ; =========================================
+    $iX = $iP
+    $iY += $iOnlineGroupH + $iP
+    Local $iOfflineGroupH = $iRowH * 12 + $iP * 8
+    $hViewAppsOfflineGroup = GUICtrlCreateGroup("", $iX, $iY, $iContentW, $iOfflineGroupH)
+
+    $iX = $iP * 3
+    $iItemY = $iY + $iP * 3
+
     $idViewAppsAvailableLbl = GUICtrlCreateLabel("", $iX, $iItemY + $iPx, $iTableW - $iBtnW - $iP, $iLblH)
     $idViewAppsResetBtn = GUICtrlCreateButton(i18nGet("apps.btn.reset", "Reset"), ($iX + $iTableW) - $iBtnW, $iItemY - $iPx, $iBtnW, $iBtnH)
-    GUICtrlSetTip($idViewAppsResetBtn, i18nGet("apps.btn.reset.tip", "Deselect all applications for installation"))
 
-    ; Applications Table Control
     $iItemY += $iRowH + $iP
     Local $iTableH = $iRowH * 8
-    $idViewAppsTable = GUICtrlCreateListView("", $iX, $iItemY, $iTableW, $iTableH, _
-        BitOR($LVS_REPORT, $LVS_SHOWSELALWAYS, $WS_BORDER), _
-        BitOR($LVS_EX_CHECKBOXES, $LVS_EX_FULLROWSELECT, $LVS_EX_GRIDLINES, $LVS_EX_DOUBLEBUFFER))
+    Local $sOfflineHeaders = i18nGet("apps.col.name", "Name") & "|" & _
+        i18nGet("apps.col.description", "Description") & "|" & _
+        i18nGet("apps.col.version", "Version") & "|" & _
+        i18nGet("apps.col.shortcut", "Shortcut") & "|" & _
+        i18nGet("apps.col.ready", "Ready")
+    $idViewAppsTable = GUICtrlCreateListView($sOfflineHeaders, $iX, $iItemY, $iTableW, $iTableH)
     $hViewAppsTable = GUICtrlGetHandle($idViewAppsTable)
+    _GUICtrlListView_SetExtendedListViewStyle($idViewAppsTable, BitOR($LVS_EX_CHECKBOXES, $LVS_EX_FULLROWSELECT, $LVS_EX_GRIDLINES))
 
-    Local $iCol0W = Int($iTableW * 27 / 100) ; Name (27%)
-    Local $iCol1W = Int($iTableW * 34 / 100) ; Description (34%)
-    Local $iCol2W = Int($iTableW * 13 / 100) ; Version (13%)
-    Local $iCol3W = Int($iTableW * 12 / 100) ; Shortcut (12%)
-    Local $iCol4W = Int($iTableW * 10 / 100) ; Ready (10%)
+    Local $iCol0W = Int($iTableW * 27 / 100) ; Name
+    Local $iCol1W = Int($iTableW * 34 / 100) ; Description
+    Local $iCol2W = Int($iTableW * 13 / 100) ; Version
+    Local $iCol3W = Int($iTableW * 12 / 100) ; Shortcut
+    Local $iCol4W = $iTableW - ($iCol0W + $iCol1W + $iCol2W + $iCol3W) - $iPx ; Ready
 
-    _GUICtrlListView_InsertColumn($idViewAppsTable, 0, i18nGet("apps.col.name", "Name"), $iCol0W)
-    _GUICtrlListView_InsertColumn($idViewAppsTable, 1, i18nGet("apps.col.description", "Description"), $iCol1W)
-    _GUICtrlListView_InsertColumn($idViewAppsTable, 2, i18nGet("apps.col.version", "Version"), $iCol2W)
-    _GUICtrlListView_InsertColumn($idViewAppsTable, 3, i18nGet("apps.col.shortcut", "Shortcut"), $iCol3W)
-    _GUICtrlListView_InsertColumn($idViewAppsTable, 4, i18nGet("apps.col.ready", "Ready"), $iCol4W)
-    GUICtrlSetTip($idViewAppsTable, i18nGet("apps.tbl.tip", "Interactive software catalog: check apps to install, view readiness and versions"))
+    _GUICtrlListView_SetColumnWidth($idViewAppsTable, 0, $iCol0W)
+    _GUICtrlListView_SetColumnWidth($idViewAppsTable, 1, $iCol1W)
+    _GUICtrlListView_SetColumnWidth($idViewAppsTable, 2, $iCol2W)
+    _GUICtrlListView_SetColumnWidth($idViewAppsTable, 3, $iCol3W)
+    _GUICtrlListView_SetColumnWidth($idViewAppsTable, 4, $iCol4W)
 
-    ; Edit Row (aligned with columns 0..4)
+    ; Edit Row (ReadOnly inputs are disabled per prompt instruction)
     $iItemY += $iTableH + $iP
     Local $iEditX = $iX
     $idViewAppsNameInput = GUICtrlCreateInput("", $iEditX, $iItemY, $iCol0W - $iPx, $iInputH, BitOR($ES_READONLY, $ES_AUTOHSCROLL))
+    GUICtrlSetState($idViewAppsNameInput, $GUI_DISABLE)
+
     $iEditX += $iCol0W
     $idViewAppsDescInput = GUICtrlCreateInput("", $iEditX + $iPx, $iItemY, $iCol1W - 2 * $iPx, $iInputH, BitOR($ES_READONLY, $ES_AUTOHSCROLL))
+    GUICtrlSetState($idViewAppsDescInput, $GUI_DISABLE)
+
     $iEditX += $iCol1W
     $idViewAppsVerInput = GUICtrlCreateInput("", $iEditX + $iPx, $iItemY, $iCol2W - 2 * $iPx, $iInputH, BitOR($ES_READONLY, $ES_AUTOHSCROLL))
+    GUICtrlSetState($idViewAppsVerInput, $GUI_DISABLE)
+
     $iEditX += $iCol2W
     $idViewAppsShortcutCmb = GUICtrlCreateCombo("", $iEditX + $iPx, $iItemY, $iCol3W - 2 * $iPx, $iInputH, $CBS_DROPDOWNLIST)
     GUICtrlSetData($idViewAppsShortcutCmb, i18nGet("apps.status.yes", "Yes") & "|" & i18nGet("apps.status.no", "No"), i18nGet("apps.status.no", "No"))
+
     $iEditX += $iCol3W
     $idViewAppsReadyInput = GUICtrlCreateInput("", $iEditX + $iPx, $iItemY, ($iX + $iTableW) - ($iEditX + $iPx), $iInputH, BitOR($ES_READONLY, $ES_AUTOHSCROLL))
+    GUICtrlSetState($idViewAppsReadyInput, $GUI_DISABLE)
 
-    ; Control Edit Row Buttons (right-aligned to table width)
+    ; Control Edit Row Buttons
     $iItemY += $iRowH
     Local $iBtnRowW = 5 * $iBtnW + 4 * $iP
     Local $iBtnStartX = ($iX + $iTableW) - $iBtnRowW
@@ -160,18 +287,68 @@ Func viewAppsCreate($hViewport, $iW, $iH)
     $idViewAppsSaveBtn = GUICtrlCreateButton(i18nGet("apps.btn.save", "Save"), $iBtnStartX + ($iBtnW + $iP) * 3, $iItemY, $iBtnW, $iBtnH)
     $idViewAppsCancelBtn = GUICtrlCreateButton(i18nGet("apps.btn.cancel", "Cancel"), $iBtnStartX + ($iBtnW + $iP) * 4, $iItemY, $iBtnW, $iBtnH)
 
-    ; Additional Controls Edit Info (Download status label + Download progress bar)
+    ; Download Info: Status Label + Progress Bar
     $iItemY += $iRowH + $iP
     Local $iStatusLblW = Int($iTableW * 35 / 100)
     $idViewAppsStatusLbl = GUICtrlCreateLabel("", $iX, $iItemY + $iPx, $iStatusLblW, $iLblH)
     $idViewAppsProgressBar = GUICtrlCreateProgress($iX + $iStatusLblW + $iP, $iItemY, $iTableW - $iStatusLblW - $iP, $iInputH, $PBS_SMOOTH)
 
     ; =========================================
-    ; Section 2: Auto-installation
+    ; Section 3: Fonts Library
     ; =========================================
     $iX = $iP
-    $iY += $iLibGroupH + $iP
-    Local $iInstallGroupH = $iRowH * 2 + $iP * 3
+    $iY += $iOfflineGroupH + $iP
+    Local $iFontsGroupH = $iRowH * 10 + $iP * 8
+    $hViewAppsFontsGroup = GUICtrlCreateGroup("", $iX, $iY, $iContentW, $iFontsGroupH)
+
+    $iX = $iP * 3
+    $iItemY = $iY + $iP * 3
+    $idViewAppsFontsSliderLbl = GUICtrlCreateLabel(i18nGet("apps.fonts.slider.label", "Fonts Installation: "), $iX, $iItemY, $iLblW, $iLblH)
+
+    $idViewAppsFontsSlider = GUICtrlCreateSlider($iP * 3 + $iLblW, $iItemY - $iPx, $iInputW, $iInputH)
+    GUICtrlSetLimit($idViewAppsFontsSlider, 1, 0)
+    GUICtrlSetData($idViewAppsFontsSlider, 1) ; Default: Install
+
+    Local $iFontsTickY = $iItemY + $iLblH + $iPx
+    Local $iFontsTickColW = $iInputW / 2
+    $idViewAppsFontsDisLbl = GUICtrlCreateLabel(i18nGet("apps.fonts.disabled.label", "Disabled"), $iP * 3 + $iLblW, $iFontsTickY, $iFontsTickColW, $iLblH)
+    $idViewAppsFontsInstLbl = GUICtrlCreateLabel(i18nGet("apps.fonts.install.label", "Install"), $iP * 3 + $iLblW + $iFontsTickColW, $iFontsTickY, $iFontsTickColW, $iLblH, $SS_RIGHT)
+
+    ; Fonts Table Header & Reset Button
+    $iItemY += $iRowH + $iP
+    $idViewAppsFontsAvailableLbl = GUICtrlCreateLabel(i18nGet("apps.fonts.available.label", "Available Fonts: "), $iX, $iItemY + $iPx, $iTableW - $iBtnW - $iP, $iLblH)
+    $idViewAppsFontsResetBtn = GUICtrlCreateButton(i18nGet("apps.fonts.btn.reset", "Reset"), ($iX + $iTableW) - $iBtnW, $iItemY - $iPx, $iBtnW, $iBtnH)
+
+    ; Fonts ListView Table
+    $iItemY += $iRowH + $iP
+    Local $iFontsTableH = $iRowH * 5
+    Local $sFontsHeaders = i18nGet("apps.fonts.col.name", "Font name") & "|" & _
+        i18nGet("apps.fonts.col.location", "Location")
+
+    $idViewAppsFontsTable = GUICtrlCreateListView($sFontsHeaders, $iX, $iItemY, $iTableW, $iFontsTableH)
+    $hViewAppsFontsTable = GUICtrlGetHandle($idViewAppsFontsTable)
+    _GUICtrlListView_SetExtendedListViewStyle($idViewAppsFontsTable, BitOR($LVS_EX_CHECKBOXES, $LVS_EX_FULLROWSELECT, $LVS_EX_GRIDLINES))
+
+    Local $iFCol0W = Int($iTableW * 38 / 100) ; Font name
+    Local $iFCol1W = $iTableW - $iFCol0W - $iPx ; Location
+
+    _GUICtrlListView_SetColumnWidth($idViewAppsFontsTable, 0, $iFCol0W)
+    _GUICtrlListView_SetColumnWidth($idViewAppsFontsTable, 1, $iFCol1W)
+
+    ; Fonts Control Buttons
+    $iItemY += $iFontsTableH + $iP
+    Local $iFBtnRowW = 3 * $iBtnW + 2 * $iP
+    Local $iFBtnStartX = ($iX + $iTableW) - $iFBtnRowW
+    $idViewAppsFontsSelectAllBtn = GUICtrlCreateButton(i18nGet("apps.fonts.btn.select_all", "Select All"), $iFBtnStartX, $iItemY, $iBtnW, $iBtnH)
+    $idViewAppsFontsAddBtn = GUICtrlCreateButton(i18nGet("apps.fonts.btn.add", "Add"), $iFBtnStartX + $iBtnW + $iP, $iItemY, $iBtnW, $iBtnH)
+    $idViewAppsFontsRemoveBtn = GUICtrlCreateButton(i18nGet("apps.fonts.btn.remove", "Remove"), $iFBtnStartX + ($iBtnW + $iP) * 2, $iItemY, $iBtnW, $iBtnH)
+
+    ; =========================================
+    ; Section 4: Auto-installation
+    ; =========================================
+    $iX = $iP
+    $iY += $iFontsGroupH + $iP
+    Local $iInstallGroupH = $iRowH * 2 + $iP * 5
     $hViewAppsInstallGroup = GUICtrlCreateGroup("", $iX, $iY, $iContentW, $iInstallGroupH)
 
     ; Max Iteration Row
@@ -192,12 +369,84 @@ Func viewAppsCreate($hViewport, $iW, $iH)
     Local $iTotalContentH = $iY + $iInstallGroupH + $iP * 2
     scrollSetContentHeight($hViewApps, $iTotalContentH)
 
-    ; Load table data from apps.csv and config.ini
+    ; Load data
     viewAppsLoadData()
+    _ViewAppsFontsReset()
 
     viewAppsApplyLang()
     viewAppsApplyTheme()
     Return $hViewApps
+EndFunc
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Mode & State Controllers
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+Func _ViewAppsUpdateModeState($iMode)
+    $g_iViewAppsCurMode = $iMode
+    GUICtrlSetData($idViewAppsModeSlider, $iMode)
+
+    Local $iOnState = $GUI_DISABLE
+    Local $iOffState = $GUI_DISABLE
+
+    Switch $iMode
+        Case 0 ; Disabled
+            $iOnState = $GUI_DISABLE
+            $iOffState = $GUI_DISABLE
+            appSetStatus(i18nGet("status.title", "Status: ") & i18nGet("apps.mode.status.disabled", "Apps installation is disabled (skipped)"))
+
+        Case 1 ; Offline
+            $iOnState = $GUI_DISABLE
+            $iOffState = $GUI_ENABLE
+            appSetStatus(i18nGet("status.title", "Status: ") & i18nGet("apps.mode.status.offline", "Installation mode: Offline (using local offline installers)"))
+
+        Case 2 ; Online
+            $iOnState = $GUI_ENABLE
+            $iOffState = $GUI_DISABLE
+            appSetStatus(i18nGet("status.title", "Status: ") & i18nGet("apps.mode.status.online", "Installation mode: Online (using winget package manager)"))
+    EndSwitch
+
+    ; Online controls
+    GUICtrlSetState($idViewAppsOnlineResetBtn, $iOnState)
+    GUICtrlSetState($idViewAppsOnlineTable, $iOnState)
+    GUICtrlSetState($idViewAppsOnlineSelectAllBtn, $iOnState)
+    GUICtrlSetState($idViewAppsOnlineAddBtn, $iOnState)
+    GUICtrlSetState($idViewAppsOnlineRemoveBtn, $iOnState)
+    If $iOnState = $GUI_ENABLE And _GUICtrlListView_GetSelectedCount($hViewAppsOnlineTable) == 1 Then
+        GUICtrlSetState($idViewAppsOnlineEditBtn, $GUI_ENABLE)
+    Else
+        GUICtrlSetState($idViewAppsOnlineEditBtn, $GUI_DISABLE)
+    EndIf
+
+    ; Offline controls
+    GUICtrlSetState($idViewAppsResetBtn, $iOffState)
+    GUICtrlSetState($idViewAppsTable, $iOffState)
+    GUICtrlSetState($idViewAppsShortcutCmb, $iOffState)
+    GUICtrlSetState($idViewAppsDownloadBtn, $iOffState)
+    GUICtrlSetState($idViewAppsRefreshBtn, $iOffState)
+    GUICtrlSetState($idViewAppsClearBtn, $iOffState)
+    GUICtrlSetState($idViewAppsSaveBtn, $iOffState)
+    GUICtrlSetState($idViewAppsCancelBtn, $iOffState)
+    GUICtrlSetState($idViewAppsProgressBar, $iOffState)
+EndFunc
+
+Func _ViewAppsUpdateFontsState($iState)
+    $g_iViewAppsFontsState = $iState
+    GUICtrlSetData($idViewAppsFontsSlider, $iState)
+
+    Local $iOptState = ($iState = 1) ? $GUI_ENABLE : $GUI_DISABLE
+
+    GUICtrlSetState($idViewAppsFontsResetBtn, $iOptState)
+    GUICtrlSetState($idViewAppsFontsTable, $iOptState)
+    GUICtrlSetState($idViewAppsFontsSelectAllBtn, $iOptState)
+    GUICtrlSetState($idViewAppsFontsAddBtn, $iOptState)
+    GUICtrlSetState($idViewAppsFontsRemoveBtn, $iOptState)
+
+    If $iState = 1 Then
+        appSetStatus(i18nGet("status.title", "Status: ") & i18nGet("apps.fonts.status.install", "Fonts installation mode: Install"))
+    Else
+        appSetStatus(i18nGet("status.title", "Status: ") & i18nGet("apps.fonts.status.disabled", "Fonts installation is disabled (skipped)"))
+    EndIf
 EndFunc
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -214,8 +463,6 @@ Func _AppsGetAppDesc($sAppId, $sDefault)
             Return i18nGet("apps.desc.Discord", "Voice, video, and text communication platform")
         Case "Docker"
             Return i18nGet("apps.desc.Docker", "Container runtime and development platform")
-        Case "Fonts"
-            Return i18nGet("apps.desc.Fonts", "Core fonts collection including Cascadia Code and JetBrains Mono")
         Case "Git"
             Return i18nGet("apps.desc.Git", "Distributed version control system")
         Case "GoogleChrome"
@@ -301,34 +548,81 @@ Func viewAppsLoadData()
     $g_iViewAppsSelectedRow = -1
 
     Local $sConfig = downloadGetConfigPath()
+
+    ; Read mode and fonts_state from [Configuration]
+    Local $iMode = Int(IniRead($sConfig, "Configuration", "mode", "2"))
+    _ViewAppsUpdateModeState($iMode)
+
+    Local $iFontsState = Int(IniRead($sConfig, "Configuration", "fonts_state", "1"))
+    _ViewAppsUpdateFontsState($iFontsState)
+
+    ; Load Offline Apps
     Local $aApps = dataLoadCsv("apps.csv")
-    If Not IsArray($aApps) Or UBound($aApps, 1) < 2 Then Return
+    If IsArray($aApps) And UBound($aApps, 1) >= 2 Then
+        For $i = 1 To UBound($aApps, 1) - 1
+            Local $sApp = $aApps[$i][0]
+            If $sApp = "Fonts" Then ContinueLoop ; Fonts handled separately
 
-    For $i = 1 To UBound($aApps, 1) - 1
-        Local $sApp = $aApps[$i][0]
-        Local $sName = $aApps[$i][1]
-        Local $sDesc = _AppsGetAppDesc($sApp, $aApps[$i][2])
-        Local $sVer = downloadGetAppVersion($sApp)
-        If $sVer = "Unknown" Then $sVer = i18nGet("apps.status.unknown", "Unknown")
+            Local $sName = $aApps[$i][1]
+            Local $sDesc = _AppsGetAppDesc($sApp, $aApps[$i][2])
+            Local $sVer = downloadGetAppVersion($sApp)
+            If $sVer = "Unknown" Then $sVer = i18nGet("apps.status.unknown", "Unknown")
 
-        Local $bInstall = (StringLower(IniRead($sConfig, $sApp, "install", "false")) = "true")
-        Local $bShortcut = (StringLower(IniRead($sConfig, $sApp, "shortcut", "false")) = "true")
-        Local $sShortcut = $bShortcut ? i18nGet("apps.status.yes", "Yes") : i18nGet("apps.status.no", "No")
+            Local $bInstall = (StringLower(IniRead($sConfig, $sApp, "install", "false")) = "true")
+            Local $bShortcut = (StringLower(IniRead($sConfig, $sApp, "shortcut", "false")) = "true")
+            Local $sShortcut = $bShortcut ? i18nGet("apps.status.yes", "Yes") : i18nGet("apps.status.no", "No")
 
-        Local $bReady = downloadIsAppReady($sApp)
-        Local $sReady = $bReady ? i18nGet("apps.status.yes", "Yes") : i18nGet("apps.status.no", "No")
+            Local $bReady = downloadIsAppReady($sApp)
+            Local $sReady = $bReady ? i18nGet("apps.status.yes", "Yes") : i18nGet("apps.status.no", "No")
 
-        Local $iItem = _GUICtrlListView_AddItem($hViewAppsTable, $sName)
-        _GUICtrlListView_AddSubItem($hViewAppsTable, $iItem, $sDesc, 1)
-        _GUICtrlListView_AddSubItem($hViewAppsTable, $iItem, $sVer, 2)
-        _GUICtrlListView_AddSubItem($hViewAppsTable, $iItem, $sShortcut, 3)
-        _GUICtrlListView_AddSubItem($hViewAppsTable, $iItem, $sReady, 4)
+            Local $iItem = _GUICtrlListView_AddItem($hViewAppsTable, $sName)
+            _GUICtrlListView_AddSubItem($hViewAppsTable, $iItem, $sDesc, 1)
+            _GUICtrlListView_AddSubItem($hViewAppsTable, $iItem, $sVer, 2)
+            _GUICtrlListView_AddSubItem($hViewAppsTable, $iItem, $sShortcut, 3)
+            _GUICtrlListView_AddSubItem($hViewAppsTable, $iItem, $sReady, 4)
 
-        _GUICtrlListView_SetItemChecked($hViewAppsTable, $iItem, $bInstall)
+            _GUICtrlListView_SetItemChecked($hViewAppsTable, $iItem, $bInstall)
 
-        $g_aViewAppsAppIds[$g_iViewAppsAppCount] = $sApp
-        $g_iViewAppsAppCount += 1
+            $g_aViewAppsAppIds[$g_iViewAppsAppCount] = $sApp
+            $g_iViewAppsAppCount += 1
+        Next
+    EndIf
+
+    ; Load Online Apps
+    _GUICtrlListView_DeleteAllItems($hViewAppsOnlineTable)
+    $g_iViewAppsOnlineCount = 0
+    $g_iViewAppsOnlineSelectedRow = -1
+    For $r = 0 To UBound($g_aViewAppsOnlineIds) - 1
+        $g_aViewAppsOnlineIds[$r] = ""
     Next
+
+    Local $aSections = IniReadSectionNames($sConfig)
+    If Not @error And IsArray($aSections) Then
+        For $s = 1 To $aSections[0]
+            Local $sSec = $aSections[$s]
+            If StringLeft($sSec, 7) = "Online_" Then
+                Local $sId = IniRead($sConfig, $sSec, "id", StringTrimLeft($sSec, 7))
+                Local $sName = IniRead($sConfig, $sSec, "name", $sId)
+                Local $sDesc = IniRead($sConfig, $sSec, "description", "")
+                Local $sVer = IniRead($sConfig, $sSec, "version", "Latest")
+                Local $bShortcut = (StringLower(IniRead($sConfig, $sSec, "shortcut", "false")) = "true")
+                Local $sShortcut = $bShortcut ? i18nGet("apps.status.yes", "Yes") : i18nGet("apps.status.no", "No")
+                Local $sLoc = IniRead($sConfig, $sSec, "location", i18nGet("apps.online.status.default", "Default"))
+                Local $bInstall = (StringLower(IniRead($sConfig, $sSec, "install", "true")) = "true")
+
+                Local $iOnItem = _GUICtrlListView_AddItem($hViewAppsOnlineTable, $sName)
+                _GUICtrlListView_AddSubItem($hViewAppsOnlineTable, $iOnItem, $sDesc, 1)
+                _GUICtrlListView_AddSubItem($hViewAppsOnlineTable, $iOnItem, $sVer, 2)
+                _GUICtrlListView_AddSubItem($hViewAppsOnlineTable, $iOnItem, $sShortcut, 3)
+                _GUICtrlListView_AddSubItem($hViewAppsOnlineTable, $iOnItem, $sLoc, 4)
+                _GUICtrlListView_SetItemChecked($hViewAppsOnlineTable, $iOnItem, $bInstall)
+
+                If $iOnItem >= UBound($g_aViewAppsOnlineIds) Then ReDim $g_aViewAppsOnlineIds[$iOnItem + 32]
+                $g_aViewAppsOnlineIds[$iOnItem] = $sId
+                $g_iViewAppsOnlineCount = $iOnItem + 1
+            EndIf
+        Next
+    EndIf
 
     ; Read max_iteration and log_path
     Local $sMaxIter = IniRead($sConfig, "Configuration", "max_iteration", "2")
@@ -347,6 +641,11 @@ Func viewAppsSaveData()
     Local $sConfig = downloadGetConfigPath()
     If Not FileExists($sConfig) Then Return False
 
+    ; Save mode and fonts_state
+    IniWrite($sConfig, "Configuration", "mode", String($g_iViewAppsCurMode))
+    IniWrite($sConfig, "Configuration", "fonts_state", String($g_iViewAppsFontsState))
+
+    ; Save Offline Apps
     For $i = 0 To $g_iViewAppsAppCount - 1
         Local $sApp = $g_aViewAppsAppIds[$i]
         Local $bChecked = _GUICtrlListView_GetItemChecked($hViewAppsTable, $i)
@@ -355,6 +654,38 @@ Func viewAppsSaveData()
 
         IniWrite($sConfig, $sApp, "install", $bChecked ? "true" : "false")
         IniWrite($sConfig, $sApp, "shortcut", $bShortcut ? "true" : "false")
+    Next
+
+    ; Clean existing [Online_*] sections
+    Local $aSections = IniReadSectionNames($sConfig)
+    If Not @error And IsArray($aSections) Then
+        For $s = 1 To $aSections[0]
+            If StringLeft($aSections[$s], 7) = "Online_" Then
+                IniDelete($sConfig, $aSections[$s])
+            EndIf
+        Next
+    EndIf
+
+    ; Save Online Apps
+    Local $iOnlineCount = _GUICtrlListView_GetItemCount($hViewAppsOnlineTable)
+    For $j = 0 To $iOnlineCount - 1
+        Local $sName = _GUICtrlListView_GetItemText($hViewAppsOnlineTable, $j, 0)
+        Local $sDesc = _GUICtrlListView_GetItemText($hViewAppsOnlineTable, $j, 1)
+        Local $sVer = _GUICtrlListView_GetItemText($hViewAppsOnlineTable, $j, 2)
+        Local $sSc = _GUICtrlListView_GetItemText($hViewAppsOnlineTable, $j, 3)
+        Local $bShortcut = ($sSc = i18nGet("apps.status.yes", "Yes") Or StringLower($sSc) = "yes")
+        Local $sLoc = _GUICtrlListView_GetItemText($hViewAppsOnlineTable, $j, 4)
+        Local $bInstall = _GUICtrlListView_GetItemChecked($hViewAppsOnlineTable, $j)
+        Local $sId = ($j < $g_iViewAppsOnlineCount And $g_aViewAppsOnlineIds[$j] <> "") ? $g_aViewAppsOnlineIds[$j] : $sName
+
+        Local $sSection = "Online_" & $sId
+        IniWrite($sConfig, $sSection, "name", $sName)
+        IniWrite($sConfig, $sSection, "id", $sId)
+        IniWrite($sConfig, $sSection, "description", $sDesc)
+        IniWrite($sConfig, $sSection, "version", $sVer)
+        IniWrite($sConfig, $sSection, "shortcut", $bShortcut ? "true" : "false")
+        IniWrite($sConfig, $sSection, "location", $sLoc)
+        IniWrite($sConfig, $sSection, "install", $bInstall ? "true" : "false")
     Next
 
     ; Save max_iteration and log_path
@@ -560,16 +891,662 @@ Func _ViewAppsUpdateManifest()
 EndFunc
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Online Apps Library Operations
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+Func _ViewAppsOnlineReset()
+    _GUICtrlListView_DeleteAllItems($hViewAppsOnlineTable)
+    $g_iViewAppsOnlineSelectedRow = -1
+    $g_iViewAppsOnlineCount = 0
+    For $r = 0 To UBound($g_aViewAppsOnlineIds) - 1
+        $g_aViewAppsOnlineIds[$r] = ""
+    Next
+    GUICtrlSetState($idViewAppsOnlineEditBtn, $GUI_DISABLE)
+    appSetStatus(i18nGet("status.title", "Status: ") & i18nGet("apps.online.btn.reset.tip", "Reset online applications list to empty"))
+EndFunc
+
+Func _ViewAppsOnlineSelectAll()
+    Local $iCount = _GUICtrlListView_GetItemCount($hViewAppsOnlineTable)
+    For $i = 0 To $iCount - 1
+        _GUICtrlListView_SetItemChecked($hViewAppsOnlineTable, $i, True)
+    Next
+    appSetStatus(i18nGet("status.title", "Status: ") & i18nGet("apps.online.btn.select_all.tip", "Select all applications in the online list"))
+EndFunc
+
+Func _ViewAppsOnlineRemove()
+    Local $sSel = _GUICtrlListView_GetSelectedIndices($hViewAppsOnlineTable)
+    If $sSel = "" Then Return
+    Local $iIdx = Number($sSel)
+    _GUICtrlListView_DeleteItem($hViewAppsOnlineTable, $iIdx)
+    If $iIdx < $g_iViewAppsOnlineCount Then
+        For $k = $iIdx To $g_iViewAppsOnlineCount - 2
+            $g_aViewAppsOnlineIds[$k] = $g_aViewAppsOnlineIds[$k + 1]
+        Next
+        $g_aViewAppsOnlineIds[$g_iViewAppsOnlineCount - 1] = ""
+        $g_iViewAppsOnlineCount -= 1
+    EndIf
+    $g_iViewAppsOnlineSelectedRow = -1
+    GUICtrlSetState($idViewAppsOnlineEditBtn, $GUI_DISABLE)
+    appSetStatus(i18nGet("status.title", "Status: ") & i18nGet("apps.online.status.removed", "Removed selected application from online list"))
+EndFunc
+
+Func _ViewAppsOnlineOnSelect()
+    Local $sSel = _GUICtrlListView_GetSelectedIndices($hViewAppsOnlineTable)
+    If $sSel <> "" Then
+        $g_iViewAppsOnlineSelectedRow = Number($sSel)
+        If $g_iViewAppsCurMode = 2 Then GUICtrlSetState($idViewAppsOnlineEditBtn, $GUI_ENABLE)
+    Else
+        $g_iViewAppsOnlineSelectedRow = -1
+        GUICtrlSetState($idViewAppsOnlineEditBtn, $GUI_DISABLE)
+    EndIf
+EndFunc
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Winget Search Engine & Fallback Catalog
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+Func _ViewAppsSearchWinget($sQuery)
+    Local $aResults[0][4] ; [Name, Id, Desc, Versions]
+    If StringStripWS($sQuery, 3) = "" Then Return $aResults
+
+    ; Fallback Curated Catalog with rich descriptions and version options
+    Local $aCatalog[10][4] = [ _
+        ["Git", "Git.Git", "Fast, scalable, distributed revision control system", "Latest|2.55.0|2.54.0|2.53.0"], _
+        ["Google Chrome", "Google.Chrome", "Fast and secure web browser by Google", "Latest"], _
+        ["Visual Studio Code", "Microsoft.VisualStudioCode", "Code editing redefined by Microsoft", "Latest|1.94.0|1.93.0"], _
+        ["7-Zip", "7zip.7zip", "High compression ratio file archiver", "Latest|24.08|23.01"], _
+        ["Discord", "Discord.Discord", "Voice, video and text communication service", "Latest"], _
+        ["VLC media player", "VideoLAN.VLC", "Free and open source cross-platform multimedia player", "Latest|3.0.21|3.0.20"], _
+        ["Notepad++", "Notepad++.Notepad++", "Free source code editor and Notepad replacement", "Latest|8.7.0|8.6.9"], _
+        ["Python 3.12", "Python.Python.3.12", "High-level programming language with dynamic semantics", "Latest|3.12.7|3.12.6"], _
+        ["Docker Desktop", "Docker.DockerDesktop", "Container application development platform", "Latest|4.35.0|4.34.0"], _
+        ["Brave Browser", "Brave.Brave", "Privacy-oriented browser blocking trackers and ads", "Latest"] _
+    ]
+
+    ; Attempt CLI winget search
+    Local $sTempOut = @TempDir & "\winget_search_" & @AutoItPID & ".txt"
+    If FileExists($sTempOut) Then FileDelete($sTempOut)
+
+    Local $iExit = RunWait(@ComSpec & ' /c winget search "' & $sQuery & '" --accept-source-agreements > "' & $sTempOut & '"', @SystemDir, @SW_HIDE)
+    If $iExit = 0 And FileExists($sTempOut) Then
+        Local $hFile = FileOpen($sTempOut, $FO_READ)
+        If $hFile <> -1 Then
+            Local $sText = FileRead($hFile)
+            FileClose($hFile)
+            FileDelete($sTempOut)
+
+            Local $aLines = StringSplit(StringStripCR($sText), @LF)
+            Local $bHeaderFound = False
+            For $i = 1 To $aLines[0]
+                Local $sLine = StringStripWS($aLines[$i], 3)
+                If StringInStr($sLine, "---") And StringInStr($sLine, "---") > 0 Then
+                    $bHeaderFound = True
+                    ContinueLoop
+                EndIf
+                If $bHeaderFound And $sLine <> "" Then
+                    ; Parse columns: Name, Id, Version
+                    Local $aParts = StringRegExp($sLine, '^(.+?)\s{2,}([^\s]+)\s{2,}([^\s]+)', 1)
+                    If Not @error And UBound($aParts) >= 3 Then
+                        Local $sName = StringStripWS($aParts[0], 3)
+                        Local $sId = StringStripWS($aParts[1], 3)
+                        Local $sVer = StringStripWS($aParts[2], 3)
+
+                        Local $sDesc = ""
+                        Local $sVersions = "Latest|" & $sVer
+
+                        For $c = 0 To UBound($aCatalog, 1) - 1
+                            If StringCompare($aCatalog[$c][1], $sId, 1) = 0 Or StringCompare($aCatalog[$c][0], $sName, 1) = 0 Then
+                                $sDesc = $aCatalog[$c][2]
+                                $sVersions = $aCatalog[$c][3]
+                                ExitLoop
+                            EndIf
+                        Next
+
+                        If $sDesc = "" Then
+                            $sDesc = StringFormat(i18nGet("apps.online.desc.winget", "%s package from winget repository"), $sName)
+                        EndIf
+
+                        Local $iNewIdx = UBound($aResults, 1)
+                        ReDim $aResults[$iNewIdx + 1][4]
+                        $aResults[$iNewIdx][0] = $sName
+                        $aResults[$iNewIdx][1] = $sId
+                        $aResults[$iNewIdx][2] = $sDesc
+                        $aResults[$iNewIdx][3] = $sVersions
+                    EndIf
+                EndIf
+            Next
+        EndIf
+    EndIf
+    If FileExists($sTempOut) Then FileDelete($sTempOut)
+
+    ; If winget search gave results, return them
+    If UBound($aResults, 1) > 0 Then Return $aResults
+
+    ; Fallback Catalog matching
+    For $j = 0 To UBound($aCatalog, 1) - 1
+        If StringInStr($aCatalog[$j][0], $sQuery) > 0 Or StringInStr($aCatalog[$j][1], $sQuery) > 0 Then
+            Local $iCur = UBound($aResults, 1)
+            ReDim $aResults[$iCur + 1][4]
+            $aResults[$iCur][0] = $aCatalog[$j][0]
+            $aResults[$iCur][1] = $aCatalog[$j][1]
+            $aResults[$iCur][2] = $aCatalog[$j][2]
+            $aResults[$iCur][3] = $aCatalog[$j][3]
+        EndIf
+    Next
+
+    Return $aResults
+EndFunc
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Add App Dialog (Modal, 400x300)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+Func _ViewAppsShowAddDialog()
+    Local $hAddDlg = GUICreate(i18nGet("apps.dialog.add.title", "Add App"), 560, 500, -1, -1, BitOR($WS_CAPTION, $WS_SYSMENU), $WS_EX_TOPMOST, $hViewApps)
+    GUISetBkColor(themeColor("main.view.bg"), $hAddDlg)
+
+    ; Status Bar
+    Local $hStatus = _GUICtrlStatusBar_Create($hAddDlg)
+    _GUICtrlStatusBar_SetText($hStatus, i18nGet("apps.dialog.status.ready", "Ready"), 0)
+
+    ; Group 1: Search & Selection
+    Local $idSearchGroup = GUICtrlCreateGroup(i18nGet("apps.dialog.group.search", "Search & Selection"), 12, 10, 536, 205)
+    Local $idNameInput = GUICtrlCreateInput("", 24, 34, 406, 24)
+    _SetCueBannerW($idNameInput, i18nGet("apps.dialog.appname.placeholder", "App Name"), True)
+    GUICtrlSetTip($idNameInput, i18nGet("apps.dialog.appname.tip", "Enter app name to search in winget repository"))
+
+    Local $idSearchBtn = GUICtrlCreateButton(i18nGet("apps.dialog.btn.search", "Search"), 438, 34, 98, 24, $BS_DEFPUSHBUTTON)
+    GUICtrlSetTip($idSearchBtn, i18nGet("apps.dialog.btn.search.tip", "Search for application in winget repository"))
+
+    ; Keyboard accelerator: Enter key triggers search button
+    Local $aAccel[1][2] = [["{ENTER}", $idSearchBtn]]
+    GUISetAccelerators($aAccel, $hAddDlg)
+
+    ; Search Results List (Columns: Name, ID, Version)
+    Local $sColHeaders = i18nGet("apps.dialog.col.name", "App name") & "|" & _
+        i18nGet("apps.dialog.col.id", "App ID") & "|" & _
+        i18nGet("apps.dialog.col.version", "Version")
+    Local $idResultsList = GUICtrlCreateListView($sColHeaders, 24, 68, 512, 136)
+    _GUICtrlListView_SetExtendedListViewStyle($idResultsList, BitOR($LVS_EX_FULLROWSELECT, $LVS_EX_GRIDLINES))
+    _GUICtrlListView_SetColumnWidth($idResultsList, 0, 180)
+    _GUICtrlListView_SetColumnWidth($idResultsList, 1, 200)
+    _GUICtrlListView_SetColumnWidth($idResultsList, 2, 110)
+    GUICtrlCreateGroup("", -99, -99, 1, 1)
+
+    ; Group 2: Package Configuration
+    Local $idConfigGroup = GUICtrlCreateGroup(i18nGet("apps.dialog.group.config", "Package Configuration"), 12, 222, 536, 205)
+
+    ; Name row
+    Local $idNameLbl = GUICtrlCreateLabel(i18nGet("apps.dialog.appname.label", "App Name: "), 24, 246, 85, 20)
+    Local $idAppNameInput = GUICtrlCreateInput("", 115, 244, 421, 22, BitOR($ES_READONLY, $ES_AUTOHSCROLL))
+    GUICtrlSetState($idAppNameInput, $GUI_DISABLE)
+
+    ; Description row
+    Local $idDescLbl = GUICtrlCreateLabel(i18nGet("apps.dialog.desc.label", "Description: "), 24, 276, 85, 20)
+    Local $idDescInput = GUICtrlCreateInput("", 115, 274, 421, 22, BitOR($ES_READONLY, $ES_AUTOHSCROLL))
+    GUICtrlSetState($idDescInput, $GUI_DISABLE)
+
+    ; Version & Shortcut row
+    Local $idVerLbl = GUICtrlCreateLabel(i18nGet("apps.dialog.version.label", "Version: "), 24, 306, 85, 20)
+    Local $idVerCmb = GUICtrlCreateCombo("", 115, 304, 110, 22, $CBS_DROPDOWNLIST)
+    _GUICtrlComboBox_AddString(GUICtrlGetHandle($idVerCmb), i18nGet("apps.online.status.latest", "Latest"))
+    _GUICtrlComboBox_SetCurSel(GUICtrlGetHandle($idVerCmb), 0)
+    GUICtrlSetState($idVerCmb, $GUI_DISABLE)
+
+    Local $idLatestCkbx = GUICtrlCreateCheckbox(i18nGet("apps.dialog.ckbx.latest", "Latest"), 232, 306, 80, 20)
+    GUICtrlSetTip($idLatestCkbx, i18nGet("apps.dialog.ckbx.latest.tip", "Automatically select the latest version"))
+    GUICtrlSetState($idLatestCkbx, $GUI_CHECKED)
+
+    Local $idShortcutLbl = GUICtrlCreateLabel(i18nGet("apps.dialog.shortcut.label", "Shortcut: "), 322, 306, 65, 20)
+    Local $idShortcutCmb = GUICtrlCreateCombo("", 392, 304, 144, 22, $CBS_DROPDOWNLIST)
+    Local $sYes = i18nGet("apps.status.yes", "Yes")
+    Local $sNo = i18nGet("apps.status.no", "No")
+    GUICtrlSetData($idShortcutCmb, $sYes & "|" & $sNo, $sNo)
+
+    ; Custom path row
+    Local $idCustomPathCkbx = GUICtrlCreateCheckbox(i18nGet("apps.dialog.ckbx.custom_path", "Custom path"), 24, 338, 105, 20)
+    GUICtrlSetTip($idCustomPathCkbx, i18nGet("apps.dialog.ckbx.custom_path.tip", "Specify a custom installation directory"))
+    Local $idLocationInput = GUICtrlCreateInput("", 135, 336, 401, 22)
+    GUICtrlSetTip($idLocationInput, i18nGet("apps.dialog.location.tip", "Custom installation directory path"))
+    GUICtrlSetState($idLocationInput, $GUI_DISABLE)
+
+    ; Requirement info label
+    Local $idReqInfoLbl = GUICtrlCreateLabel(i18nGet("apps.online.info.label", "Requires an active internet connection."), 24, 396, 512, 20)
+    GUICtrlSetFont($idReqInfoLbl, $iSmall, 400, 2)
+    GUICtrlCreateGroup("", -99, -99, 1, 1)
+
+    ; Bottom Buttons: Reset (left), Apply, Cancel (right)
+    Local $idResetBtn = GUICtrlCreateButton(i18nGet("apps.dialog.btn.reset", "Reset"), 12, 438, 80, 28)
+    GUICtrlSetTip($idResetBtn, i18nGet("apps.dialog.btn.reset.tip", "Reset dialog input fields to defaults"))
+    Local $idApplyBtn = GUICtrlCreateButton(i18nGet("apps.dialog.btn.apply", "Apply"), 370, 438, 85, 28)
+    GUICtrlSetTip($idApplyBtn, i18nGet("apps.dialog.btn.apply.tip", "Save and apply application details"))
+    Local $idCancelBtn = GUICtrlCreateButton(i18nGet("apps.dialog.btn.cancel", "Cancel"), 463, 438, 85, 28)
+    GUICtrlSetTip($idCancelBtn, i18nGet("apps.dialog.btn.cancel.tip", "Close dialog without saving"))
+
+    GUISetState(@SW_SHOW, $hAddDlg)
+
+    Local $aCurSearchResults[0][4]
+    Local $sLastSelIndices = "-1"
+    Local $sCurSelectedId = ""
+    Local $bApplied = False
+
+    While 1
+        ; Live selection tracking for Results ListView
+        Local $sCurSel = _GUICtrlListView_GetSelectedIndices(GUICtrlGetHandle($idResultsList))
+        If $sCurSel <> "" And $sCurSel <> $sLastSelIndices Then
+            $sLastSelIndices = $sCurSel
+            Local $iIdx = Number($sCurSel)
+            If $iIdx >= 0 And $iIdx < UBound($aCurSearchResults, 1) Then
+                $sCurSelectedId = $aCurSearchResults[$iIdx][1]
+                GUICtrlSetData($idAppNameInput, $aCurSearchResults[$iIdx][0])
+                GUICtrlSetData($idDescInput, $aCurSearchResults[$iIdx][2])
+
+                ; Update Version dropdown options
+                Local $sAppVers = $aCurSearchResults[$iIdx][3]
+                If $sAppVers = "" Then $sAppVers = i18nGet("apps.online.status.latest", "Latest")
+                If Not StringInStr($sAppVers, i18nGet("apps.online.status.latest", "Latest")) Then
+                    $sAppVers = i18nGet("apps.online.status.latest", "Latest") & "|" & $sAppVers
+                EndIf
+
+                _GUICtrlComboBox_ResetContent(GUICtrlGetHandle($idVerCmb))
+                Local $aVList = StringSplit($sAppVers, "|")
+                For $v = 1 To $aVList[0]
+                    _GUICtrlComboBox_AddString(GUICtrlGetHandle($idVerCmb), $aVList[$v])
+                Next
+                _GUICtrlComboBox_SetCurSel(GUICtrlGetHandle($idVerCmb), 0)
+
+                If GUICtrlRead($idLatestCkbx) = $GUI_CHECKED Then
+                    GUICtrlSetState($idVerCmb, $GUI_DISABLE)
+                Else
+                    GUICtrlSetState($idVerCmb, $GUI_ENABLE)
+                EndIf
+
+                _GUICtrlStatusBar_SetText($hStatus, i18nGet("apps.dialog.status.selected", "App selected"), 0)
+            EndIf
+        EndIf
+
+        Local $iMsg = GUIGetMsg()
+        Switch $iMsg
+            Case $GUI_EVENT_CLOSE, $idCancelBtn
+                ExitLoop
+
+            Case $idSearchBtn
+                Local $sQ = StringStripWS(GUICtrlRead($idNameInput), 3)
+                _GUICtrlStatusBar_SetText($hStatus, i18nGet("apps.dialog.status.searching", "Searching..."), 0)
+                _GUICtrlListView_DeleteAllItems(GUICtrlGetHandle($idResultsList))
+                $sLastSelIndices = "-1"
+                $sCurSelectedId = ""
+                $aCurSearchResults = _ViewAppsSearchWinget($sQ)
+                If UBound($aCurSearchResults, 1) > 0 Then
+                    For $k = 0 To UBound($aCurSearchResults, 1) - 1
+                        Local $iRow = _GUICtrlListView_AddItem(GUICtrlGetHandle($idResultsList), $aCurSearchResults[$k][0])
+                        _GUICtrlListView_AddSubItem(GUICtrlGetHandle($idResultsList), $iRow, $aCurSearchResults[$k][1], 1)
+                        Local $sFirstVer = $aCurSearchResults[$k][3]
+                        If StringInStr($sFirstVer, "|") Then
+                            Local $aVParts = StringSplit($sFirstVer, "|")
+                            $sFirstVer = ($aVParts[0] >= 2) ? $aVParts[2] : $aVParts[1]
+                        EndIf
+                        _GUICtrlListView_AddSubItem(GUICtrlGetHandle($idResultsList), $iRow, $sFirstVer, 2)
+                    Next
+                    _GUICtrlListView_SetItemSelected(GUICtrlGetHandle($idResultsList), 0, True, True)
+                    _GUICtrlStatusBar_SetText($hStatus, i18nGet("apps.dialog.status.ready", "Ready"), 0)
+                Else
+                    _GUICtrlStatusBar_SetText($hStatus, i18nGet("apps.dialog.status.no_results", "No results found."), 0)
+                EndIf
+
+            Case $idLatestCkbx
+                If GUICtrlRead($idLatestCkbx) = $GUI_CHECKED Then
+                    GUICtrlSetState($idVerCmb, $GUI_DISABLE)
+                    _GUICtrlComboBox_SetCurSel(GUICtrlGetHandle($idVerCmb), 0)
+                Else
+                    GUICtrlSetState($idVerCmb, $GUI_ENABLE)
+                EndIf
+
+            Case $idCustomPathCkbx
+                If GUICtrlRead($idCustomPathCkbx) = $GUI_CHECKED Then
+                    GUICtrlSetState($idLocationInput, $GUI_ENABLE)
+                Else
+                    GUICtrlSetState($idLocationInput, $GUI_DISABLE)
+                    GUICtrlSetData($idLocationInput, "")
+                EndIf
+
+            Case $idResetBtn
+                GUICtrlSetData($idNameInput, "")
+                GUICtrlSetData($idAppNameInput, "")
+                GUICtrlSetData($idDescInput, "")
+                _GUICtrlComboBox_ResetContent(GUICtrlGetHandle($idVerCmb))
+                _GUICtrlComboBox_AddString(GUICtrlGetHandle($idVerCmb), i18nGet("apps.online.status.latest", "Latest"))
+                _GUICtrlComboBox_SetCurSel(GUICtrlGetHandle($idVerCmb), 0)
+                GUICtrlSetState($idVerCmb, $GUI_DISABLE)
+                GUICtrlSetState($idLatestCkbx, $GUI_CHECKED)
+                GUICtrlSetData($idShortcutCmb, $sNo)
+                GUICtrlSetState($idCustomPathCkbx, $GUI_UNCHECKED)
+                GUICtrlSetState($idLocationInput, $GUI_DISABLE)
+                GUICtrlSetData($idLocationInput, "")
+                _GUICtrlListView_DeleteAllItems(GUICtrlGetHandle($idResultsList))
+                Dim $aCurSearchResults[0][4]
+                $sLastSelIndices = "-1"
+                $sCurSelectedId = ""
+                _GUICtrlStatusBar_SetText($hStatus, i18nGet("apps.dialog.status.ready", "Ready"), 0)
+
+            Case $idApplyBtn
+                Local $sFinalName = StringStripWS(GUICtrlRead($idAppNameInput), 3)
+                If $sFinalName = "" Then $sFinalName = StringStripWS(GUICtrlRead($idNameInput), 3)
+                If $sFinalName = "" Then
+                    _GUICtrlStatusBar_SetText($hStatus, i18nGet("apps.dialog.status.no_results", "No results found."), 0)
+                    ContinueLoop
+                EndIf
+                Local $sFinalDesc = GUICtrlRead($idDescInput)
+                If $sFinalDesc = "" Then $sFinalDesc = i18nGet("apps.online.status.unknown", "Unknown")
+
+                Local $sFinalVer = (GUICtrlRead($idLatestCkbx) = $GUI_CHECKED) ? i18nGet("apps.online.status.latest", "Latest") : GUICtrlRead($idVerCmb)
+                Local $sFinalSc = GUICtrlRead($idShortcutCmb)
+                Local $sFinalLoc = (GUICtrlRead($idCustomPathCkbx) = $GUI_CHECKED And StringStripWS(GUICtrlRead($idLocationInput), 3) <> "") ? GUICtrlRead($idLocationInput) : i18nGet("apps.online.status.default", "Default")
+                Local $sFinalId = ($sCurSelectedId <> "") ? $sCurSelectedId : $sFinalName
+
+                Local $iNewItem = _GUICtrlListView_AddItem($hViewAppsOnlineTable, $sFinalName)
+                _GUICtrlListView_AddSubItem($hViewAppsOnlineTable, $iNewItem, $sFinalDesc, 1)
+                _GUICtrlListView_AddSubItem($hViewAppsOnlineTable, $iNewItem, $sFinalVer, 2)
+                _GUICtrlListView_AddSubItem($hViewAppsOnlineTable, $iNewItem, $sFinalSc, 3)
+                _GUICtrlListView_AddSubItem($hViewAppsOnlineTable, $iNewItem, $sFinalLoc, 4)
+                _GUICtrlListView_SetItemChecked($hViewAppsOnlineTable, $iNewItem, True)
+
+                If $iNewItem >= UBound($g_aViewAppsOnlineIds) Then ReDim $g_aViewAppsOnlineIds[$iNewItem + 32]
+                $g_aViewAppsOnlineIds[$iNewItem] = $sFinalId
+                $g_iViewAppsOnlineCount = $iNewItem + 1
+
+                $bApplied = True
+                ExitLoop
+        EndSwitch
+    WEnd
+
+    GUISetAccelerators(0, $hAddDlg)
+    GUIDelete($hAddDlg)
+    If $bApplied Then
+        _ViewAppsOnlineOnSelect()
+        appSetStatus(i18nGet("status.title", "Status: ") & i18nGet("apps.online.status.added", "Added application to online installation list"))
+    EndIf
+EndFunc
+
+Func _ViewAppsShowEditDialog()
+    Local $sSel = _GUICtrlListView_GetSelectedIndices($hViewAppsOnlineTable)
+    If $sSel = "" Then Return
+    Local $iRow = Number($sSel)
+
+    Local $sCurName = _GUICtrlListView_GetItemText($hViewAppsOnlineTable, $iRow, 0)
+    Local $sCurDesc = _GUICtrlListView_GetItemText($hViewAppsOnlineTable, $iRow, 1)
+    Local $sCurVer = _GUICtrlListView_GetItemText($hViewAppsOnlineTable, $iRow, 2)
+    Local $sCurSc = _GUICtrlListView_GetItemText($hViewAppsOnlineTable, $iRow, 3)
+    Local $sCurLoc = _GUICtrlListView_GetItemText($hViewAppsOnlineTable, $iRow, 4)
+
+    Local $hEditDlg = GUICreate(i18nGet("apps.dialog.edit.title", "Edit App") & " - " & $sCurName, 560, 420, -1, -1, BitOR($WS_CAPTION, $WS_SYSMENU), $WS_EX_TOPMOST, $hViewApps)
+    GUISetBkColor(themeColor("main.view.bg"), $hEditDlg)
+
+    Local $hStatus = _GUICtrlStatusBar_Create($hEditDlg)
+    _GUICtrlStatusBar_SetText($hStatus, i18nGet("apps.dialog.status.ready", "Ready"), 0)
+
+    ; Group: Package Configuration
+    Local $idConfigGroup = GUICtrlCreateGroup(i18nGet("apps.dialog.group.config", "Package Configuration"), 12, 12, 536, 330)
+
+    Local $idNameLbl = GUICtrlCreateLabel(i18nGet("apps.dialog.appname.label", "App Name: "), 24, 44, 85, 20)
+    Local $idNameInput = GUICtrlCreateInput($sCurName, 115, 42, 421, 22, BitOR($ES_READONLY, $ES_AUTOHSCROLL))
+    GUICtrlSetState($idNameInput, $GUI_DISABLE)
+
+    Local $idDescLbl = GUICtrlCreateLabel(i18nGet("apps.dialog.desc.label", "Description: "), 24, 84, 85, 20)
+    Local $idDescInput = GUICtrlCreateInput($sCurDesc, 115, 82, 421, 22, BitOR($ES_READONLY, $ES_AUTOHSCROLL))
+    GUICtrlSetState($idDescInput, $GUI_DISABLE)
+
+    ; Version & Shortcut
+    Local $bIsLatest = ($sCurVer = "Latest" Or $sCurVer = i18nGet("apps.online.status.latest", "Latest"))
+    Local $idVerLbl = GUICtrlCreateLabel(i18nGet("apps.dialog.version.label", "Version: "), 24, 124, 85, 20)
+    Local $idVerCmb = GUICtrlCreateCombo("", 115, 122, 110, 22, $CBS_DROPDOWNLIST)
+    _GUICtrlComboBox_AddString(GUICtrlGetHandle($idVerCmb), i18nGet("apps.online.status.latest", "Latest"))
+    If Not $bIsLatest Then
+        _GUICtrlComboBox_AddString(GUICtrlGetHandle($idVerCmb), $sCurVer)
+    EndIf
+    _GUICtrlComboBox_SetCurSel(GUICtrlGetHandle($idVerCmb), $bIsLatest ? 0 : 1)
+
+    Local $idLatestCkbx = GUICtrlCreateCheckbox(i18nGet("apps.dialog.ckbx.latest", "Latest"), 232, 124, 80, 20)
+    GUICtrlSetTip($idLatestCkbx, i18nGet("apps.dialog.ckbx.latest.tip", "Automatically select the latest version"))
+    If $bIsLatest Then
+        GUICtrlSetState($idLatestCkbx, $GUI_CHECKED)
+        GUICtrlSetState($idVerCmb, $GUI_DISABLE)
+    Else
+        GUICtrlSetState($idLatestCkbx, $GUI_UNCHECKED)
+        GUICtrlSetState($idVerCmb, $GUI_ENABLE)
+    EndIf
+
+    Local $idShortcutLbl = GUICtrlCreateLabel(i18nGet("apps.dialog.shortcut.label", "Shortcut: "), 322, 124, 65, 20)
+    Local $idShortcutCmb = GUICtrlCreateCombo("", 392, 122, 144, 22, $CBS_DROPDOWNLIST)
+    Local $sYes = i18nGet("apps.status.yes", "Yes")
+    Local $sNo = i18nGet("apps.status.no", "No")
+    GUICtrlSetData($idShortcutCmb, $sYes & "|" & $sNo, ($sCurSc = "Yes" Or $sCurSc = $sYes) ? $sYes : $sNo)
+
+    ; Custom path
+    Local $bIsCustom = ($sCurLoc <> "Default" And $sCurLoc <> i18nGet("apps.online.status.default", "Default") And $sCurLoc <> "")
+    Local $idCustomPathCkbx = GUICtrlCreateCheckbox(i18nGet("apps.dialog.ckbx.custom_path", "Custom path"), 24, 164, 105, 20)
+    GUICtrlSetTip($idCustomPathCkbx, i18nGet("apps.dialog.ckbx.custom_path.tip", "Specify a custom installation directory"))
+    Local $idLocationInput = GUICtrlCreateInput($bIsCustom ? $sCurLoc : "", 135, 162, 401, 22)
+    GUICtrlSetTip($idLocationInput, i18nGet("apps.dialog.location.tip", "Custom installation directory path"))
+    If $bIsCustom Then
+        GUICtrlSetState($idCustomPathCkbx, $GUI_CHECKED)
+        GUICtrlSetState($idLocationInput, $GUI_ENABLE)
+    Else
+        GUICtrlSetState($idCustomPathCkbx, $GUI_UNCHECKED)
+        GUICtrlSetState($idLocationInput, $GUI_DISABLE)
+    EndIf
+
+    Local $idReqInfoLbl = GUICtrlCreateLabel(i18nGet("apps.online.info.label", "Requires an active internet connection."), 24, 210, 512, 20)
+    GUICtrlSetFont($idReqInfoLbl, $iSmall, 400, 2)
+    GUICtrlCreateGroup("", -99, -99, 1, 1)
+
+    ; Bottom Buttons: Reset (left), Apply, Cancel (right)
+    Local $idResetBtn = GUICtrlCreateButton(i18nGet("apps.dialog.btn.reset", "Reset"), 12, 354, 80, 28)
+    GUICtrlSetTip($idResetBtn, i18nGet("apps.dialog.btn.reset.tip", "Reset dialog input fields to defaults"))
+    Local $idApplyBtn = GUICtrlCreateButton(i18nGet("apps.dialog.btn.apply", "Apply"), 370, 354, 85, 28)
+    GUICtrlSetTip($idApplyBtn, i18nGet("apps.dialog.btn.apply.tip", "Save and apply application details"))
+    Local $idCancelBtn = GUICtrlCreateButton(i18nGet("apps.dialog.btn.cancel", "Cancel"), 463, 354, 85, 28)
+    GUICtrlSetTip($idCancelBtn, i18nGet("apps.dialog.btn.cancel.tip", "Close dialog without saving"))
+
+    GUISetState(@SW_SHOW, $hEditDlg)
+
+    Local $bApplied = False
+    While 1
+        Local $iMsg = GUIGetMsg()
+        Switch $iMsg
+            Case $GUI_EVENT_CLOSE, $idCancelBtn
+                ExitLoop
+
+            Case $idLatestCkbx
+                If GUICtrlRead($idLatestCkbx) = $GUI_CHECKED Then
+                    GUICtrlSetState($idVerCmb, $GUI_DISABLE)
+                    _GUICtrlComboBox_SetCurSel(GUICtrlGetHandle($idVerCmb), 0)
+                Else
+                    GUICtrlSetState($idVerCmb, $GUI_ENABLE)
+                EndIf
+
+            Case $idCustomPathCkbx
+                If GUICtrlRead($idCustomPathCkbx) = $GUI_CHECKED Then
+                    GUICtrlSetState($idLocationInput, $GUI_ENABLE)
+                Else
+                    GUICtrlSetState($idLocationInput, $GUI_DISABLE)
+                    GUICtrlSetData($idLocationInput, "")
+                EndIf
+
+            Case $idResetBtn
+                If $bIsLatest Then
+                    GUICtrlSetState($idLatestCkbx, $GUI_CHECKED)
+                    GUICtrlSetState($idVerCmb, $GUI_DISABLE)
+                    _GUICtrlComboBox_SetCurSel(GUICtrlGetHandle($idVerCmb), 0)
+                Else
+                    GUICtrlSetState($idLatestCkbx, $GUI_UNCHECKED)
+                    GUICtrlSetState($idVerCmb, $GUI_ENABLE)
+                EndIf
+                GUICtrlSetData($idShortcutCmb, ($sCurSc = "Yes" Or $sCurSc = $sYes) ? $sYes : $sNo)
+                If $bIsCustom Then
+                    GUICtrlSetState($idCustomPathCkbx, $GUI_CHECKED)
+                    GUICtrlSetState($idLocationInput, $GUI_ENABLE)
+                    GUICtrlSetData($idLocationInput, $sCurLoc)
+                Else
+                    GUICtrlSetState($idCustomPathCkbx, $GUI_UNCHECKED)
+                    GUICtrlSetState($idLocationInput, $GUI_DISABLE)
+                    GUICtrlSetData($idLocationInput, "")
+                EndIf
+
+            Case $idApplyBtn
+                Local $sNewVer = (GUICtrlRead($idLatestCkbx) = $GUI_CHECKED) ? i18nGet("apps.online.status.latest", "Latest") : GUICtrlRead($idVerCmb)
+                Local $sNewSc = GUICtrlRead($idShortcutCmb)
+                Local $sNewLoc = (GUICtrlRead($idCustomPathCkbx) = $GUI_CHECKED And StringStripWS(GUICtrlRead($idLocationInput), 3) <> "") ? GUICtrlRead($idLocationInput) : i18nGet("apps.online.status.default", "Default")
+
+                _GUICtrlListView_SetItemText($hViewAppsOnlineTable, $iRow, $sNewVer, 2)
+                _GUICtrlListView_SetItemText($hViewAppsOnlineTable, $iRow, $sNewSc, 3)
+                _GUICtrlListView_SetItemText($hViewAppsOnlineTable, $iRow, $sNewLoc, 4)
+
+                $bApplied = True
+                ExitLoop
+        EndSwitch
+    WEnd
+
+    GUIDelete($hEditDlg)
+    If $bApplied Then
+        appSetStatus(i18nGet("status.title", "Status: ") & i18nGet("apps.online.status.edited", "Saved changes to online application"))
+    EndIf
+EndFunc
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Fonts Library Operations
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+Func _ViewAppsFontsReset()
+    _GUICtrlListView_DeleteAllItems($hViewAppsFontsTable)
+    Local $sFontsDir = @ScriptDir & "\apps\Fonts"
+    If Not FileExists($sFontsDir) Then $sFontsDir = @ScriptDir & "\Fonts"
+
+    Local $hSearch = FileFindFirstFile($sFontsDir & "\*.ttf")
+    If $hSearch <> -1 Then
+        While 1
+            Local $sFileName = FileFindNextFile($hSearch)
+            If @error Then ExitLoop
+            Local $sFull = $sFontsDir & "\" & $sFileName
+            Local $iItem = _GUICtrlListView_AddItem($hViewAppsFontsTable, $sFileName)
+            _GUICtrlListView_AddSubItem($hViewAppsFontsTable, $iItem, $sFull, 1)
+            _GUICtrlListView_SetItemChecked($hViewAppsFontsTable, $iItem, True)
+        WEnd
+        FileClose($hSearch)
+    EndIf
+EndFunc
+
+Func _ViewAppsFontsSelectAll()
+    Local $iCount = _GUICtrlListView_GetItemCount($hViewAppsFontsTable)
+    For $i = 0 To $iCount - 1
+        _GUICtrlListView_SetItemChecked($hViewAppsFontsTable, $i, True)
+    Next
+    appSetStatus(i18nGet("status.title", "Status: ") & i18nGet("apps.fonts.btn.select_all.tip", "Select all fonts in the table"))
+EndFunc
+
+Func _ViewAppsFontsAdd()
+    Local $sFilter = i18nGet("apps.fonts.dialog.add.filter", "TrueType Font files (*.ttf)|All files (*.*)")
+    Local $sFile = FileOpenDialog(i18nGet("apps.fonts.dialog.add.title", "Select TrueType Font Files"), @ScriptDir, $sFilter, BitOR($FD_FILEMUSTEXIST, $FD_MULTISELECT))
+    If Not @error And $sFile <> "" Then
+        Local $aSelected = StringSplit($sFile, "|")
+        If $aSelected[0] = 1 Then
+            Local $sFullName = $aSelected[1]
+            Local $sBase = StringMid($sFullName, StringInStr($sFullName, "\", 0, -1) + 1)
+            Local $iItem = _GUICtrlListView_AddItem($hViewAppsFontsTable, $sBase)
+            _GUICtrlListView_AddSubItem($hViewAppsFontsTable, $iItem, $sFullName, 1)
+            _GUICtrlListView_SetItemChecked($hViewAppsFontsTable, $iItem, True)
+        ElseIf $aSelected[0] > 1 Then
+            Local $sDir = $aSelected[1]
+            If StringRight($sDir, 1) <> "\" Then $sDir &= "\"
+            For $k = 2 To $aSelected[0]
+                Local $sBase = $aSelected[$k]
+                Local $sFullName = $sDir & $sBase
+                Local $iItem = _GUICtrlListView_AddItem($hViewAppsFontsTable, $sBase)
+                _GUICtrlListView_AddSubItem($hViewAppsFontsTable, $iItem, $sFullName, 1)
+                _GUICtrlListView_SetItemChecked($hViewAppsFontsTable, $iItem, True)
+            Next
+        EndIf
+        appSetStatus(i18nGet("status.title", "Status: ") & i18nGet("apps.fonts.status.added", "Added font(s) to the list"))
+    EndIf
+EndFunc
+
+Func _ViewAppsFontsRemove()
+    Local $sSel = _GUICtrlListView_GetSelectedIndices($hViewAppsFontsTable)
+    If $sSel = "" Then Return
+    Local $iIdx = Number($sSel)
+    _GUICtrlListView_DeleteItem($hViewAppsFontsTable, $iIdx)
+    appSetStatus(i18nGet("status.title", "Status: ") & i18nGet("apps.fonts.status.removed", "Removed selected font from the list"))
+EndFunc
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Comprehensive Toolbar Reset
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+Func _ViewAppsResetAllSettings()
+    ; 1. Reset Mode Slider to Online (2)
+    _ViewAppsUpdateModeState(2)
+
+    ; 2. Reset Online Apps list to empty
+    _ViewAppsOnlineReset()
+
+    ; 3. Deselect all Offline Apps
+    _ViewAppsResetSelection()
+    _ViewAppsOnClear()
+
+    ; 4. Reset Fonts Installation Slider to Install (1) & reload all fonts
+    _ViewAppsUpdateFontsState(1)
+    _ViewAppsFontsReset()
+
+    ; 5. Reset Max Iteration & Log Path to factory defaults
+    GUICtrlSetData($idViewAppsMaxIterInput, "2")
+    GUICtrlSetData($idViewAppsLogPathInput, "C:\AutoInstaller\apps.log")
+
+    appSetStatus(i18nGet("status.title", "Status: ") & i18nGet("apps.status.reset_all", "Reset all application and font settings to defaults"))
+EndFunc
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Localization & Theming
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 Func viewAppsApplyLang()
     GUICtrlSetData($idViewAppsTitle, i18nGet("apps.title", "Customize App Installation"))
 
-    ; Section 1: Apps Library
-    GUICtrlSetData($hViewAppsLibraryGroup, i18nGet("apps.library.title", "Apps Library"))
-    GUICtrlSetTip($hViewAppsLibraryGroup, i18nGet("apps.library.tip", "Software catalog and individual application management"))
+    ; Header Mode Slider
+    GUICtrlSetData($hViewAppsModeGroup, i18nGet("apps.mode.title", "Installation Mode"))
+    GUICtrlSetTip($hViewAppsModeGroup, i18nGet("apps.mode.tip", "Switch between Disabled, Offline, and Online installation modes"))
+    GUICtrlSetData($idViewAppsModeLbl, i18nGet("apps.mode.label", "Installation Mode: "))
+    GUICtrlSetData($idViewAppsModeDisLbl, i18nGet("apps.mode.disabled.label", "Disabled"))
+    GUICtrlSetTip($idViewAppsModeDisLbl, i18nGet("apps.mode.disabled.tip", "Disable all apps installation"))
+    GUICtrlSetData($idViewAppsModeOffLbl, i18nGet("apps.mode.offline.label", "Offline"))
+    GUICtrlSetTip($idViewAppsModeOffLbl, i18nGet("apps.mode.offline.tip", "Install applications from local offline packages"))
+    GUICtrlSetData($idViewAppsModeOnlLbl, i18nGet("apps.mode.online.label", "Online"))
+    GUICtrlSetTip($idViewAppsModeOnlLbl, i18nGet("apps.mode.online.tip", "Install applications online using winget package manager"))
 
+    ; Section 1: Online Apps Library
+    GUICtrlSetData($hViewAppsOnlineGroup, i18nGet("apps.online.title", "Online Apps Library"))
+    GUICtrlSetTip($hViewAppsOnlineGroup, i18nGet("apps.online.tip", "Select and configure applications to install online via winget"))
+    GUICtrlSetData($idViewAppsOnlineInfoLbl, i18nGet("apps.online.info.label", "Requires an active internet connection."))
+    GUICtrlSetData($idViewAppsOnlineResetBtn, i18nGet("apps.online.btn.reset", "Reset"))
+    GUICtrlSetTip($idViewAppsOnlineResetBtn, i18nGet("apps.online.btn.reset.tip", "Reset online applications list to empty"))
+
+    _GUICtrlListView_SetColumn($idViewAppsOnlineTable, 0, i18nGet("apps.online.col.name", "App name"))
+    _GUICtrlListView_SetColumn($idViewAppsOnlineTable, 1, i18nGet("apps.online.col.description", "Description"))
+    _GUICtrlListView_SetColumn($idViewAppsOnlineTable, 2, i18nGet("apps.online.col.version", "Version"))
+    _GUICtrlListView_SetColumn($idViewAppsOnlineTable, 3, i18nGet("apps.online.col.shortcut", "Shortcut"))
+    _GUICtrlListView_SetColumn($idViewAppsOnlineTable, 4, i18nGet("apps.online.col.location", "Location"))
+
+    GUICtrlSetData($idViewAppsOnlineSelectAllBtn, i18nGet("apps.online.btn.select_all", "Select All"))
+    GUICtrlSetTip($idViewAppsOnlineSelectAllBtn, i18nGet("apps.online.btn.select_all.tip", "Select all applications in the online list"))
+    GUICtrlSetData($idViewAppsOnlineAddBtn, i18nGet("apps.online.btn.add", "Add"))
+    GUICtrlSetTip($idViewAppsOnlineAddBtn, i18nGet("apps.online.btn.add.tip", "Add an application to the online installation list"))
+    GUICtrlSetData($idViewAppsOnlineRemoveBtn, i18nGet("apps.online.btn.remove", "Remove"))
+    GUICtrlSetTip($idViewAppsOnlineRemoveBtn, i18nGet("apps.online.btn.remove.tip", "Remove selected application from the online installation list"))
+    GUICtrlSetData($idViewAppsOnlineEditBtn, i18nGet("apps.online.btn.edit", "Edit"))
+    GUICtrlSetTip($idViewAppsOnlineEditBtn, i18nGet("apps.online.btn.edit.tip", "Edit selected application details"))
+
+    ; Section 2: Offline Apps Library
+    GUICtrlSetData($hViewAppsOfflineGroup, i18nGet("apps.offline.title", "Offline Apps Library"))
+    GUICtrlSetTip($hViewAppsOfflineGroup, i18nGet("apps.offline.tip", "Software catalog and offline local package management"))
     GUICtrlSetData($idViewAppsAvailableLbl, i18nGet("apps.available.label", "Available Applications: "))
     GUICtrlSetTip($idViewAppsAvailableLbl, i18nGet("apps.available.tip", "List of software applications available in the library"))
     GUICtrlSetData($idViewAppsResetBtn, i18nGet("apps.btn.reset", "Reset"))
@@ -581,7 +1558,6 @@ Func viewAppsApplyLang()
     _GUICtrlListView_SetColumn($idViewAppsTable, 3, i18nGet("apps.col.shortcut", "Shortcut"))
     _GUICtrlListView_SetColumn($idViewAppsTable, 4, i18nGet("apps.col.ready", "Ready"))
 
-    ; Edit row tooltips & combobox
     GUICtrlSetTip($idViewAppsNameInput, i18nGet("apps.entry.name.tip", "Selected application name (read-only)"))
     GUICtrlSetTip($idViewAppsDescInput, i18nGet("apps.entry.desc.tip", "Selected application description (read-only)"))
     GUICtrlSetTip($idViewAppsVerInput, i18nGet("apps.entry.version.tip", "Selected application version (read-only)"))
@@ -592,48 +1568,65 @@ Func viewAppsApplyLang()
     GUICtrlSetData($idViewAppsShortcutCmb, "|" & i18nGet("apps.status.yes", "Yes") & "|" & i18nGet("apps.status.no", "No"), $bWasYes ? i18nGet("apps.status.yes", "Yes") : i18nGet("apps.status.no", "No"))
     GUICtrlSetTip($idViewAppsShortcutCmb, i18nGet("apps.entry.shortcut.tip", "Create desktop shortcut after installation"))
 
-    ; Edit row buttons
     GUICtrlSetData($idViewAppsDownloadBtn, i18nGet("apps.entry.download.btn", "Download"))
     GUICtrlSetTip($idViewAppsDownloadBtn, i18nGet("apps.entry.download.tip", "Download setup file for the selected application"))
-
     GUICtrlSetData($idViewAppsRefreshBtn, i18nGet("apps.btn.refresh", "Refresh"))
     GUICtrlSetTip($idViewAppsRefreshBtn, i18nGet("apps.btn.refresh.tip", "Refresh version and readiness information for the selected application"))
-
     GUICtrlSetData($idViewAppsClearBtn, i18nGet("apps.btn.clear", "Clear"))
     GUICtrlSetTip($idViewAppsClearBtn, i18nGet("apps.btn.clear.tip", "Reset edit row fields to default values"))
-
     GUICtrlSetData($idViewAppsSaveBtn, i18nGet("apps.btn.save", "Save"))
     GUICtrlSetTip($idViewAppsSaveBtn, i18nGet("apps.btn.save.tip", "Save edit row changes to the selected application"))
-
     GUICtrlSetData($idViewAppsCancelBtn, i18nGet("apps.btn.cancel", "Cancel"))
     GUICtrlSetTip($idViewAppsCancelBtn, i18nGet("apps.btn.cancel.tip", "Discard edit row changes and revert to the selected application state"))
 
-    ; Additional controls edit info
     _ViewAppsSetDownloadStatus($g_sViewAppsCurStatusKey)
     GUICtrlSetTip($idViewAppsProgressBar, i18nGet("apps.entry.progress.tip", "Real-time download progress for the selected application"))
 
-    ; Section 2: Auto-installation
+    ; Section 3: Fonts Library
+    GUICtrlSetData($hViewAppsFontsGroup, i18nGet("apps.fonts.title", "Fonts Library"))
+    GUICtrlSetTip($hViewAppsFontsGroup, i18nGet("apps.fonts.tip", "Manage and select TrueType fonts for installation"))
+    GUICtrlSetData($idViewAppsFontsSliderLbl, i18nGet("apps.fonts.slider.label", "Fonts Installation: "))
+    GUICtrlSetData($idViewAppsFontsDisLbl, i18nGet("apps.fonts.disabled.label", "Disabled"))
+    GUICtrlSetTip($idViewAppsFontsDisLbl, i18nGet("apps.fonts.disabled.tip", "Skip fonts installation"))
+    GUICtrlSetData($idViewAppsFontsInstLbl, i18nGet("apps.fonts.install.label", "Install"))
+    GUICtrlSetTip($idViewAppsFontsInstLbl, i18nGet("apps.fonts.install.tip", "Install selected TrueType fonts"))
+
+    GUICtrlSetData($idViewAppsFontsAvailableLbl, i18nGet("apps.fonts.available.label", "Available Fonts: "))
+    GUICtrlSetData($idViewAppsFontsResetBtn, i18nGet("apps.fonts.btn.reset", "Reset"))
+    GUICtrlSetTip($idViewAppsFontsResetBtn, i18nGet("apps.fonts.btn.reset.tip", "Reload all fonts from apps/Fonts directory and select all"))
+
+    _GUICtrlListView_SetColumn($idViewAppsFontsTable, 0, i18nGet("apps.fonts.col.name", "Font name"))
+    _GUICtrlListView_SetColumn($idViewAppsFontsTable, 1, i18nGet("apps.fonts.col.location", "Location"))
+
+    GUICtrlSetData($idViewAppsFontsSelectAllBtn, i18nGet("apps.fonts.btn.select_all", "Select All"))
+    GUICtrlSetTip($idViewAppsFontsSelectAllBtn, i18nGet("apps.fonts.btn.select_all.tip", "Select all fonts in the table"))
+    GUICtrlSetData($idViewAppsFontsAddBtn, i18nGet("apps.fonts.btn.add", "Add"))
+    GUICtrlSetTip($idViewAppsFontsAddBtn, i18nGet("apps.fonts.btn.add.tip", "Add TrueType font files (.ttf) to the list"))
+    GUICtrlSetData($idViewAppsFontsRemoveBtn, i18nGet("apps.fonts.btn.remove", "Remove"))
+    GUICtrlSetTip($idViewAppsFontsRemoveBtn, i18nGet("apps.fonts.btn.remove.tip", "Remove selected font from the list"))
+
+    ; Section 4: Auto-installation
     GUICtrlSetData($hViewAppsInstallGroup, i18nGet("apps.autoinstall.title", "Auto-installation"))
     GUICtrlSetTip($hViewAppsInstallGroup, i18nGet("apps.autoinstall.tip", "Configuration settings for unattended application deployment"))
-
     GUICtrlSetData($idViewAppsMaxIterLbl, i18nGet("apps.maxiter.label", "Max Iteration: "))
     GUICtrlSetTip($idViewAppsMaxIterLbl, i18nGet("apps.maxiter.tip", "Maximum number of installation attempts for each application. Increasing this value may help with applications that fail to install on the first attempt."))
     GUICtrlSetTip($idViewAppsMaxIterInput, i18nGet("apps.maxiter.tip", "Maximum number of installation attempts for each application. Increasing this value may help with applications that fail to install on the first attempt."))
     GUICtrlSetTip($idViewAppsMaxIterUpDown, i18nGet("apps.maxiter.tip", "Maximum number of installation attempts for each application. Increasing this value may help with applications that fail to install on the first attempt."))
-
     GUICtrlSetData($idViewAppsLogPathLbl, i18nGet("apps.logpath.label", "Log Path: "))
     GUICtrlSetTip($idViewAppsLogPathLbl, i18nGet("apps.logpath.tip", "File path where installation logs will be saved. Changing this value may help with troubleshooting installation issues."))
     GUICtrlSetTip($idViewAppsLogPathInput, i18nGet("apps.logpath.tip", "File path where installation logs will be saved. Changing this value may help with troubleshooting installation issues."))
-
     GUICtrlSetData($idViewAppsLogBrowseBtn, i18nGet("apps.btn.browse", "Browse"))
     GUICtrlSetTip($idViewAppsLogBrowseBtn, i18nGet("apps.btn.browse.tip", "Select destination folder for installation logs"))
 
-    ; Reload descriptions in table for current language
+    ; Reload descriptions in offline table
     Local $aApps = dataLoadCsv("apps.csv")
     If IsArray($aApps) Then
+        Local $iRowCounter = 0
         For $j = 1 To UBound($aApps, 1) - 1
+            If $aApps[$j][0] = "Fonts" Then ContinueLoop
             Local $sDesc = _AppsGetAppDesc($aApps[$j][0], $aApps[$j][2])
-            _GUICtrlListView_SetItemText($hViewAppsTable, $j - 1, $sDesc, 1)
+            _GUICtrlListView_SetItemText($hViewAppsTable, $iRowCounter, $sDesc, 1)
+            $iRowCounter += 1
         Next
     EndIf
 
@@ -641,9 +1634,10 @@ Func viewAppsApplyLang()
         GUICtrlSetData($idViewAppsDescInput, _GUICtrlListView_GetItemText($hViewAppsTable, $g_iViewAppsSelectedRow, 1))
     EndIf
 
+    ; Toolbar Buttons
     If $g_hCurrentView = $hViewApps Then
         GUICtrlSetData($a_idToolBarBtn[0], i18nGet("reset.btn.title", "Reset"))
-        GUICtrlSetTip($a_idToolBarBtn[0], i18nGet("apps.btn.reset.tip", "Deselect all applications for installation"))
+        GUICtrlSetTip($a_idToolBarBtn[0], i18nGet("apps.toolbar.reset.tip", "Reset all application and font settings to default values"))
 
         GUICtrlSetData($a_idToolBarBtn[1], i18nGet("download.btn.title", "Download"))
         GUICtrlSetTip($a_idToolBarBtn[1], i18nGet("apps.toolbar.download.tip", "Download setup files for all selected applications"))
@@ -660,9 +1654,9 @@ Func viewAppsApplyLang()
 EndFunc
 
 Func viewAppsToolBar()
-    ; Button Index 0: [Reset]
+    ; Button Index 0: [Reset] - Overhauled to reset all settings to defaults
     GUICtrlSetData($a_idToolBarBtn[0], i18nGet("reset.btn.title", "Reset"))
-    GUICtrlSetTip($a_idToolBarBtn[0], i18nGet("apps.btn.reset.tip", "Deselect all applications for installation"))
+    GUICtrlSetTip($a_idToolBarBtn[0], i18nGet("apps.toolbar.reset.tip", "Reset all application and font settings to default values"))
     GUICtrlSetState($a_idToolBarBtn[0], $GUI_SHOW)
 
     ; Button Index 1: [Download]
@@ -692,15 +1686,37 @@ Func viewAppsApplyTheme()
     GUICtrlSetColor($idViewAppsTitle, themeColor("text.primary"))
     GUICtrlSetBkColor($idViewAppsTitle, themeColor("main.view.bg"))
 
+    GUICtrlSetBkColor($idViewAppsModeSlider, themeColor("main.view.bg"))
+    GUICtrlSetBkColor($idViewAppsFontsSlider, themeColor("main.view.bg"))
+
+    GUICtrlSetColor($idViewAppsModeLbl, themeColor("text.primary"))
+    GUICtrlSetBkColor($idViewAppsModeLbl, themeColor("main.view.bg"))
+    GUICtrlSetColor($idViewAppsModeDisLbl, themeColor("text.primary"))
+    GUICtrlSetBkColor($idViewAppsModeDisLbl, themeColor("main.view.bg"))
+    GUICtrlSetColor($idViewAppsModeOffLbl, themeColor("text.primary"))
+    GUICtrlSetBkColor($idViewAppsModeOffLbl, themeColor("main.view.bg"))
+    GUICtrlSetColor($idViewAppsModeOnlLbl, themeColor("text.primary"))
+    GUICtrlSetBkColor($idViewAppsModeOnlLbl, themeColor("main.view.bg"))
+
+    GUICtrlSetColor($idViewAppsOnlineInfoLbl, themeColor("text.primary"))
+    GUICtrlSetBkColor($idViewAppsOnlineInfoLbl, themeColor("main.view.bg"))
+
     GUICtrlSetColor($idViewAppsAvailableLbl, themeColor("text.primary"))
     GUICtrlSetBkColor($idViewAppsAvailableLbl, themeColor("main.view.bg"))
-
     GUICtrlSetColor($idViewAppsStatusLbl, themeColor("text.primary"))
     GUICtrlSetBkColor($idViewAppsStatusLbl, themeColor("main.view.bg"))
 
+    GUICtrlSetColor($idViewAppsFontsSliderLbl, themeColor("text.primary"))
+    GUICtrlSetBkColor($idViewAppsFontsSliderLbl, themeColor("main.view.bg"))
+    GUICtrlSetColor($idViewAppsFontsDisLbl, themeColor("text.primary"))
+    GUICtrlSetBkColor($idViewAppsFontsDisLbl, themeColor("main.view.bg"))
+    GUICtrlSetColor($idViewAppsFontsInstLbl, themeColor("text.primary"))
+    GUICtrlSetBkColor($idViewAppsFontsInstLbl, themeColor("main.view.bg"))
+    GUICtrlSetColor($idViewAppsFontsAvailableLbl, themeColor("text.primary"))
+    GUICtrlSetBkColor($idViewAppsFontsAvailableLbl, themeColor("main.view.bg"))
+
     GUICtrlSetColor($idViewAppsMaxIterLbl, themeColor("text.primary"))
     GUICtrlSetBkColor($idViewAppsMaxIterLbl, themeColor("main.view.bg"))
-
     GUICtrlSetColor($idViewAppsLogPathLbl, themeColor("text.primary"))
     GUICtrlSetBkColor($idViewAppsLogPathLbl, themeColor("main.view.bg"))
 
@@ -717,9 +1733,17 @@ Func viewAppsApplyTheme()
         GUICtrlSetBkColor($aInputs[$i], themeColor("main.view.bg"))
     Next
 
+    _GUICtrlListView_SetTextColor($idViewAppsOnlineTable, themeColor("text.primary"))
+    _GUICtrlListView_SetTextBkColor($idViewAppsOnlineTable, themeColor("main.view.bg"))
+    _GUICtrlListView_SetBkColor($idViewAppsOnlineTable, themeColor("main.view.bg"))
+
     _GUICtrlListView_SetTextColor($idViewAppsTable, themeColor("text.primary"))
     _GUICtrlListView_SetTextBkColor($idViewAppsTable, themeColor("main.view.bg"))
     _GUICtrlListView_SetBkColor($idViewAppsTable, themeColor("main.view.bg"))
+
+    _GUICtrlListView_SetTextColor($idViewAppsFontsTable, themeColor("text.primary"))
+    _GUICtrlListView_SetTextBkColor($idViewAppsFontsTable, themeColor("main.view.bg"))
+    _GUICtrlListView_SetBkColor($idViewAppsFontsTable, themeColor("main.view.bg"))
 EndFunc
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -727,25 +1751,66 @@ EndFunc
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 Func viewAppsHandleEvent($idMsg)
-    ; Track ListView row selection changes
-    Local $sSel = _GUICtrlListView_GetSelectedIndices($hViewAppsTable)
-    If $sSel <> "" Then
-        Local $iCurSel = Number($sSel)
-        If $iCurSel <> $g_iViewAppsSelectedRow Then
-            _ViewAppsOnSelectRow($iCurSel)
+    ; Track Offline ListView row selection changes
+    Local $sSelOff = _GUICtrlListView_GetSelectedIndices($hViewAppsTable)
+    If $sSelOff <> "" Then
+        Local $iCurSelOff = Number($sSelOff)
+        If $iCurSelOff <> $g_iViewAppsSelectedRow Then
+            _ViewAppsOnSelectRow($iCurSelOff)
         EndIf
     EndIf
 
+    ; Track Online ListView row selection changes
+    Local $sSelOnl = _GUICtrlListView_GetSelectedIndices($hViewAppsOnlineTable)
+    If $sSelOnl <> "" Then
+        Local $iCurSelOnl = Number($sSelOnl)
+        If $iCurSelOnl <> $g_iViewAppsOnlineSelectedRow Then
+            _ViewAppsOnlineOnSelect()
+        EndIf
+    ElseIf $g_iViewAppsOnlineSelectedRow <> -1 Then
+        _ViewAppsOnlineOnSelect()
+    EndIf
+
     Switch $idMsg
-        ; In-View Reset Button
+        ; Mode Slider Events
+        Case $idViewAppsModeDisLbl
+            _ViewAppsUpdateModeState(0)
+
+        Case $idViewAppsModeOffLbl
+            _ViewAppsUpdateModeState(1)
+
+        Case $idViewAppsModeOnlLbl
+            _ViewAppsUpdateModeState(2)
+
+        Case $idViewAppsModeSlider
+            _ViewAppsUpdateModeState(GUICtrlRead($idViewAppsModeSlider))
+
+        ; Online Apps Events
+        Case $idViewAppsOnlineResetBtn
+            _ViewAppsOnlineReset()
+
+        Case $idViewAppsOnlineTable
+            _ViewAppsOnlineOnSelect()
+
+        Case $idViewAppsOnlineSelectAllBtn
+            _ViewAppsOnlineSelectAll()
+
+        Case $idViewAppsOnlineAddBtn
+            _ViewAppsShowAddDialog()
+
+        Case $idViewAppsOnlineRemoveBtn
+            _ViewAppsOnlineRemove()
+
+        Case $idViewAppsOnlineEditBtn
+            _ViewAppsShowEditDialog()
+
+        ; Offline Apps Events
         Case $idViewAppsResetBtn
             _ViewAppsResetSelection()
 
-        ; Table selection
         Case $idViewAppsTable
             _ViewAppsOnSelectRow()
 
-        ; Edit Row Control Buttons
         Case $idViewAppsDownloadBtn
             _ViewAppsDownloadSelectedRow()
 
@@ -761,13 +1826,36 @@ Func viewAppsHandleEvent($idMsg)
         Case $idViewAppsCancelBtn
             _ViewAppsOnCancel()
 
+        ; Fonts Slider Events
+        Case $idViewAppsFontsDisLbl
+            _ViewAppsUpdateFontsState(0)
+
+        Case $idViewAppsFontsInstLbl
+            _ViewAppsUpdateFontsState(1)
+
+        Case $idViewAppsFontsSlider
+            _ViewAppsUpdateFontsState(GUICtrlRead($idViewAppsFontsSlider))
+
+        ; Fonts Table Events
+        Case $idViewAppsFontsResetBtn
+            _ViewAppsFontsReset()
+
+        Case $idViewAppsFontsSelectAllBtn
+            _ViewAppsFontsSelectAll()
+
+        Case $idViewAppsFontsAddBtn
+            _ViewAppsFontsAdd()
+
+        Case $idViewAppsFontsRemoveBtn
+            _ViewAppsFontsRemove()
+
         ; Auto-installation Log Path Browse Button
         Case $idViewAppsLogBrowseBtn
             _ViewAppsBrowseLogPath()
 
-        ; Toolbar Button 0: [Reset]
+        ; Toolbar Button 0: [Reset] - Resets all settings across all sections to defaults
         Case $a_idToolBarBtn[0]
-            _ViewAppsResetSelection()
+            _ViewAppsResetAllSettings()
 
         ; Toolbar Button 1: [Download]
         Case $a_idToolBarBtn[1]

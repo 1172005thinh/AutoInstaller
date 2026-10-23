@@ -88,7 +88,7 @@ Func _BuildTargetQueue()
 
     For $i = 1 To $aSections[0]
         Local $sApp = $aSections[$i]
-        If $sApp = "Configuration" Then ContinueLoop
+        If $sApp = "Configuration" Or StringLeft($sApp, 7) = "Online_" Or $sApp = "Fonts" Then ContinueLoop
 
         Local $sInstall = StringLower(IniRead($g_sConfigPath, $sApp, "install", "false"))
         If $sInstall <> "true" Then ContinueLoop
@@ -243,6 +243,20 @@ EndFunc
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 _InitEnvironment()
+
+Local $iMode = Int(IniRead($g_sConfigPath, "Configuration", "mode", "2"))
+If $iMode = 0 Then
+    _LogRunner("Applications installation is disabled (mode=0). Skipping.")
+    Exit 0
+ElseIf $iMode = 2 Then
+    _LogRunner("Online mode configured (mode=2). Delegating to apps/install.au3...")
+    Local $sAutoItExe = @AutoItExe
+    If Not FileExists($sAutoItExe) Then $sAutoItExe = @ScriptDir & "\..\tools\AutoIt\AutoIt3_x64.exe"
+    If Not FileExists($sAutoItExe) Then $sAutoItExe = "AutoIt3.exe"
+    Local $iExit = RunWait('"' & $sAutoItExe & '" "' & $g_sAppsDir & '\install.au3" --batch', $g_sAppsDir, @SW_HIDE)
+    Exit $iExit
+EndIf
+
 Local $aQueue = _BuildTargetQueue()
 If IsArray($aQueue) Then
     _RunTargetQueue($aQueue)

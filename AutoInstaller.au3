@@ -58,6 +58,7 @@ Global Const $iCtrlBtnRow = 2
 
 Global $g_hCurrentView = 0
 Global $a_idToolBarBtn[$iToolBarBtnCol]
+Global $hStatusBar = 0
 
 ; Pages
 #include "gui/views/home.au3"
@@ -107,6 +108,9 @@ $iW = $iMainW
 $iH = $iMainH
 Global $hMain = GUICreate(i18nGet("main.title", "AutoInstaller - Automate Windows 11 Installation"), $iW, $iH, -1, -1)
 GUISetIcon($rMainIconPath, -1, $hMain)
+$hStatusBar = _GUICtrlStatusBar_Create($hMain)
+_SendMessage($hStatusBar, $SB_SETMINHEIGHT, $iStatusBarH, 0)
+_GUICtrlStatusBar_Resize($hStatusBar)
 
 ; 3. Initialize Navigation Panel
 $iX = $iP
@@ -190,10 +194,7 @@ For $i = 0 to $iCtrlBtnCol - 1
 Next
 GUICtrlCreateGroup("", -99, -99, -99, -99)
 
-; 7. Initialize Status Bar
-Global $hStatusBar = _GUICtrlStatusBar_Create($hMain)
-_SendMessage($hStatusBar, $SB_SETMINHEIGHT, $iStatusBarH, 0)
-_GUICtrlStatusBar_Resize($hStatusBar)
+; 7. Status Bar initialized with Main GUI
 
 ; 8. Central App State Controllers
 Func appApplyLanguage()
@@ -252,7 +253,7 @@ Func appSetTheme($sThemeName)
 EndFunc
 
 Func appSetStatus($sText)
-    _GUICtrlStatusBar_SetText($hStatusBar, $sText, 0)
+    If $hStatusBar Then _GUICtrlStatusBar_SetText($hStatusBar, $sText, 0)
 EndFunc
 
 Func appView($hTargetPage)
