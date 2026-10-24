@@ -206,7 +206,7 @@ Func appApplyLanguage()
     GUICtrlSetData($a_idNavViewBtn[1], i18nGet("unattend.btn.title", "Unattend"))
     GUICtrlSetData($a_idNavViewBtn[2], i18nGet("apps.btn.title", "Apps"))
     GUICtrlSetData($a_idNavViewBtn[3], i18nGet("drivers.btn.title", "Drivers"))
-    GUICtrlSetData($a_idNavViewBtn[4], i18nGet("confwin.btn.title", "Configure"))
+    GUICtrlSetData($a_idNavViewBtn[4], i18nGet("confwin.btn.title", "Windows"))
     GUICtrlSetData($a_idNavViewBtn[5], i18nGet("ventoy.btn.title", "Ventoy"))
     GUICtrlSetData($a_idNavViewBtn[6], i18nGet("extract.btn.title", "Extract"))
     GUICtrlSetData($a_idNavViewBtn[7], i18nGet("settings.btn.title", "Settings"))
@@ -328,7 +328,7 @@ While 1
         
         Case $a_idNavViewBtn[4]
             appView($hViewConfwin)
-            appSetStatus(i18nGet("status.title", "Status: ") & i18nGet("confwin.btn.title", "Configure"))
+            appSetStatus(i18nGet("status.title", "Status: ") & i18nGet("confwin.btn.title", "Windows"))
         
         Case $a_idNavViewBtn[5]
             appView($hViewVentoy)
