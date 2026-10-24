@@ -52,6 +52,17 @@
       "problemMatcher": []
     },
     {
+      "label": "AutoInstaller: Audit",
+      "type": "shell",
+      "command": "python",
+      "args": ["tools/AutoInstaller/manager.py", "audit"],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
       "label": "i18n: Audit & Lint",
       "type": "shell",
       "command": "python",

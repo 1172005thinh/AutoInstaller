@@ -87,7 +87,6 @@ Func viewDriversCreate($hViewport, $iW, $iH)
     #forceref $iW, $iH
     Local $iContentW = scrollGetContentWidth($iP)
     Local $iContentH = $iH
-    If $iContentH < 480 Then $iContentH = 480
 
     $hViewDrivers = scrollCreateCanvas($hViewport, $iContentH)
     GUISwitch($hViewDrivers)
@@ -141,6 +140,7 @@ Func viewDriversCreate($hViewport, $iW, $iH)
     $idViewDriversModeOffLbl = GUICtrlCreateLabel(i18nGet("drivers.mode.offline.label", "Offline"), $iSliderX + $iSplit1, $iTickLblY, $iCol1W, $iLblH, $SS_CENTER)
     $idViewDriversModeOnlLbl = GUICtrlCreateLabel(i18nGet("drivers.mode.online.label", "Online"), $iSliderX + $iSplit2, $iTickLblY, $iCol2W, $iLblH, $SS_CENTER)
     $idViewDriversModeHybLbl = GUICtrlCreateLabel(i18nGet("drivers.mode.hybrid.label", "Hybrid"), $iSliderX + $iSplit3, $iTickLblY, $iCol3W, $iLblH, $SS_RIGHT)
+    GUICtrlCreateGroup("", -99, -99, -99, -99)
 
     ; =========================================
     ; Section 1: Offline Drivers Library
@@ -154,15 +154,16 @@ Func viewDriversCreate($hViewport, $iW, $iH)
     $iItemY = $iY + $iP * 3
     Local $iBannerW = $iContentW - $iP * 6
     Local $iBannerH = $iRowH + $iP
-    $idViewDriversOfflineBanner = GUICtrlCreateLabel(i18nGet("drivers.offline.banner", "This feature is under development and not ready for production use."), $iX, $iItemY, $iBannerW, $iBannerH, BitOR($SS_CENTER, $SS_CENTERIMAGE))
+    $idViewDriversOfflineBanner = GUICtrlCreateLabel(i18nGet("drivers.offline.banner", "Under development..."), $iX, $iItemY, $iBannerW, $iBannerH, BitOR($SS_CENTER, $SS_CENTERIMAGE))
     GUICtrlSetFont(-1, $iBullet, 600)
+    GUICtrlCreateGroup("", -99, -99, -99, -99)
 
     ; =========================================
     ; Section 2: Online Drivers Library
     ; =========================================
     $iX = $iP
     $iY += $iOfflineGroupH + $iP
-    Local $iOnlineGroupH = $iRowH * 6 + $iP * 4
+    Local $iOnlineGroupH = $iRowH * 5 + $iP * 1
     $hViewDriversOnlineGroup = GUICtrlCreateGroup("", $iX, $iY, $iContentW, $iOnlineGroupH)
 
     ; Row 1: Driver Sources ComboBox
@@ -203,6 +204,11 @@ Func viewDriversCreate($hViewport, $iW, $iH)
     $idViewDriversSDIOBasicLbl = GUICtrlCreateLabel(i18nGet("drivers.sdio.level.basic", "Basic"), $iSliderX, $iSdioTickY, $iSdioTickColW, $iLblH)
     $idViewDriversSDIODevLbl = GUICtrlCreateLabel(i18nGet("drivers.sdio.level.device", "Device-Specific"), $iSliderX + $iSdioTickColW, $iSdioTickY, $iSdioTickColW, $iLblH, $SS_CENTER)
     $idViewDriversSDIOFullLbl = GUICtrlCreateLabel(i18nGet("drivers.sdio.level.full", "Full"), $iSliderX + $iSdioTickColW * 2, $iSdioTickY, $iSdioTickColW, $iLblH, $SS_RIGHT)
+    GUICtrlCreateGroup("", -99, -99, -99, -99)
+
+    Local $iContentBottom = $iY + $iOnlineGroupH + $iP
+    If $iContentBottom < $iH Then $iContentBottom = $iH
+    scrollSetContentHeight($hViewDrivers, $iContentBottom)
 
     viewDriversApplyLang()
     viewDriversApplyTheme()
@@ -380,7 +386,7 @@ Func viewDriversApplyLang()
     ; Section 1: Offline
     GUICtrlSetData($hViewDriversOfflineGroup, i18nGet("drivers.offline.title", "Offline Drivers Library"))
     GUICtrlSetTip($hViewDriversOfflineGroup, i18nGet("drivers.offline.tip", "Manage and extract drivers from local media"))
-    GUICtrlSetData($idViewDriversOfflineBanner, i18nGet("drivers.offline.banner", "This feature is under development and not ready for production use."))
+    GUICtrlSetData($idViewDriversOfflineBanner, i18nGet("drivers.offline.banner", "Under development..."))
     GUICtrlSetTip($idViewDriversOfflineBanner, i18nGet("drivers.offline.banner.tip", "Offline driver extraction and local package repository management is currently being implemented"))
 
     ; Section 2: Online
@@ -441,7 +447,7 @@ Func viewDriversApplyTheme()
     GUICtrlSetColor($idViewDriversModeHybLbl, themeColor("text.primary"))
     GUICtrlSetBkColor($idViewDriversModeHybLbl, themeColor("main.view.bg"))
 
-    ; Offline Banner
+    ; Offline Section
     GUICtrlSetColor($idViewDriversOfflineBanner, themeColor("text.primary"))
     GUICtrlSetBkColor($idViewDriversOfflineBanner, themeColor("main.view.bg"))
 
@@ -464,8 +470,6 @@ Func viewDriversApplyTheme()
     GUICtrlSetBkColor($idViewDriversSDIOSlider, themeColor("main.view.bg"))
     GUICtrlSetColor($idViewDriversSDIOLbl, themeColor("text.primary"))
     GUICtrlSetBkColor($idViewDriversSDIOLbl, themeColor("main.view.bg"))
-    GUICtrlSetColor($idViewDriversSDIOBasicLbl, themeColor("text.primary"))
-    GUICtrlSetBkColor($idViewDriversSDIOBasicLbl, themeColor("main.view.bg"))
     GUICtrlSetColor($idViewDriversSDIOBasicLbl, themeColor("text.primary"))
     GUICtrlSetBkColor($idViewDriversSDIOBasicLbl, themeColor("main.view.bg"))
     GUICtrlSetColor($idViewDriversSDIODevLbl, themeColor("text.primary"))

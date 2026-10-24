@@ -118,8 +118,7 @@ EndFunc
 Func viewConfwinCreate($hViewport, $iW, $iH)
     #forceref $iW, $iH
     Local $iContentW = scrollGetContentWidth($iP)
-    Local $iContentH = 1200
-    If $iContentH < $iH Then $iContentH = $iH
+    Local $iContentH = $iH
 
     $hViewConfwin = scrollCreateCanvas($hViewport, $iContentH)
     GUISwitch($hViewConfwin)
@@ -274,7 +273,7 @@ Func viewConfwinCreate($hViewport, $iW, $iH)
     ; =========================================
     $iX = $iP
     $iY += $iDesktopGroupH + $iP
-    Local $iSystemGroupH = $iRowH * 10 + $iP * 3
+    Local $iSystemGroupH = $iRowH * 9 + $iP * 3
     $hViewConfwinSystemGroup = GUICtrlCreateGroup("", $iX, $iY, $iContentW, $iSystemGroupH)
 
     $iX = $iP * 3
@@ -328,6 +327,10 @@ Func viewConfwinCreate($hViewport, $iW, $iH)
     $idViewConfwinWallLockLbl = GUICtrlCreateLabel(i18nGet("confwin.wallpaper.lockscreen", "Lock screen wallpaper: "), $iX, $iItemY, $iLblW, $iLblH)
     $idViewConfwinWallLockInput = GUICtrlCreateInput("Default", $iSliderX, $iItemY - $iPx, $iPathInputW, $iInputH)
     $idViewConfwinWallLockBrowseBtn = GUICtrlCreateButton(i18nGet("confwin.wallpaper.browse", "Browse..."), $iSliderX + $iPathInputW + $iPx, $iItemY - $iPx, $iBrowseBtnW, $iInputH)
+
+    Local $iContentBottom = $iY + $iWallpaperGroupH + $iP
+    If $iContentBottom < $iH Then $iContentBottom = $iH
+    scrollSetContentHeight($hViewConfwin, $iContentBottom)
 
     viewConfwinApplyLang()
     viewConfwinApplyTheme()
