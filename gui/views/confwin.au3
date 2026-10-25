@@ -340,12 +340,12 @@ Func viewConfwinCreate($hViewport, $iW, $iH)
 
     $idViewConfwinWallDeskLbl = GUICtrlCreateLabel(i18nGet("confwin.wallpaper.desktop", "Desktop wallpaper: "), $iX, $iItemY, $iLblW, $iLblH)
     $idViewConfwinWallDeskInput = GUICtrlCreateInput("Default", $iSliderX, $iItemY - $iPx, $iPathInputW, $iInputH)
-    $idViewConfwinWallDeskBrowseBtn = GUICtrlCreateButton(i18nGet("confwin.wallpaper.browse", "Browse..."), $iSliderX + $iPathInputW + $iPx, $iItemY - $iPx, $iBrowseBtnW, $iInputH)
+    $idViewConfwinWallDeskBrowseBtn = GUICtrlCreateButton(i18nGet("confwin.wallpaper.browse", "Browse"), $iSliderX + $iPathInputW + $iPx, $iItemY - $iPx, $iBrowseBtnW, $iInputH)
 
     $iItemY += $iRowH
     $idViewConfwinWallLockLbl = GUICtrlCreateLabel(i18nGet("confwin.wallpaper.lockscreen", "Lock screen wallpaper: "), $iX, $iItemY, $iLblW, $iLblH)
     $idViewConfwinWallLockInput = GUICtrlCreateInput("Default", $iSliderX, $iItemY - $iPx, $iPathInputW, $iInputH)
-    $idViewConfwinWallLockBrowseBtn = GUICtrlCreateButton(i18nGet("confwin.wallpaper.browse", "Browse..."), $iSliderX + $iPathInputW + $iPx, $iItemY - $iPx, $iBrowseBtnW, $iInputH)
+    $idViewConfwinWallLockBrowseBtn = GUICtrlCreateButton(i18nGet("confwin.wallpaper.browse", "Browse"), $iSliderX + $iPathInputW + $iPx, $iItemY - $iPx, $iBrowseBtnW, $iInputH)
     GUICtrlCreateGroup("", -99, -99, -99, -99)
 
     ; =========================================
@@ -362,7 +362,7 @@ Func viewConfwinCreate($hViewport, $iW, $iH)
     Local $iLogInputW = $iInputW - $iBrowseBtnW - $iPx
     $idViewConfwinLogPathLbl = GUICtrlCreateLabel(i18nGet("confwin.logpath.label", "Log Path: "), $iX, $iItemY, $iLblW, $iLblH)
     $idViewConfwinLogPathInput = GUICtrlCreateInput("C:\AutoInstaller\confwin.log", $iSliderX, $iItemY - $iPx, $iLogInputW, $iInputH)
-    $idViewConfwinLogBrowseBtn = GUICtrlCreateButton(i18nGet("confwin.btn.browse", "Browse..."), $iSliderX + $iLogInputW + $iPx, $iItemY - $iPx, $iBrowseBtnW, $iInputH)
+    $idViewConfwinLogBrowseBtn = GUICtrlCreateButton(i18nGet("confwin.btn.browse", "Browse"), $iSliderX + $iLogInputW + $iPx, $iItemY - $iPx, $iBrowseBtnW, $iInputH)
     GUICtrlCreateGroup("", -99, -99, -99, -99)
 
     Local $iContentBottom = $iY + $iInstallGroupH + $iP
@@ -812,8 +812,8 @@ Func viewConfwinApplyLang()
     GUICtrlSetTip($idViewConfwinWallDeskLbl, i18nGet("confwin.wallpaper.desktop.tip", "Path to image file for desktop background"))
     GUICtrlSetData($idViewConfwinWallLockLbl, i18nGet("confwin.wallpaper.lockscreen", "Lock screen wallpaper: "))
     GUICtrlSetTip($idViewConfwinWallLockLbl, i18nGet("confwin.wallpaper.lockscreen.tip", "Path to image file for lock screen background"))
-    GUICtrlSetData($idViewConfwinWallDeskBrowseBtn, i18nGet("confwin.wallpaper.browse", "Browse..."))
-    GUICtrlSetData($idViewConfwinWallLockBrowseBtn, i18nGet("confwin.wallpaper.browse", "Browse..."))
+    GUICtrlSetData($idViewConfwinWallDeskBrowseBtn, i18nGet("confwin.wallpaper.browse", "Browse"))
+    GUICtrlSetData($idViewConfwinWallLockBrowseBtn, i18nGet("confwin.wallpaper.browse", "Browse"))
 
     ; Section 7: Auto-installation
     GUICtrlSetData($hViewConfwinInstallGroup, i18nGet("confwin.autoinstall.title", "Auto-installation"))
@@ -821,7 +821,7 @@ Func viewConfwinApplyLang()
     GUICtrlSetData($idViewConfwinLogPathLbl, i18nGet("confwin.logpath.label", "Log Path: "))
     GUICtrlSetTip($idViewConfwinLogPathLbl, i18nGet("confwin.logpath.tip", "File path where Windows configuration logs will be saved"))
     GUICtrlSetTip($idViewConfwinLogPathInput, i18nGet("confwin.logpath.tip", "File path where Windows configuration logs will be saved"))
-    GUICtrlSetData($idViewConfwinLogBrowseBtn, i18nGet("confwin.btn.browse", "Browse..."))
+    GUICtrlSetData($idViewConfwinLogBrowseBtn, i18nGet("confwin.btn.browse", "Browse"))
     GUICtrlSetTip($idViewConfwinLogBrowseBtn, i18nGet("confwin.btn.browse.tip", "Select destination folder for Windows configuration logs"))
 
     ; Toolbar Buttons
@@ -985,14 +985,14 @@ Func viewConfwinHandleEvent($idMsg)
 
         ; Browse Wallpapers
         Case $idViewConfwinWallDeskBrowseBtn
-            Local $sFile = FileOpenDialog(i18nGet("confwin.wallpaper.browse", "Browse..."), @WindowsDir, "Images (*.jpg;*.jpeg;*.png;*.bmp)", BitOR($FD_FILEMUSTEXIST, $FD_PATHMUSTEXIST))
+            Local $sFile = FileOpenDialog(i18nGet("confwin.wallpaper.browse", "Browse"), @WindowsDir, "Images (*.jpg;*.jpeg;*.png;*.bmp)", BitOR($FD_FILEMUSTEXIST, $FD_PATHMUSTEXIST))
             If Not @error And $sFile <> "" Then
                 GUICtrlSetData($idViewConfwinWallDeskInput, $sFile)
                 _ViewConfwinOnControlModified()
             EndIf
 
         Case $idViewConfwinWallLockBrowseBtn
-            Local $sFile = FileOpenDialog(i18nGet("confwin.wallpaper.browse", "Browse..."), @WindowsDir, "Images (*.jpg;*.jpeg;*.png;*.bmp)", BitOR($FD_FILEMUSTEXIST, $FD_PATHMUSTEXIST))
+            Local $sFile = FileOpenDialog(i18nGet("confwin.wallpaper.browse", "Browse"), @WindowsDir, "Images (*.jpg;*.jpeg;*.png;*.bmp)", BitOR($FD_FILEMUSTEXIST, $FD_PATHMUSTEXIST))
             If Not @error And $sFile <> "" Then
                 GUICtrlSetData($idViewConfwinWallLockInput, $sFile)
                 _ViewConfwinOnControlModified()

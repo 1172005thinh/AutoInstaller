@@ -240,7 +240,7 @@ Func viewDriversCreate($hViewport, $iW, $iH)
     Local $iLogInputW = $iInputW - $iBrowseBtnW - $iPx
     $idViewDriversLogPathLbl = GUICtrlCreateLabel(i18nGet("drivers.logpath.label", "Log Path: "), $iX, $iItemY, $iLblW, $iLblH)
     $idViewDriversLogPathInput = GUICtrlCreateInput("C:\AutoInstaller\drivers.log", $iSliderX, $iItemY - $iPx, $iLogInputW, $iInputH)
-    $idViewDriversLogBrowseBtn = GUICtrlCreateButton(i18nGet("drivers.btn.browse", "Browse..."), $iSliderX + $iLogInputW + $iPx, $iItemY - $iPx, $iBrowseBtnW, $iInputH)
+    $idViewDriversLogBrowseBtn = GUICtrlCreateButton(i18nGet("drivers.btn.browse", "Browse"), $iSliderX + $iLogInputW + $iPx, $iItemY - $iPx, $iBrowseBtnW, $iInputH)
     GUICtrlCreateGroup("", -99, -99, -99, -99)
 
     Local $iContentBottom = $iY + $iInstallGroupH + $iP
@@ -510,7 +510,7 @@ Func viewDriversApplyLang()
     GUICtrlSetData($idViewDriversLogPathLbl, i18nGet("drivers.logpath.label", "Log Path: "))
     GUICtrlSetTip($idViewDriversLogPathLbl, i18nGet("drivers.logpath.tip", "File path where driver installation logs will be saved"))
     GUICtrlSetTip($idViewDriversLogPathInput, i18nGet("drivers.logpath.tip", "File path where driver installation logs will be saved"))
-    GUICtrlSetData($idViewDriversLogBrowseBtn, i18nGet("drivers.btn.browse", "Browse..."))
+    GUICtrlSetData($idViewDriversLogBrowseBtn, i18nGet("drivers.btn.browse", "Browse"))
     GUICtrlSetTip($idViewDriversLogBrowseBtn, i18nGet("drivers.btn.browse.tip", "Select destination folder for driver installation logs"))
 
     ; Toolbar Buttons

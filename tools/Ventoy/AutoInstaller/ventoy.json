@@ -1,4 +1,4 @@
-﻿{
+{
     "control": [
         {
             "VTOY_DEFAULT_SEARCH_ROOT": "/"
@@ -17,6 +17,7 @@
             "/ventoy/theme/1172005thinh/dark_fb_2560x1080.txt",
             "/ventoy/theme/1172005thinh/dark_fb_2560x1440.txt",
             "/ventoy/theme/1172005thinh/dark_fb_2560x1600.txt",
+            "/ventoy/theme/1172005thinh/dark_fb_3440x1440.txt",
             "/ventoy/theme/1172005thinh/dark_fb_3840x2160.txt",
             "/ventoy/theme/1172005thinh/dark_fb_3840x2400.txt",
             "/ventoy/theme/1172005thinh/dark_gh_1024x768.txt",
@@ -30,6 +31,7 @@
             "/ventoy/theme/1172005thinh/dark_gh_2560x1080.txt",
             "/ventoy/theme/1172005thinh/dark_gh_2560x1440.txt",
             "/ventoy/theme/1172005thinh/dark_gh_2560x1600.txt",
+            "/ventoy/theme/1172005thinh/dark_gh_3440x1440.txt",
             "/ventoy/theme/1172005thinh/dark_gh_3840x2160.txt",
             "/ventoy/theme/1172005thinh/dark_gh_3840x2400.txt",
             "/ventoy/theme/1172005thinh/dark_htc_1024x768.txt",
@@ -43,6 +45,7 @@
             "/ventoy/theme/1172005thinh/dark_htc_2560x1080.txt",
             "/ventoy/theme/1172005thinh/dark_htc_2560x1440.txt",
             "/ventoy/theme/1172005thinh/dark_htc_2560x1600.txt",
+            "/ventoy/theme/1172005thinh/dark_htc_3440x1440.txt",
             "/ventoy/theme/1172005thinh/dark_htc_3840x2160.txt",
             "/ventoy/theme/1172005thinh/dark_htc_3840x2400.txt",
             "/ventoy/theme/1172005thinh/light_fb_1024x768.txt",
@@ -56,6 +59,7 @@
             "/ventoy/theme/1172005thinh/light_fb_2560x1080.txt",
             "/ventoy/theme/1172005thinh/light_fb_2560x1440.txt",
             "/ventoy/theme/1172005thinh/light_fb_2560x1600.txt",
+            "/ventoy/theme/1172005thinh/light_fb_3440x1440.txt",
             "/ventoy/theme/1172005thinh/light_fb_3840x2160.txt",
             "/ventoy/theme/1172005thinh/light_fb_3840x2400.txt",
             "/ventoy/theme/1172005thinh/light_gh_1024x768.txt",
@@ -69,6 +73,7 @@
             "/ventoy/theme/1172005thinh/light_gh_2560x1080.txt",
             "/ventoy/theme/1172005thinh/light_gh_2560x1440.txt",
             "/ventoy/theme/1172005thinh/light_gh_2560x1600.txt",
+            "/ventoy/theme/1172005thinh/light_gh_3440x1440.txt",
             "/ventoy/theme/1172005thinh/light_gh_3840x2160.txt",
             "/ventoy/theme/1172005thinh/light_gh_3840x2400.txt",
             "/ventoy/theme/1172005thinh/light_htc_1024x768.txt",
@@ -82,6 +87,7 @@
             "/ventoy/theme/1172005thinh/light_htc_2560x1080.txt",
             "/ventoy/theme/1172005thinh/light_htc_2560x1440.txt",
             "/ventoy/theme/1172005thinh/light_htc_2560x1600.txt",
+            "/ventoy/theme/1172005thinh/light_htc_3440x1440.txt",
             "/ventoy/theme/1172005thinh/light_htc_3840x2160.txt",
             "/ventoy/theme/1172005thinh/light_htc_3840x2400.txt"
         ],

@@ -268,6 +268,7 @@ Func appView($hTargetPage)
     For $i = 0 To $iToolBarBtnCol - 1
         GUICtrlSetState($a_idToolBarBtn[$i], $GUI_HIDE)
     Next
+    GUISetAccelerators(0, $hMain)
     _WinAPI_RedrawWindow(GUICtrlGetHandle($hToolBar), 0, 0, BitOR($RDW_INVALIDATE, $RDW_UPDATENOW, $RDW_ERASE))
 
     Switch $hView
@@ -282,7 +283,7 @@ Func appView($hTargetPage)
         Case $hViewConfwin
             viewConfwinToolBar()
         Case $hViewVentoy
-            viewVentoyToolBar()
+            viewVentoyToolBar($hMain)
         Case $hViewExtract
             viewExtractToolBar()
         Case $hViewSettings

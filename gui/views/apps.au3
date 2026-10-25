@@ -373,16 +373,18 @@ Func viewAppsCreate($hViewport, $iW, $iH)
     $iX = $iP * 3
     $iItemY = $iY + $iP * 3
     $idViewAppsMaxIterLbl = GUICtrlCreateLabel(i18nGet("apps.maxiter.label", "Max Iteration: "), $iX, $iItemY, $iLblW, $iLblH)
-    $idViewAppsMaxIterInput = GUICtrlCreateInput("2", $iX + $iLblW, $iItemY - $iPx, $iInputW / 3, $iInputH, $ES_NUMBER)
+    $idViewAppsMaxIterInput = GUICtrlCreateInput("2", $iSliderX, $iItemY - $iPx, $iInputW / 3, $iInputH, $ES_NUMBER)
     $idViewAppsMaxIterUpDown = GUICtrlCreateUpdown($idViewAppsMaxIterInput)
     GUICtrlSetLimit($idViewAppsMaxIterUpDown, 5, 1)
 
     ; Log Path Row
     $iItemY += $iRowH
-    Local $iLogInputW = $iTableW - $iLblW - $iBtnW - $iP
+    Local $iBrowseBtnW = 75
+    Local $iLogInputW = $iInputW - $iBrowseBtnW - $iPx
     $idViewAppsLogPathLbl = GUICtrlCreateLabel(i18nGet("apps.logpath.label", "Log Path: "), $iX, $iItemY, $iLblW, $iLblH)
-    $idViewAppsLogPathInput = GUICtrlCreateInput("C:\AutoInstaller\apps.log", $iX + $iLblW, $iItemY - $iPx, $iLogInputW, $iInputH)
-    $idViewAppsLogBrowseBtn = GUICtrlCreateButton(i18nGet("apps.btn.browse", "Browse"), ($iX + $iTableW) - $iBtnW, $iItemY - $iPx, $iBtnW, $iInputH)
+    $idViewAppsLogPathInput = GUICtrlCreateInput("C:\AutoInstaller\apps.log", $iSliderX, $iItemY - $iPx, $iLogInputW, $iInputH)
+    $idViewAppsLogBrowseBtn = GUICtrlCreateButton(i18nGet("apps.btn.browse", "Browse"), $iSliderX + $iLogInputW + $iPx, $iItemY - $iPx, $iBrowseBtnW, $iInputH)
+    GUICtrlCreateGroup("", -99, -99, -99, -99)
 
     Local $iTotalContentH = $iY + $iInstallGroupH + $iP * 2
     scrollSetContentHeight($hViewApps, $iTotalContentH)
