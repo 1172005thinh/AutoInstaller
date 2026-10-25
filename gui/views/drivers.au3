@@ -69,6 +69,12 @@ Global $idViewDriversSDIODevLbl = 0
 Global $idViewDriversSDIOFullLbl = 0
 Global $g_iViewDriversSDIOLevel = 1 ; 0: Basic, 1: Device-Specific (default), 2: Full
 
+; 4. Section: Auto-installation
+Global $hViewDriversInstallGroup = 0
+Global $idViewDriversLogPathLbl = 0
+Global $idViewDriversLogPathInput = 0
+Global $idViewDriversLogBrowseBtn = 0
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Helper Functions & Path Resolution
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -77,6 +83,19 @@ Func _GetDriversConfigPath()
     If FileExists(@ScriptDir & "\drivers\config.ini") Then Return @ScriptDir & "\drivers\config.ini"
     If FileExists(@ScriptDir & "\config.ini") Then Return @ScriptDir & "\config.ini"
     Return @ScriptDir & "\drivers\config.ini"
+EndFunc
+
+Func _ViewDriversBrowseLogPath()
+    Local $sCurPath = GUICtrlRead($idViewDriversLogPathInput)
+    Local $sInitDir = $sCurPath
+    If StringInStr($sInitDir, "\") Then
+        $sInitDir = StringLeft($sInitDir, StringInStr($sInitDir, "\", 0, -1))
+    EndIf
+    Local $sSelected = FileSelectFolder(i18nGet("drivers.dialog.browse.title", "Select Log Folder"), $sInitDir)
+    If Not @error And $sSelected <> "" Then
+        If StringRight($sSelected, 1) <> "\" Then $sSelected &= "\"
+        GUICtrlSetData($idViewDriversLogPathInput, $sSelected & "drivers.log")
+    EndIf
 EndFunc
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -206,7 +225,25 @@ Func viewDriversCreate($hViewport, $iW, $iH)
     $idViewDriversSDIOFullLbl = GUICtrlCreateLabel(i18nGet("drivers.sdio.level.full", "Full"), $iSliderX + $iSdioTickColW * 2, $iSdioTickY, $iSdioTickColW, $iLblH, $SS_RIGHT)
     GUICtrlCreateGroup("", -99, -99, -99, -99)
 
-    Local $iContentBottom = $iY + $iOnlineGroupH + $iP
+    ; =========================================
+    ; Section 3: Auto-installation
+    ; =========================================
+    $iX = $iP
+    $iY += $iOnlineGroupH + $iP
+    Local $iInstallGroupH = $iRowH + $iP * 3
+    $hViewDriversInstallGroup = GUICtrlCreateGroup("", $iX, $iY, $iContentW, $iInstallGroupH)
+
+    ; Log Path Row
+    $iX = $iP * 3
+    $iItemY = $iY + $iP * 3
+    Local $iBrowseBtnW = 75
+    Local $iLogInputW = $iInputW - $iBrowseBtnW - $iPx
+    $idViewDriversLogPathLbl = GUICtrlCreateLabel(i18nGet("drivers.logpath.label", "Log Path: "), $iX, $iItemY, $iLblW, $iLblH)
+    $idViewDriversLogPathInput = GUICtrlCreateInput("C:\AutoInstaller\drivers.log", $iSliderX, $iItemY - $iPx, $iLogInputW, $iInputH)
+    $idViewDriversLogBrowseBtn = GUICtrlCreateButton(i18nGet("drivers.btn.browse", "Browse..."), $iSliderX + $iLogInputW + $iPx, $iItemY - $iPx, $iBrowseBtnW, $iInputH)
+    GUICtrlCreateGroup("", -99, -99, -99, -99)
+
+    Local $iContentBottom = $iY + $iInstallGroupH + $iP
     If $iContentBottom < $iH Then $iContentBottom = $iH
     scrollSetContentHeight($hViewDrivers, $iContentBottom)
 
@@ -263,8 +300,6 @@ Func _ViewDriversUpdateModeState($iMode)
         _ViewDriversSetWinUpdateState($GUI_DISABLE)
         _ViewDriversSetSDIOState($GUI_DISABLE)
     EndIf
-
-    viewDriversSaveData()
 EndFunc
 
 Func _ViewDriversUpdateSourceState($sSource)
@@ -298,7 +333,6 @@ Func _ViewDriversUpdateSourceState($sSource)
     EndSwitch
 
     _GUICtrlComboBox_SetCurSel($idViewDriversSourceCmb, $iSel)
-    viewDriversSaveData()
 EndFunc
 
 Func _ViewDriversSetWinUpdateState($iState)
@@ -321,14 +355,15 @@ EndFunc
 ; Configuration Persistence
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-Func viewDriversLoadData()
-    Local $sConfig = _GetDriversConfigPath()
-    If Not FileExists($sConfig) Then Return
+Func viewDriversLoadData($sCustomFile = "")
+    Local $sConfig = ($sCustomFile <> "" And FileExists($sCustomFile)) ? $sCustomFile : _GetDriversConfigPath()
+    If Not FileExists($sConfig) Then Return False
 
     Local $iMode = Int(IniRead($sConfig, "Configuration", "mode", "2"))
     Local $sSource = IniRead($sConfig, "Configuration", "source", "sdio")
     Local $iWuLevel = Int(IniRead($sConfig, "Configuration", "winupdate_level", "1"))
     Local $iSdioLevel = Int(IniRead($sConfig, "Configuration", "sdio_level", "1"))
+    Local $sLogPath = IniRead($sConfig, "Configuration", "log_path", "C:\AutoInstaller\drivers.log")
 
     $g_iViewDriversWinUpdateLevel = $iWuLevel
     GUICtrlSetData($idViewDriversWinUpdateSlider, $iWuLevel)
@@ -336,13 +371,24 @@ Func viewDriversLoadData()
     $g_iViewDriversSDIOLevel = $iSdioLevel
     GUICtrlSetData($idViewDriversSDIOSlider, $iSdioLevel)
 
+    GUICtrlSetData($idViewDriversLogPathInput, $sLogPath)
+
     $g_sViewDriversCurSource = $sSource
     _ViewDriversUpdateSourceState($sSource)
     _ViewDriversUpdateModeState($iMode)
+    Return True
 EndFunc
 
-Func viewDriversSaveData()
-    Local $sConfig = _GetDriversConfigPath()
+Func viewDriversSaveData($sCustomFile = "")
+    Local $sBaseConfig = _GetDriversConfigPath()
+    Local $sConfig = $sBaseConfig
+    If $sCustomFile <> "" Then
+        $sConfig = $sCustomFile
+        If Not FileExists($sConfig) And FileExists($sBaseConfig) Then
+            FileCopy($sBaseConfig, $sConfig, $FC_OVERWRITE)
+        EndIf
+    EndIf
+
     Local $sDir = StringLeft($sConfig, StringInStr($sConfig, "\", 0, -1) - 1)
     If $sDir <> "" And Not FileExists($sDir) Then DirCreate($sDir)
 
@@ -350,6 +396,8 @@ Func viewDriversSaveData()
     IniWrite($sConfig, "Configuration", "source", $g_sViewDriversCurSource)
     IniWrite($sConfig, "Configuration", "winupdate_level", String($g_iViewDriversWinUpdateLevel))
     IniWrite($sConfig, "Configuration", "sdio_level", String($g_iViewDriversSDIOLevel))
+    IniWrite($sConfig, "Configuration", "log_path", GUICtrlRead($idViewDriversLogPathInput))
+    Return True
 EndFunc
 
 Func viewDriversReset()
@@ -359,8 +407,41 @@ Func viewDriversReset()
     $g_iViewDriversSDIOLevel = 1
     GUICtrlSetData($idViewDriversSDIOSlider, 1)
 
+    GUICtrlSetData($idViewDriversLogPathInput, "C:\AutoInstaller\drivers.log")
+
     _ViewDriversUpdateSourceState("sdio")
     _ViewDriversUpdateModeState(2)
+EndFunc
+
+Func _ViewDriversImportConfig()
+    Local $sImportFile = FileOpenDialog(i18nGet("drivers.dialog.import.title", "Select driver configuration to import"), @ScriptDir, i18nGet("drivers.dialog.import.filter", "Configuration files (*.ini)|All files (*.*)"), BitOR($FD_FILEMUSTEXIST, $FD_PATHMUSTEXIST))
+    If Not @error And $sImportFile <> "" Then
+        If viewDriversLoadData($sImportFile) Then
+            appSetStatus(i18nGet("status.title", "Status: ") & i18nGet("drivers.status.imported", "Imported driver configuration successfully"))
+        Else
+            appSetStatus(i18nGet("status.title", "Status: ") & i18nGet("status.error", "Error"))
+        EndIf
+    EndIf
+EndFunc
+
+Func _ViewDriversExportConfig()
+    Local $sExportFile = FileSaveDialog(i18nGet("drivers.dialog.export.title", "Export driver configuration"), @ScriptDir, i18nGet("drivers.dialog.export.filter", "Configuration files (*.ini)|All files (*.*)"), $FD_PROMPTOVERWRITE, "config.ini")
+    If Not @error And $sExportFile <> "" Then
+        If Not StringRegExp($sExportFile, '(?i)\.ini$') Then $sExportFile &= ".ini"
+        If viewDriversSaveData($sExportFile) Then
+            appSetStatus(i18nGet("status.title", "Status: ") & i18nGet("drivers.status.exported", "Exported driver configuration successfully"))
+        Else
+            appSetStatus(i18nGet("status.title", "Status: ") & i18nGet("status.error", "Error"))
+        EndIf
+    EndIf
+EndFunc
+
+Func _ViewDriversOpenConfigFile()
+    Local $sConfig = _GetDriversConfigPath()
+    If FileExists($sConfig) Then
+        ShellExecute($sConfig)
+        appSetStatus(i18nGet("status.title", "Status: ") & i18nGet("drivers.status.opened", "Opened driver configuration in editor"))
+    EndIf
 EndFunc
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -422,10 +503,63 @@ Func viewDriversApplyLang()
     GUICtrlSetTip($idViewDriversSDIODevLbl, i18nGet("drivers.sdio.level.device.tip", "Install missing drivers and optimal device-specific updates"))
     GUICtrlSetData($idViewDriversSDIOFullLbl, i18nGet("drivers.sdio.level.full", "Full"))
     GUICtrlSetTip($idViewDriversSDIOFullLbl, i18nGet("drivers.sdio.level.full.tip", "Install all available matching and alternative drivers"))
+
+    ; Section 3: Auto-installation
+    GUICtrlSetData($hViewDriversInstallGroup, i18nGet("drivers.autoinstall.title", "Auto-installation"))
+    GUICtrlSetTip($hViewDriversInstallGroup, i18nGet("drivers.autoinstall.tip", "Configuration settings for driver deployment and logging"))
+    GUICtrlSetData($idViewDriversLogPathLbl, i18nGet("drivers.logpath.label", "Log Path: "))
+    GUICtrlSetTip($idViewDriversLogPathLbl, i18nGet("drivers.logpath.tip", "File path where driver installation logs will be saved"))
+    GUICtrlSetTip($idViewDriversLogPathInput, i18nGet("drivers.logpath.tip", "File path where driver installation logs will be saved"))
+    GUICtrlSetData($idViewDriversLogBrowseBtn, i18nGet("drivers.btn.browse", "Browse..."))
+    GUICtrlSetTip($idViewDriversLogBrowseBtn, i18nGet("drivers.btn.browse.tip", "Select destination folder for driver installation logs"))
+
+    ; Toolbar Buttons
+    If $g_hCurrentView = $hViewDrivers Then
+        GUICtrlSetData($a_idToolBarBtn[0], i18nGet("reset.btn.title", "Reset"))
+        GUICtrlSetTip($a_idToolBarBtn[0], i18nGet("drivers.toolbar.reset.tip", "Reset all driver installation settings to defaults"))
+        GUICtrlSetData($a_idToolBarBtn[1], i18nGet("import.btn.title", "Import"))
+        GUICtrlSetTip($a_idToolBarBtn[1], i18nGet("drivers.toolbar.import.tip", "Import driver configuration file"))
+        GUICtrlSetData($a_idToolBarBtn[2], i18nGet("export.btn.title", "Export"))
+        GUICtrlSetTip($a_idToolBarBtn[2], i18nGet("drivers.toolbar.export.tip", "Export driver configuration to file"))
+        GUICtrlSetData($a_idToolBarBtn[3], i18nGet("open.btn.title", "Open"))
+        GUICtrlSetTip($a_idToolBarBtn[3], i18nGet("drivers.toolbar.open.tip", "Open driver configuration file in text editor"))
+        GUICtrlSetData($a_idToolBarBtn[$iToolBarBtnCol - 2], i18nGet("save.btn.title", "Save"))
+        GUICtrlSetTip($a_idToolBarBtn[$iToolBarBtnCol - 2], i18nGet("drivers.toolbar.save.tip", "Save driver configuration to config.ini"))
+        GUICtrlSetData($a_idToolBarBtn[$iToolBarBtnCol - 1], i18nGet("cancel.btn.title", "Cancel"))
+        GUICtrlSetTip($a_idToolBarBtn[$iToolBarBtnCol - 1], i18nGet("cancel.btn.tip", "Discard changes and reload saved configuration"))
+    EndIf
 EndFunc
 
 Func viewDriversToolBar()
+    ; Button Index 0: [Reset]
+    GUICtrlSetData($a_idToolBarBtn[0], i18nGet("reset.btn.title", "Reset"))
+    GUICtrlSetTip($a_idToolBarBtn[0], i18nGet("drivers.toolbar.reset.tip", "Reset all driver installation settings to defaults"))
+    GUICtrlSetState($a_idToolBarBtn[0], $GUI_SHOW)
 
+    ; Button Index 1: [Import]
+    GUICtrlSetData($a_idToolBarBtn[1], i18nGet("import.btn.title", "Import"))
+    GUICtrlSetTip($a_idToolBarBtn[1], i18nGet("drivers.toolbar.import.tip", "Import driver configuration file"))
+    GUICtrlSetState($a_idToolBarBtn[1], $GUI_SHOW)
+
+    ; Button Index 2: [Export]
+    GUICtrlSetData($a_idToolBarBtn[2], i18nGet("export.btn.title", "Export"))
+    GUICtrlSetTip($a_idToolBarBtn[2], i18nGet("drivers.toolbar.export.tip", "Export driver configuration to file"))
+    GUICtrlSetState($a_idToolBarBtn[2], $GUI_SHOW)
+
+    ; Button Index 3: [Open]
+    GUICtrlSetData($a_idToolBarBtn[3], i18nGet("open.btn.title", "Open"))
+    GUICtrlSetTip($a_idToolBarBtn[3], i18nGet("drivers.toolbar.open.tip", "Open driver configuration file in text editor"))
+    GUICtrlSetState($a_idToolBarBtn[3], $GUI_SHOW)
+
+    ; Button Index 6: [Save]
+    GUICtrlSetData($a_idToolBarBtn[$iToolBarBtnCol - 2], i18nGet("save.btn.title", "Save"))
+    GUICtrlSetTip($a_idToolBarBtn[$iToolBarBtnCol - 2], i18nGet("drivers.toolbar.save.tip", "Save driver configuration to config.ini"))
+    GUICtrlSetState($a_idToolBarBtn[$iToolBarBtnCol - 2], $GUI_SHOW)
+
+    ; Button Index 7: [Cancel]
+    GUICtrlSetData($a_idToolBarBtn[$iToolBarBtnCol - 1], i18nGet("cancel.btn.title", "Cancel"))
+    GUICtrlSetTip($a_idToolBarBtn[$iToolBarBtnCol - 1], i18nGet("cancel.btn.tip", "Discard changes and reload saved configuration"))
+    GUICtrlSetState($a_idToolBarBtn[$iToolBarBtnCol - 1], $GUI_SHOW)
 EndFunc
 
 Func viewDriversApplyTheme()
@@ -476,6 +610,10 @@ Func viewDriversApplyTheme()
     GUICtrlSetBkColor($idViewDriversSDIODevLbl, themeColor("main.view.bg"))
     GUICtrlSetColor($idViewDriversSDIOFullLbl, themeColor("text.primary"))
     GUICtrlSetBkColor($idViewDriversSDIOFullLbl, themeColor("main.view.bg"))
+
+    ; Auto-installation
+    GUICtrlSetColor($idViewDriversLogPathLbl, themeColor("text.primary"))
+    GUICtrlSetBkColor($idViewDriversLogPathLbl, themeColor("main.view.bg"))
 EndFunc
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -516,40 +654,66 @@ Func viewDriversHandleEvent($idMsg)
         Case $idViewDriversWinUpdateDrvLbl
             $g_iViewDriversWinUpdateLevel = 0
             GUICtrlSetData($idViewDriversWinUpdateSlider, 0)
-            viewDriversSaveData()
 
         Case $idViewDriversWinUpdateSecLbl
             $g_iViewDriversWinUpdateLevel = 1
             GUICtrlSetData($idViewDriversWinUpdateSlider, 1)
-            viewDriversSaveData()
 
         Case $idViewDriversWinUpdateFullLbl
             $g_iViewDriversWinUpdateLevel = 2
             GUICtrlSetData($idViewDriversWinUpdateSlider, 2)
-            viewDriversSaveData()
 
         Case $idViewDriversWinUpdateSlider
             $g_iViewDriversWinUpdateLevel = GUICtrlRead($idViewDriversWinUpdateSlider)
-            viewDriversSaveData()
 
         ; SDIO Slider
         Case $idViewDriversSDIOBasicLbl
             $g_iViewDriversSDIOLevel = 0
             GUICtrlSetData($idViewDriversSDIOSlider, 0)
-            viewDriversSaveData()
 
         Case $idViewDriversSDIODevLbl
             $g_iViewDriversSDIOLevel = 1
             GUICtrlSetData($idViewDriversSDIOSlider, 1)
-            viewDriversSaveData()
 
         Case $idViewDriversSDIOFullLbl
             $g_iViewDriversSDIOLevel = 2
             GUICtrlSetData($idViewDriversSDIOSlider, 2)
-            viewDriversSaveData()
 
         Case $idViewDriversSDIOSlider
             $g_iViewDriversSDIOLevel = GUICtrlRead($idViewDriversSDIOSlider)
-            viewDriversSaveData()
+
+        ; Auto-installation Log Path Browse Button
+        Case $idViewDriversLogBrowseBtn
+            _ViewDriversBrowseLogPath()
+
+        ; Toolbar Button 0: [Reset]
+        Case $a_idToolBarBtn[0]
+            viewDriversReset()
+            appSetStatus(i18nGet("status.title", "Status: ") & i18nGet("drivers.status.reset", "Reset driver installation settings to defaults"))
+
+        ; Toolbar Button 1: [Import]
+        Case $a_idToolBarBtn[1]
+            _ViewDriversImportConfig()
+
+        ; Toolbar Button 2: [Export]
+        Case $a_idToolBarBtn[2]
+            _ViewDriversExportConfig()
+
+        ; Toolbar Button 3: [Open]
+        Case $a_idToolBarBtn[3]
+            _ViewDriversOpenConfigFile()
+
+        ; Toolbar Button 6: [Save]
+        Case $a_idToolBarBtn[$iToolBarBtnCol - 2]
+            If viewDriversSaveData() Then
+                appSetStatus(i18nGet("status.title", "Status: ") & i18nGet("drivers.status.saved", "Saved driver configuration successfully"))
+            Else
+                appSetStatus(i18nGet("status.title", "Status: ") & i18nGet("status.error", "Error"))
+            EndIf
+
+        ; Toolbar Button 7: [Cancel]
+        Case $a_idToolBarBtn[$iToolBarBtnCol - 1]
+            viewDriversLoadData()
+            appSetStatus(i18nGet("status.title", "Status: ") & i18nGet("drivers.status.canceled", "Reverted driver selections to saved configuration"))
     EndSwitch
 EndFunc

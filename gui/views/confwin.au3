@@ -101,6 +101,12 @@ Global $idViewConfwinWallLockLbl = 0
 Global $idViewConfwinWallLockInput = 0
 Global $idViewConfwinWallLockBrowseBtn = 0
 
+; Section 7: Auto-installation
+Global $hViewConfwinInstallGroup = 0
+Global $idViewConfwinLogPathLbl = 0
+Global $idViewConfwinLogPathInput = 0
+Global $idViewConfwinLogBrowseBtn = 0
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Helper Functions & Path Resolution
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -109,6 +115,19 @@ Func _GetConfwinConfigPath()
     If FileExists(@ScriptDir & "\confwin\config.ini") Then Return @ScriptDir & "\confwin\config.ini"
     If FileExists(@ScriptDir & "\config.ini") Then Return @ScriptDir & "\config.ini"
     Return @ScriptDir & "\confwin\config.ini"
+EndFunc
+
+Func _ViewConfwinBrowseLogPath()
+    Local $sCurPath = GUICtrlRead($idViewConfwinLogPathInput)
+    Local $sInitDir = $sCurPath
+    If StringInStr($sInitDir, "\") Then
+        $sInitDir = StringLeft($sInitDir, StringInStr($sInitDir, "\", 0, -1))
+    EndIf
+    Local $sSelected = FileSelectFolder(i18nGet("confwin.dialog.browse.title", "Select Log Folder"), $sInitDir)
+    If Not @error And $sSelected <> "" Then
+        If StringRight($sSelected, 1) <> "\" Then $sSelected &= "\"
+        GUICtrlSetData($idViewConfwinLogPathInput, $sSelected & "confwin.log")
+    EndIf
 EndFunc
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -327,8 +346,26 @@ Func viewConfwinCreate($hViewport, $iW, $iH)
     $idViewConfwinWallLockLbl = GUICtrlCreateLabel(i18nGet("confwin.wallpaper.lockscreen", "Lock screen wallpaper: "), $iX, $iItemY, $iLblW, $iLblH)
     $idViewConfwinWallLockInput = GUICtrlCreateInput("Default", $iSliderX, $iItemY - $iPx, $iPathInputW, $iInputH)
     $idViewConfwinWallLockBrowseBtn = GUICtrlCreateButton(i18nGet("confwin.wallpaper.browse", "Browse..."), $iSliderX + $iPathInputW + $iPx, $iItemY - $iPx, $iBrowseBtnW, $iInputH)
+    GUICtrlCreateGroup("", -99, -99, -99, -99)
 
-    Local $iContentBottom = $iY + $iWallpaperGroupH + $iP
+    ; =========================================
+    ; Section 7: Auto-installation
+    ; =========================================
+    $iX = $iP
+    $iY += $iWallpaperGroupH + $iP
+    Local $iInstallGroupH = $iRowH + $iP * 3
+    $hViewConfwinInstallGroup = GUICtrlCreateGroup("", $iX, $iY, $iContentW, $iInstallGroupH)
+
+    ; Log Path Row
+    $iX = $iP * 3
+    $iItemY = $iY + $iP * 3
+    Local $iLogInputW = $iInputW - $iBrowseBtnW - $iPx
+    $idViewConfwinLogPathLbl = GUICtrlCreateLabel(i18nGet("confwin.logpath.label", "Log Path: "), $iX, $iItemY, $iLblW, $iLblH)
+    $idViewConfwinLogPathInput = GUICtrlCreateInput("C:\AutoInstaller\confwin.log", $iSliderX, $iItemY - $iPx, $iLogInputW, $iInputH)
+    $idViewConfwinLogBrowseBtn = GUICtrlCreateButton(i18nGet("confwin.btn.browse", "Browse..."), $iSliderX + $iLogInputW + $iPx, $iItemY - $iPx, $iBrowseBtnW, $iInputH)
+    GUICtrlCreateGroup("", -99, -99, -99, -99)
+
+    Local $iContentBottom = $iY + $iInstallGroupH + $iP
     If $iContentBottom < $iH Then $iContentBottom = $iH
     scrollSetContentHeight($hViewConfwin, $iContentBottom)
 
@@ -458,7 +495,6 @@ Func _ViewConfwinApplyPreset($iMode)
     EndSwitch
 
     $g_bViewConfwinInitializing = False
-    viewConfwinSaveData()
 EndFunc
 
 Func _ViewConfwinOnControlModified()
@@ -470,8 +506,6 @@ Func _ViewConfwinOnControlModified()
         GUICtrlSetData($idViewConfwinModeSlider, 3)
         appSetStatus(i18nGet("status.title", "Status: ") & i18nGet("confwin.mode.status.custom", "Personalization mode: Custom (user customized settings)"))
     EndIf
-
-    viewConfwinSaveData()
 EndFunc
 
 Func _ViewConfwinSetControlsState($iState)
@@ -531,17 +565,20 @@ EndFunc
 ; Configuration Persistence
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-Func viewConfwinLoadData()
-    Local $sConfig = _GetConfwinConfigPath()
+Func viewConfwinLoadData($sCustomFile = "")
+    Local $sConfig = ($sCustomFile <> "" And FileExists($sCustomFile)) ? $sCustomFile : _GetConfwinConfigPath()
     If Not FileExists($sConfig) Then
         _ViewConfwinApplyPreset(1)
-        Return
+        Return False
     EndIf
 
     $g_bViewConfwinInitializing = True
     Local $iMode = Int(IniRead($sConfig, "Configuration", "mode", "1"))
     $g_iViewConfwinCurMode = $iMode
     GUICtrlSetData($idViewConfwinModeSlider, $iMode)
+
+    Local $sLogPath = IniRead($sConfig, "Configuration", "log_path", "C:\AutoInstaller\confwin.log")
+    GUICtrlSetData($idViewConfwinLogPathInput, $sLogPath)
 
     Local $iState = ($iMode = 0) ? $GUI_DISABLE : $GUI_ENABLE
     _ViewConfwinSetControlsState($iState)
@@ -585,14 +622,24 @@ Func viewConfwinLoadData()
     GUICtrlSetData($idViewConfwinWallLockInput, IniRead($sConfig, "wallpaper", "lockscreen", "Default"))
 
     $g_bViewConfwinInitializing = False
+    Return True
 EndFunc
 
-Func viewConfwinSaveData()
-    Local $sConfig = _GetConfwinConfigPath()
+Func viewConfwinSaveData($sCustomFile = "")
+    Local $sBaseConfig = _GetConfwinConfigPath()
+    Local $sConfig = $sBaseConfig
+    If $sCustomFile <> "" Then
+        $sConfig = $sCustomFile
+        If Not FileExists($sConfig) And FileExists($sBaseConfig) Then
+            FileCopy($sBaseConfig, $sConfig, $FC_OVERWRITE)
+        EndIf
+    EndIf
+
     Local $sDir = StringLeft($sConfig, StringInStr($sConfig, "\", 0, -1) - 1)
     If $sDir <> "" And Not FileExists($sDir) Then DirCreate($sDir)
 
     IniWrite($sConfig, "Configuration", "mode", String($g_iViewConfwinCurMode))
+    IniWrite($sConfig, "Configuration", "log_path", GUICtrlRead($idViewConfwinLogPathInput))
 
     ; Explorer
     IniWrite($sConfig, "explorer", "show_extensions", (GUICtrlRead($idViewConfwinShowExtCkbx) = $GUI_CHECKED) ? "true" : "false")
@@ -631,10 +678,43 @@ Func viewConfwinSaveData()
     ; Wallpapers
     IniWrite($sConfig, "wallpaper", "desktop", GUICtrlRead($idViewConfwinWallDeskInput))
     IniWrite($sConfig, "wallpaper", "lockscreen", GUICtrlRead($idViewConfwinWallLockInput))
+    Return True
 EndFunc
 
 Func viewConfwinReset()
+    GUICtrlSetData($idViewConfwinLogPathInput, "C:\AutoInstaller\confwin.log")
     _ViewConfwinApplyPreset(1) ; Reset to Basic
+EndFunc
+
+Func _ViewConfwinImportConfig()
+    Local $sImportFile = FileOpenDialog(i18nGet("confwin.dialog.import.title", "Select Windows configuration to import"), @ScriptDir, i18nGet("confwin.dialog.import.filter", "Configuration files (*.ini)|All files (*.*)"), BitOR($FD_FILEMUSTEXIST, $FD_PATHMUSTEXIST))
+    If Not @error And $sImportFile <> "" Then
+        If viewConfwinLoadData($sImportFile) Then
+            appSetStatus(i18nGet("status.title", "Status: ") & i18nGet("confwin.status.imported", "Imported Windows configuration successfully"))
+        Else
+            appSetStatus(i18nGet("status.title", "Status: ") & i18nGet("status.error", "Error"))
+        EndIf
+    EndIf
+EndFunc
+
+Func _ViewConfwinExportConfig()
+    Local $sExportFile = FileSaveDialog(i18nGet("confwin.dialog.export.title", "Export Windows configuration"), @ScriptDir, i18nGet("confwin.dialog.export.filter", "Configuration files (*.ini)|All files (*.*)"), $FD_PROMPTOVERWRITE, "config.ini")
+    If Not @error And $sExportFile <> "" Then
+        If Not StringRegExp($sExportFile, '(?i)\.ini$') Then $sExportFile &= ".ini"
+        If viewConfwinSaveData($sExportFile) Then
+            appSetStatus(i18nGet("status.title", "Status: ") & i18nGet("confwin.status.exported", "Exported Windows configuration successfully"))
+        Else
+            appSetStatus(i18nGet("status.title", "Status: ") & i18nGet("status.error", "Error"))
+        EndIf
+    EndIf
+EndFunc
+
+Func _ViewConfwinOpenConfigFile()
+    Local $sConfig = _GetConfwinConfigPath()
+    If FileExists($sConfig) Then
+        ShellExecute($sConfig)
+        appSetStatus(i18nGet("status.title", "Status: ") & i18nGet("confwin.status.opened", "Opened Windows configuration in editor"))
+    EndIf
 EndFunc
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -734,10 +814,63 @@ Func viewConfwinApplyLang()
     GUICtrlSetTip($idViewConfwinWallLockLbl, i18nGet("confwin.wallpaper.lockscreen.tip", "Path to image file for lock screen background"))
     GUICtrlSetData($idViewConfwinWallDeskBrowseBtn, i18nGet("confwin.wallpaper.browse", "Browse..."))
     GUICtrlSetData($idViewConfwinWallLockBrowseBtn, i18nGet("confwin.wallpaper.browse", "Browse..."))
+
+    ; Section 7: Auto-installation
+    GUICtrlSetData($hViewConfwinInstallGroup, i18nGet("confwin.autoinstall.title", "Auto-installation"))
+    GUICtrlSetTip($hViewConfwinInstallGroup, i18nGet("confwin.autoinstall.tip", "Configuration settings for Windows configuration deployment and logging"))
+    GUICtrlSetData($idViewConfwinLogPathLbl, i18nGet("confwin.logpath.label", "Log Path: "))
+    GUICtrlSetTip($idViewConfwinLogPathLbl, i18nGet("confwin.logpath.tip", "File path where Windows configuration logs will be saved"))
+    GUICtrlSetTip($idViewConfwinLogPathInput, i18nGet("confwin.logpath.tip", "File path where Windows configuration logs will be saved"))
+    GUICtrlSetData($idViewConfwinLogBrowseBtn, i18nGet("confwin.btn.browse", "Browse..."))
+    GUICtrlSetTip($idViewConfwinLogBrowseBtn, i18nGet("confwin.btn.browse.tip", "Select destination folder for Windows configuration logs"))
+
+    ; Toolbar Buttons
+    If $g_hCurrentView = $hViewConfwin Then
+        GUICtrlSetData($a_idToolBarBtn[0], i18nGet("reset.btn.title", "Reset"))
+        GUICtrlSetTip($a_idToolBarBtn[0], i18nGet("confwin.toolbar.reset.tip", "Reset all Windows configuration settings to defaults"))
+        GUICtrlSetData($a_idToolBarBtn[1], i18nGet("import.btn.title", "Import"))
+        GUICtrlSetTip($a_idToolBarBtn[1], i18nGet("confwin.toolbar.import.tip", "Import Windows configuration file"))
+        GUICtrlSetData($a_idToolBarBtn[2], i18nGet("export.btn.title", "Export"))
+        GUICtrlSetTip($a_idToolBarBtn[2], i18nGet("confwin.toolbar.export.tip", "Export Windows configuration to file"))
+        GUICtrlSetData($a_idToolBarBtn[3], i18nGet("open.btn.title", "Open"))
+        GUICtrlSetTip($a_idToolBarBtn[3], i18nGet("confwin.toolbar.open.tip", "Open Windows configuration file in text editor"))
+        GUICtrlSetData($a_idToolBarBtn[$iToolBarBtnCol - 2], i18nGet("save.btn.title", "Save"))
+        GUICtrlSetTip($a_idToolBarBtn[$iToolBarBtnCol - 2], i18nGet("confwin.toolbar.save.tip", "Save Windows configuration to config.ini"))
+        GUICtrlSetData($a_idToolBarBtn[$iToolBarBtnCol - 1], i18nGet("cancel.btn.title", "Cancel"))
+        GUICtrlSetTip($a_idToolBarBtn[$iToolBarBtnCol - 1], i18nGet("cancel.btn.tip", "Discard changes and reload saved configuration"))
+    EndIf
 EndFunc
 
 Func viewConfwinToolBar()
+    ; Button Index 0: [Reset]
+    GUICtrlSetData($a_idToolBarBtn[0], i18nGet("reset.btn.title", "Reset"))
+    GUICtrlSetTip($a_idToolBarBtn[0], i18nGet("confwin.toolbar.reset.tip", "Reset all Windows configuration settings to defaults"))
+    GUICtrlSetState($a_idToolBarBtn[0], $GUI_SHOW)
 
+    ; Button Index 1: [Import]
+    GUICtrlSetData($a_idToolBarBtn[1], i18nGet("import.btn.title", "Import"))
+    GUICtrlSetTip($a_idToolBarBtn[1], i18nGet("confwin.toolbar.import.tip", "Import Windows configuration file"))
+    GUICtrlSetState($a_idToolBarBtn[1], $GUI_SHOW)
+
+    ; Button Index 2: [Export]
+    GUICtrlSetData($a_idToolBarBtn[2], i18nGet("export.btn.title", "Export"))
+    GUICtrlSetTip($a_idToolBarBtn[2], i18nGet("confwin.toolbar.export.tip", "Export Windows configuration to file"))
+    GUICtrlSetState($a_idToolBarBtn[2], $GUI_SHOW)
+
+    ; Button Index 3: [Open]
+    GUICtrlSetData($a_idToolBarBtn[3], i18nGet("open.btn.title", "Open"))
+    GUICtrlSetTip($a_idToolBarBtn[3], i18nGet("confwin.toolbar.open.tip", "Open Windows configuration file in text editor"))
+    GUICtrlSetState($a_idToolBarBtn[3], $GUI_SHOW)
+
+    ; Button Index 6: [Save]
+    GUICtrlSetData($a_idToolBarBtn[$iToolBarBtnCol - 2], i18nGet("save.btn.title", "Save"))
+    GUICtrlSetTip($a_idToolBarBtn[$iToolBarBtnCol - 2], i18nGet("confwin.toolbar.save.tip", "Save Windows configuration to config.ini"))
+    GUICtrlSetState($a_idToolBarBtn[$iToolBarBtnCol - 2], $GUI_SHOW)
+
+    ; Button Index 7: [Cancel]
+    GUICtrlSetData($a_idToolBarBtn[$iToolBarBtnCol - 1], i18nGet("cancel.btn.title", "Cancel"))
+    GUICtrlSetTip($a_idToolBarBtn[$iToolBarBtnCol - 1], i18nGet("cancel.btn.tip", "Discard changes and reload saved configuration"))
+    GUICtrlSetState($a_idToolBarBtn[$iToolBarBtnCol - 1], $GUI_SHOW)
 EndFunc
 
 Func viewConfwinApplyTheme()
@@ -822,6 +955,10 @@ Func viewConfwinApplyTheme()
     GUICtrlSetBkColor($idViewConfwinWallDeskLbl, themeColor("main.view.bg"))
     GUICtrlSetColor($idViewConfwinWallLockLbl, themeColor("text.primary"))
     GUICtrlSetBkColor($idViewConfwinWallLockLbl, themeColor("main.view.bg"))
+
+    ; Section 7: Auto-installation
+    GUICtrlSetColor($idViewConfwinLogPathLbl, themeColor("text.primary"))
+    GUICtrlSetBkColor($idViewConfwinLogPathLbl, themeColor("main.view.bg"))
 EndFunc
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -860,6 +997,40 @@ Func viewConfwinHandleEvent($idMsg)
                 GUICtrlSetData($idViewConfwinWallLockInput, $sFile)
                 _ViewConfwinOnControlModified()
             EndIf
+
+        ; Auto-installation Log Path Browse Button
+        Case $idViewConfwinLogBrowseBtn
+            _ViewConfwinBrowseLogPath()
+
+        ; Toolbar Button 0: [Reset]
+        Case $a_idToolBarBtn[0]
+            viewConfwinReset()
+            appSetStatus(i18nGet("status.title", "Status: ") & i18nGet("confwin.status.reset", "Reset Windows configuration settings to defaults"))
+
+        ; Toolbar Button 1: [Import]
+        Case $a_idToolBarBtn[1]
+            _ViewConfwinImportConfig()
+
+        ; Toolbar Button 2: [Export]
+        Case $a_idToolBarBtn[2]
+            _ViewConfwinExportConfig()
+
+        ; Toolbar Button 3: [Open]
+        Case $a_idToolBarBtn[3]
+            _ViewConfwinOpenConfigFile()
+
+        ; Toolbar Button 6: [Save]
+        Case $a_idToolBarBtn[$iToolBarBtnCol - 2]
+            If viewConfwinSaveData() Then
+                appSetStatus(i18nGet("status.title", "Status: ") & i18nGet("confwin.status.saved", "Saved Windows configuration successfully"))
+            Else
+                appSetStatus(i18nGet("status.title", "Status: ") & i18nGet("status.error", "Error"))
+            EndIf
+
+        ; Toolbar Button 7: [Cancel]
+        Case $a_idToolBarBtn[$iToolBarBtnCol - 1]
+            viewConfwinLoadData()
+            appSetStatus(i18nGet("status.title", "Status: ") & i18nGet("confwin.status.canceled", "Reverted Windows configuration to saved settings"))
 
         ; Control Modifications (flip to Custom if in preset mode)
         Case $idViewConfwinShowExtCkbx, _

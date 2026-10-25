@@ -565,12 +565,12 @@ EndFunc
 ; Data Population & State Management
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-Func viewAppsLoadData()
+Func viewAppsLoadData($sCustomFile = "")
     _GUICtrlListView_DeleteAllItems($hViewAppsTable)
     $g_iViewAppsAppCount = 0
     $g_iViewAppsSelectedRow = -1
 
-    Local $sConfig = downloadGetConfigPath()
+    Local $sConfig = ($sCustomFile <> "" And FileExists($sCustomFile)) ? $sCustomFile : downloadGetConfigPath()
 
     ; Read mode and fonts_state from [Configuration]
     Local $iMode = Int(IniRead($sConfig, "Configuration", "mode", "3"))
@@ -667,9 +667,16 @@ Func viewAppsLoadData()
     EndIf
 EndFunc
 
-Func viewAppsSaveData()
-    Local $sConfig = downloadGetConfigPath()
-    If Not FileExists($sConfig) Then Return False
+Func viewAppsSaveData($sCustomFile = "")
+    Local $sBaseConfig = downloadGetConfigPath()
+    Local $sConfig = $sBaseConfig
+    If $sCustomFile <> "" Then
+        $sConfig = $sCustomFile
+        If Not FileExists($sConfig) And FileExists($sBaseConfig) Then
+            FileCopy($sBaseConfig, $sConfig, $FC_OVERWRITE)
+        EndIf
+    EndIf
+    If Not FileExists($sConfig) And Not FileExists($sBaseConfig) Then Return False
 
     ; Save mode and fonts_state
     IniWrite($sConfig, "Configuration", "mode", String($g_iViewAppsCurMode))
@@ -853,6 +860,37 @@ Func _ViewAppsBrowseLogPath()
     If Not @error And $sSelected <> "" Then
         If StringRight($sSelected, 1) <> "\" Then $sSelected &= "\"
         GUICtrlSetData($idViewAppsLogPathInput, $sSelected & "apps.log")
+    EndIf
+EndFunc
+
+Func _ViewAppsImportConfig()
+    Local $sImportFile = FileOpenDialog(i18nGet("apps.dialog.import.title", "Select configuration to import"), @ScriptDir, i18nGet("apps.dialog.import.filter", "Configuration files (*.ini)|All files (*.*)"), BitOR($FD_FILEMUSTEXIST, $FD_PATHMUSTEXIST))
+    If Not @error And $sImportFile <> "" Then
+        If viewAppsLoadData($sImportFile) Then
+            appSetStatus(i18nGet("status.title", "Status: ") & i18nGet("apps.status.imported", "Imported application configuration successfully"))
+        Else
+            appSetStatus(i18nGet("status.title", "Status: ") & i18nGet("status.error", "Error"))
+        EndIf
+    EndIf
+EndFunc
+
+Func _ViewAppsExportConfig()
+    Local $sExportFile = FileSaveDialog(i18nGet("apps.dialog.export.title", "Export application configuration"), @ScriptDir, i18nGet("apps.dialog.export.filter", "Configuration files (*.ini)|All files (*.*)"), $FD_PROMPTOVERWRITE, "config.ini")
+    If Not @error And $sExportFile <> "" Then
+        If Not StringRegExp($sExportFile, '(?i)\.ini$') Then $sExportFile &= ".ini"
+        If viewAppsSaveData($sExportFile) Then
+            appSetStatus(i18nGet("status.title", "Status: ") & i18nGet("apps.status.exported", "Exported application configuration successfully"))
+        Else
+            appSetStatus(i18nGet("status.title", "Status: ") & i18nGet("status.error", "Error"))
+        EndIf
+    EndIf
+EndFunc
+
+Func _ViewAppsOpenConfigFile()
+    Local $sConfig = downloadGetConfigPath()
+    If FileExists($sConfig) Then
+        ShellExecute($sConfig)
+        appSetStatus(i18nGet("status.title", "Status: ") & i18nGet("apps.status.opened", "Opened application configuration in editor"))
     EndIf
 EndFunc
 
@@ -1802,11 +1840,20 @@ Func viewAppsApplyLang()
         GUICtrlSetData($a_idToolBarBtn[0], i18nGet("reset.btn.title", "Reset"))
         GUICtrlSetTip($a_idToolBarBtn[0], i18nGet("apps.toolbar.reset.tip", "Reset all application and font settings to default values"))
 
-        GUICtrlSetData($a_idToolBarBtn[1], i18nGet("download.btn.title", "Download"))
-        GUICtrlSetTip($a_idToolBarBtn[1], i18nGet("apps.toolbar.download.tip", "Download setup files for all selected applications"))
+        GUICtrlSetData($a_idToolBarBtn[1], i18nGet("import.btn.title", "Import"))
+        GUICtrlSetTip($a_idToolBarBtn[1], i18nGet("apps.toolbar.import.tip", "Import application configuration file"))
 
-        GUICtrlSetData($a_idToolBarBtn[2], i18nGet("update.btn.title", "Update"))
-        GUICtrlSetTip($a_idToolBarBtn[2], i18nGet("apps.toolbar.update.tip", "Update URLs and check for newer versions across the library"))
+        GUICtrlSetData($a_idToolBarBtn[2], i18nGet("export.btn.title", "Export"))
+        GUICtrlSetTip($a_idToolBarBtn[2], i18nGet("apps.toolbar.export.tip", "Export application configuration to file"))
+
+        GUICtrlSetData($a_idToolBarBtn[3], i18nGet("open.btn.title", "Open"))
+        GUICtrlSetTip($a_idToolBarBtn[3], i18nGet("apps.toolbar.open.tip", "Open application configuration file in text editor"))
+
+        GUICtrlSetData($a_idToolBarBtn[4], i18nGet("download.btn.title", "Download"))
+        GUICtrlSetTip($a_idToolBarBtn[4], i18nGet("apps.toolbar.download.tip", "Download setup files for all selected applications"))
+
+        GUICtrlSetData($a_idToolBarBtn[5], i18nGet("update.btn.title", "Update"))
+        GUICtrlSetTip($a_idToolBarBtn[5], i18nGet("apps.toolbar.update.tip", "Update URLs and check for newer versions across the library"))
 
         GUICtrlSetData($a_idToolBarBtn[$iToolBarBtnCol - 2], i18nGet("save.btn.title", "Save"))
         GUICtrlSetTip($a_idToolBarBtn[$iToolBarBtnCol - 2], i18nGet("apps.toolbar.save.tip", "Save application configuration to config.ini"))
@@ -1822,15 +1869,30 @@ Func viewAppsToolBar()
     GUICtrlSetTip($a_idToolBarBtn[0], i18nGet("apps.toolbar.reset.tip", "Reset all application and font settings to default values"))
     GUICtrlSetState($a_idToolBarBtn[0], $GUI_SHOW)
 
-    ; Button Index 1: [Download]
-    GUICtrlSetData($a_idToolBarBtn[1], i18nGet("download.btn.title", "Download"))
-    GUICtrlSetTip($a_idToolBarBtn[1], i18nGet("apps.toolbar.download.tip", "Download setup files for all selected applications"))
+    ; Button Index 1: [Import]
+    GUICtrlSetData($a_idToolBarBtn[1], i18nGet("import.btn.title", "Import"))
+    GUICtrlSetTip($a_idToolBarBtn[1], i18nGet("apps.toolbar.import.tip", "Import application configuration file"))
     GUICtrlSetState($a_idToolBarBtn[1], $GUI_SHOW)
 
-    ; Button Index 2: [Update]
-    GUICtrlSetData($a_idToolBarBtn[2], i18nGet("update.btn.title", "Update"))
-    GUICtrlSetTip($a_idToolBarBtn[2], i18nGet("apps.toolbar.update.tip", "Update URLs and check for newer versions across the library"))
+    ; Button Index 2: [Export]
+    GUICtrlSetData($a_idToolBarBtn[2], i18nGet("export.btn.title", "Export"))
+    GUICtrlSetTip($a_idToolBarBtn[2], i18nGet("apps.toolbar.export.tip", "Export application configuration to file"))
     GUICtrlSetState($a_idToolBarBtn[2], $GUI_SHOW)
+
+    ; Button Index 3: [Open]
+    GUICtrlSetData($a_idToolBarBtn[3], i18nGet("open.btn.title", "Open"))
+    GUICtrlSetTip($a_idToolBarBtn[3], i18nGet("apps.toolbar.open.tip", "Open application configuration file in text editor"))
+    GUICtrlSetState($a_idToolBarBtn[3], $GUI_SHOW)
+
+    ; Button Index 4: [Download] - Under-development (Disabled)
+    GUICtrlSetData($a_idToolBarBtn[4], i18nGet("download.btn.title", "Download"))
+    GUICtrlSetTip($a_idToolBarBtn[4], i18nGet("apps.toolbar.download.tip", "Download setup files for all selected applications"))
+    GUICtrlSetState($a_idToolBarBtn[4], BitOR($GUI_SHOW, $GUI_DISABLE))
+
+    ; Button Index 5: [Update] - Under-development (Disabled)
+    GUICtrlSetData($a_idToolBarBtn[5], i18nGet("update.btn.title", "Update"))
+    GUICtrlSetTip($a_idToolBarBtn[5], i18nGet("apps.toolbar.update.tip", "Update URLs and check for newer versions across the library"))
+    GUICtrlSetState($a_idToolBarBtn[5], BitOR($GUI_SHOW, $GUI_DISABLE))
 
     ; Button Index 6: [Save]
     GUICtrlSetData($a_idToolBarBtn[$iToolBarBtnCol - 2], i18nGet("save.btn.title", "Save"))
@@ -2025,13 +2087,25 @@ Func viewAppsHandleEvent($idMsg)
         Case $a_idToolBarBtn[0]
             _ViewAppsResetAllSettings()
 
-        ; Toolbar Button 1: [Download]
+        ; Toolbar Button 1: [Import]
         Case $a_idToolBarBtn[1]
-            _ViewAppsDownloadAllSelected()
+            _ViewAppsImportConfig()
 
-        ; Toolbar Button 2: [Update]
+        ; Toolbar Button 2: [Export]
         Case $a_idToolBarBtn[2]
-            _ViewAppsUpdateManifest()
+            _ViewAppsExportConfig()
+
+        ; Toolbar Button 3: [Open]
+        Case $a_idToolBarBtn[3]
+            _ViewAppsOpenConfigFile()
+
+        ; Toolbar Button 4: [Download]
+        Case $a_idToolBarBtn[4]
+            ; Under-development: disabled
+
+        ; Toolbar Button 5: [Update]
+        Case $a_idToolBarBtn[5]
+            ; Under-development: disabled
 
         ; Toolbar Button 6: [Save]
         Case $a_idToolBarBtn[$iToolBarBtnCol - 2]
