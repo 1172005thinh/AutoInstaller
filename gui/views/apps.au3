@@ -389,7 +389,7 @@ Func viewAppsCreate($hViewport, $iW, $iH)
     $idViewAppsLogBrowseBtn = GUICtrlCreateButton(i18nGet("apps.btn.browse", "Browse"), $iSliderX + $iLogInputW + $iPx, $iItemY - $iPx, $iBrowseBtnW, $iInputH)
     GUICtrlCreateGroup("", -99, -99, -99, -99)
 
-    Local $iTotalContentH = $iY + $iInstallGroupH + $iP * 2
+    Local $iTotalContentH = $iY + $iInstallGroupH + $iP
     scrollSetContentHeight($hViewApps, $iTotalContentH)
 
     ; Load data

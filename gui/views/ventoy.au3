@@ -19,6 +19,7 @@
 #include <GuiComboBox.au3>
 #include <GuiStatusBar.au3>
 #include <File.au3>
+#include <StringConstants.au3>
 #include <WinAPISys.au3>
 
 ; Controls
@@ -65,6 +66,7 @@ Global $idViewVentoyBootRemoveBtn = 0
 Global $idViewVentoyBootEditBtn = 0
 Global $idViewVentoyBootList = 0
 Global $hViewVentoyBootList = 0
+Global $g_aViewVentoyBootTimeouts[64]
 
 ; Keyboard Accelerators for Re-ordering Boot Entries
 Global $idViewVentoyDummyUp = 0
@@ -204,7 +206,7 @@ Func viewVentoyCreate($hViewport, $iW, $iH)
     $idViewVentoyBootEditBtn = GUICtrlCreateButton(i18nGet("ventoy.boot.btn.edit", "Edit"), $iBootBtnStartX + ($iBtnW + $iP) * 2, $iItemY, $iBtnW, $iBtnH)
     GUICtrlCreateGroup("", -99, -99, -99, -99)
 
-    Local $iContentBottom = $iY + $iBootGroupH + $iP * 2
+    Local $iContentBottom = $iY + $iBootGroupH + $iP
     If $iContentBottom < $iH Then $iContentBottom = $iH
     scrollSetContentHeight($hViewVentoy, $iContentBottom)
 
@@ -306,8 +308,11 @@ EndFunc
 
 Func _ViewVentoyResetBootEntries()
     _GUICtrlListView_DeleteAllItems($hViewVentoyBootList)
-    ; Default: 1|windows|*Windows 11|/Windows/Windows11/w11.iso|Windows 11 Installation|/AutoInstaller.xml; /Manual.xml
-    Local $idItem = GUICtrlCreateListViewItem("1|windows|*Windows 11|/Windows/Windows11/w11.iso|Windows 11 Installation|/AutoInstaller.xml; /Manual.xml", $idViewVentoyBootList)
+    For $i = 0 To UBound($g_aViewVentoyBootTimeouts) - 1
+        $g_aViewVentoyBootTimeouts[$i] = 10
+    Next
+    ; Default: 1|windows|Windows 11|/Windows/Windows11/w11.iso|Windows 11 Installation|*/AutoInstaller.xml; /Manual.xml
+    Local $idItem = GUICtrlCreateListViewItem("1|windows|Windows 11|/Windows/Windows11/w11.iso|Windows 11 Installation|*/AutoInstaller.xml; /Manual.xml", $idViewVentoyBootList)
     #forceref $idItem
     _GUICtrlListView_SetItemSelected($hViewVentoyBootList, 0, True, True)
     appSetStatus(i18nGet("status.title", "Status: ") & i18nGet("ventoy.status.boot_reset", "Reset boot entries to defaults"))
@@ -321,10 +326,18 @@ Func _ViewVentoyRemoveBootEntries()
     EndIf
 
     Local $iDelIdx = Number($sSel)
+    Local $iCount = _GUICtrlListView_GetItemCount($hViewVentoyBootList)
+
+    ; Shift timeouts in state array
+    For $i = $iDelIdx To $iCount - 2
+        If $i < 63 Then $g_aViewVentoyBootTimeouts[$i] = $g_aViewVentoyBootTimeouts[$i + 1]
+    Next
+    If $iCount - 1 < 64 Then $g_aViewVentoyBootTimeouts[$iCount - 1] = 10
+
     _GUICtrlListView_DeleteItem($hViewVentoyBootList, $iDelIdx)
 
     ; Renumber IDs sequentially 1..N at column 0
-    Local $iCount = _GUICtrlListView_GetItemCount($hViewVentoyBootList)
+    $iCount = _GUICtrlListView_GetItemCount($hViewVentoyBootList)
     For $i = 0 To $iCount - 1
         _GUICtrlListView_SetItemText($hViewVentoyBootList, $i, String($i + 1), 0)
     Next
@@ -337,10 +350,33 @@ Func _ViewVentoyRemoveBootEntries()
 EndFunc
 
 Func _ViewVentoyMoveEntryUp()
+    Local $sSel = _GUICtrlListView_GetSelectedIndices($hViewVentoyBootList)
+    If $sSel = "" Then Return
+    Local $iIdx = Number($sSel)
+    If $iIdx <= 0 Then Return
+
+    If $iIdx < 64 Then
+        Local $iTmp = $g_aViewVentoyBootTimeouts[$iIdx]
+        $g_aViewVentoyBootTimeouts[$iIdx] = $g_aViewVentoyBootTimeouts[$iIdx - 1]
+        $g_aViewVentoyBootTimeouts[$iIdx - 1] = $iTmp
+    EndIf
+
     controlListViewMoveItemUp($hViewVentoyBootList, 1, 5)
 EndFunc
 
 Func _ViewVentoyMoveEntryDown()
+    Local $sSel = _GUICtrlListView_GetSelectedIndices($hViewVentoyBootList)
+    If $sSel = "" Then Return
+    Local $iIdx = Number($sSel)
+    Local $iCount = _GUICtrlListView_GetItemCount($hViewVentoyBootList)
+    If $iIdx >= $iCount - 1 Then Return
+
+    If $iIdx + 1 < 64 Then
+        Local $iTmp = $g_aViewVentoyBootTimeouts[$iIdx]
+        $g_aViewVentoyBootTimeouts[$iIdx] = $g_aViewVentoyBootTimeouts[$iIdx + 1]
+        $g_aViewVentoyBootTimeouts[$iIdx + 1] = $iTmp
+    EndIf
+
     controlListViewMoveItemDown($hViewVentoyBootList, 1, 5)
 EndFunc
 
@@ -348,14 +384,48 @@ EndFunc
 ; Add & Edit Boot Entry Modal Dialog
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+Func _ViewVentoyUpdateSetBtn($idBtn, $iSelNum, $iAutosel)
+    If $iSelNum <= 0 Then
+        GUICtrlSetState($idBtn, $GUI_DISABLE)
+        GUICtrlSetData($idBtn, i18nGet("ventoy.dialog.template.btn.set", "Set"))
+        Return
+    EndIf
+
+    GUICtrlSetState($idBtn, $GUI_ENABLE)
+    If $iSelNum = $iAutosel Then
+        GUICtrlSetData($idBtn, i18nGet("ventoy.dialog.template.btn.unset", "Unset"))
+    Else
+        GUICtrlSetData($idBtn, i18nGet("ventoy.dialog.template.btn.set", "Set"))
+    EndIf
+EndFunc
+
+Func _ViewVentoyUpdateTimeoutState($idInput, $idUpDown, $iAutosel)
+    If $iAutosel > 0 Then
+        GUICtrlSetState($idInput, $GUI_ENABLE)
+        GUICtrlSetState($idUpDown, $GUI_ENABLE)
+    Else
+        GUICtrlSetState($idInput, $GUI_DISABLE)
+        GUICtrlSetState($idUpDown, $GUI_DISABLE)
+    EndIf
+EndFunc
+
+Func _ViewVentoyRefreshDlgTplList($hList, $iAutosel)
+    Local $iCount = _GUICtrlListView_GetItemCount($hList)
+    For $t = 0 To $iCount - 1
+        Local $sId = (($t + 1) = $iAutosel) ? ("*" & ($t + 1)) : String($t + 1)
+        _GUICtrlListView_SetItemText($hList, $t, $sId, 0)
+    Next
+EndFunc
+
 Func _ViewVentoyShowBootDialog($bEdit = False)
     Local $sCurIcon = "windows"
     Local $sCurAlias = ""
-    Local $bCurAutosel = False
     Local $sCurImage = "/Windows/Windows11/w11.iso"
     Local $sCurAttach = ""
     Local $sCurTip = "Windows 11 Installation"
-    Local $sCurTemplates = "/AutoInstaller.xml; /Manual.xml"
+    Local $sCurTemplates = "*/AutoInstaller.xml; /Manual.xml"
+    Local $iCurAutosel = 1
+    Local $iCurTimeout = 10
     Local $iEditRow = -1
 
     If $bEdit Then
@@ -367,17 +437,26 @@ Func _ViewVentoyShowBootDialog($bEdit = False)
         $iEditRow = Number($sSel)
         $sCurIcon = _GUICtrlListView_GetItemText($hViewVentoyBootList, $iEditRow, 1)
         $sCurAlias = _GUICtrlListView_GetItemText($hViewVentoyBootList, $iEditRow, 2)
-        If StringLeft($sCurAlias, 1) = "*" Then
-            $bCurAutosel = True
-            $sCurAlias = StringTrimLeft($sCurAlias, 1)
-        EndIf
+        If StringLeft($sCurAlias, 1) = "*" Then $sCurAlias = StringTrimLeft($sCurAlias, 1)
         $sCurImage = _GUICtrlListView_GetItemText($hViewVentoyBootList, $iEditRow, 3)
         $sCurTip = _GUICtrlListView_GetItemText($hViewVentoyBootList, $iEditRow, 4)
         $sCurTemplates = _GUICtrlListView_GetItemText($hViewVentoyBootList, $iEditRow, 5)
+        $iCurTimeout = ($iEditRow >= 0 And $iEditRow < 64 And $g_aViewVentoyBootTimeouts[$iEditRow] > 0) ? $g_aViewVentoyBootTimeouts[$iEditRow] : 10
+
+        ; Detect autosel from templates string
+        $iCurAutosel = 0
+        Local $aTCheck = StringSplit($sCurTemplates, ";", $STR_NOCOUNT)
+        For $c = 0 To UBound($aTCheck) - 1
+            Local $sTC = StringStripWS($aTCheck[$c], $STR_STRIPLEADING + $STR_STRIPTRAILING)
+            If StringLeft($sTC, 1) = "*" Then
+                $iCurAutosel = $c + 1
+                ExitLoop
+            EndIf
+        Next
     EndIf
 
     Local $sDlgTitle = $bEdit ? i18nGet("ventoy.dialog.edit.title", "Edit Boot Entry") : i18nGet("ventoy.dialog.add.title", "Add Boot Entry")
-    Local $hDlg = GUICreate($sDlgTitle, 560, 520, -1, -1, BitOR($WS_CAPTION, $WS_SYSMENU), $WS_EX_TOPMOST, $hViewVentoy)
+    Local $hDlg = GUICreate($sDlgTitle, 560, 530, -1, -1, BitOR($WS_CAPTION, $WS_SYSMENU), $WS_EX_TOPMOST, $hViewVentoy)
     GUISetBkColor(themeColor("main.view.bg"), $hDlg)
 
     ; Status Bar (matching Add Apps dialog style)
@@ -397,13 +476,9 @@ Func _ViewVentoyShowBootDialog($bEdit = False)
 
     ; Alias Row
     Local $idAliasLbl = GUICtrlCreateLabel(i18nGet("ventoy.dialog.alias.label", "Alias: "), 24, 64, 85, 20)
-    Local $idAliasInput = GUICtrlCreateInput($sCurAlias, 115, 62, 230, 22)
+    Local $idAliasInput = GUICtrlCreateInput($sCurAlias, 115, 62, 421, 22)
     controlSetCueBanner($idAliasInput, i18nGet("ventoy.dialog.alias.placeholder", "(Optional)"))
     GUICtrlSetTip($idAliasInput, i18nGet("ventoy.dialog.alias.tip", "Display name in Ventoy boot menu"))
-
-    Local $idAutoselCkbx = GUICtrlCreateCheckbox(i18nGet("ventoy.dialog.ckbx.autosel", "Auto-select when booting"), 355, 62, 181, 22)
-    GUICtrlSetTip($idAutoselCkbx, i18nGet("ventoy.dialog.ckbx.autosel.tip", "Automatically select this entry as the default boot target"))
-    If $bCurAutosel Then GUICtrlSetState($idAutoselCkbx, $GUI_CHECKED)
 
     ; Image Row
     Local $idImageLbl = GUICtrlCreateLabel(i18nGet("ventoy.dialog.image.label", "Image: "), 24, 94, 85, 20)
@@ -426,41 +501,64 @@ Func _ViewVentoyShowBootDialog($bEdit = False)
     GUICtrlCreateGroup("", -99, -99, 1, 1)
 
     ; Group 2: Unattend Templates
-    Local $idGrpTpl = GUICtrlCreateGroup(i18nGet("ventoy.dialog.group.template", "Unattend Templates"), 12, 212, 536, 226)
+    Local $idGrpTpl = GUICtrlCreateGroup(i18nGet("ventoy.dialog.group.template", "Unattend Templates"), 12, 212, 536, 228)
     #forceref $idGrpTpl
 
-    ; Template ListView (4 rows height, 512 width)
-    Local $idDlgTplList = GUICtrlCreateListView(i18nGet("ventoy.dialog.template.col.path", "Template Path"), 24, 234, 512, 96)
+    ; Template ListView (2 columns: ID | Template Path)
+    Local $sTplColHeaders = i18nGet("ventoy.dialog.template.col.id", "ID") & "|" & i18nGet("ventoy.dialog.template.col.path", "Template Path")
+    Local $idDlgTplList = GUICtrlCreateListView($sTplColHeaders, 24, 234, 512, 96, BitOR($LVS_REPORT, $LVS_SINGLESEL, $WS_VSCROLL))
     Local $hDlgTplList = GUICtrlGetHandle($idDlgTplList)
     _GUICtrlListView_SetExtendedListViewStyle($idDlgTplList, BitOR($LVS_EX_FULLROWSELECT, $LVS_EX_GRIDLINES))
-    _GUICtrlListView_SetColumnWidth($idDlgTplList, 0, 508)
+    _GUICtrlListView_SetColumnWidth($idDlgTplList, 0, 55)
+    _GUICtrlListView_SetColumnWidth($idDlgTplList, 1, 453)
 
     Local $aInitialTpls = StringSplit($sCurTemplates, ";", $STR_NOCOUNT)
+    Local $iAddedCount = 0
     For $t = 0 To UBound($aInitialTpls) - 1
         Local $sCleanTpl = StringStripWS($aInitialTpls[$t], $STR_STRIPLEADING + $STR_STRIPTRAILING)
-        If $sCleanTpl <> "" Then GUICtrlCreateListViewItem($sCleanTpl, $idDlgTplList)
+        If StringLeft($sCleanTpl, 1) = "*" Then $sCleanTpl = StringTrimLeft($sCleanTpl, 1)
+        If $sCleanTpl <> "" Then
+            $iAddedCount += 1
+            Local $sId = ($iAddedCount = $iCurAutosel) ? ("*" & $iAddedCount) : String($iAddedCount)
+            GUICtrlCreateListViewItem($sId & "|" & $sCleanTpl, $idDlgTplList)
+        EndIf
     Next
-    If _GUICtrlListView_GetItemCount($hDlgTplList) > 0 Then
-        _GUICtrlListView_SetItemSelected($hDlgTplList, 0, True, True)
-    EndIf
 
     ; Template Input Row
     Local $idTplItemLbl = GUICtrlCreateLabel(i18nGet("ventoy.dialog.template.label", "Template: "), 24, 338, 85, 20)
-    Local $idDlgTplInput = GUICtrlCreateInput((_GUICtrlListView_GetItemCount($hDlgTplList) > 0) ? _GUICtrlListView_GetItemText($hDlgTplList, 0) : "", 115, 336, 421, 22)
+    Local $idDlgTplInput = GUICtrlCreateInput((_GUICtrlListView_GetItemCount($hDlgTplList) > 0) ? _GUICtrlListView_GetItemText($hDlgTplList, 0, 1) : "", 115, 336, 421, 22)
     controlSetCueBanner($idDlgTplInput, i18nGet("ventoy.dialog.template.placeholder", "/AutoInstaller.xml"))
 
-    ; Template Action Buttons Row (5 buttons right-aligned to table width: 152 to 536)
-    Local $idTplAddBtn = GUICtrlCreateButton(i18nGet("ventoy.dialog.template.btn.add", "Add"), 152, 366, 72, 24)
-    Local $idTplRemoveBtn = GUICtrlCreateButton(i18nGet("ventoy.dialog.template.btn.remove", "Remove"), 230, 366, 72, 24)
-    Local $idTplClearBtn = GUICtrlCreateButton(i18nGet("ventoy.dialog.template.btn.clear", "Clear"), 308, 366, 72, 24)
-    Local $idTplSaveBtn = GUICtrlCreateButton(i18nGet("ventoy.dialog.template.btn.save", "Save"), 386, 366, 72, 24)
-    Local $idTplCancelBtn = GUICtrlCreateButton(i18nGet("ventoy.dialog.template.btn.cancel", "Cancel"), 464, 366, 72, 24)
+    ; Template Action Buttons Row (Set, Add, Remove, Clear right-aligned to table width: 224, 304, 384, 464)
+    Local $idTplSetBtn = GUICtrlCreateButton(i18nGet("ventoy.dialog.template.btn.set", "Set"), 224, 366, 72, 24)
+    GUICtrlSetTip($idTplSetBtn, i18nGet("ventoy.dialog.template.btn.set.tip", "Set or unset selected template as the default auto-selected script"))
+    Local $idTplAddBtn = GUICtrlCreateButton(i18nGet("ventoy.dialog.template.btn.add", "Add"), 304, 366, 72, 24)
+    Local $idTplRemoveBtn = GUICtrlCreateButton(i18nGet("ventoy.dialog.template.btn.remove", "Remove"), 384, 366, 72, 24)
+    Local $idTplClearBtn = GUICtrlCreateButton(i18nGet("ventoy.dialog.template.btn.clear", "Clear"), 464, 366, 72, 24)
+
+    ; Timeout Row
+    Local $idTimeoutLbl = GUICtrlCreateLabel(i18nGet("ventoy.dialog.timeout.label", "Timeout: "), 24, 402, 85, 20)
+    GUICtrlSetTip($idTimeoutLbl, i18nGet("ventoy.dialog.timeout.tip", "Countdown before auto-selecting the template (3-60 seconds)"))
+    Local $idTimeoutInput = GUICtrlCreateInput(String($iCurTimeout), 115, 400, 60, 22, $ES_NUMBER)
+    Local $idTimeoutUpDown = GUICtrlCreateUpdown($idTimeoutInput)
+    GUICtrlSetLimit($idTimeoutUpDown, 60, 3)
+    GUICtrlSetTip($idTimeoutUpDown, i18nGet("ventoy.dialog.timeout.updown.tip", "Adjust template auto-selection timeout (3-60 seconds)"))
+    Local $idTimeoutUnitLbl = GUICtrlCreateLabel(i18nGet("ventoy.dialog.timeout.unit", "seconds"), 182, 402, 100, 20)
     GUICtrlCreateGroup("", -99, -99, 1, 1)
 
+    ; Initial state for selection, Set button, and Timeout controls
+    If _GUICtrlListView_GetItemCount($hDlgTplList) > 0 Then
+        _GUICtrlListView_SetItemSelected($hDlgTplList, 0, True, True)
+        _ViewVentoyUpdateSetBtn($idTplSetBtn, 1, $iCurAutosel)
+    Else
+        _ViewVentoyUpdateSetBtn($idTplSetBtn, 0, $iCurAutosel)
+    EndIf
+    _ViewVentoyUpdateTimeoutState($idTimeoutInput, $idTimeoutUpDown, $iCurAutosel)
+
     ; Dialog Bottom Buttons (Reset on bottom-left, Save and Cancel on bottom-right matching Add Apps dialog)
-    Local $idDlgResetBtn = GUICtrlCreateButton(i18nGet("ventoy.dialog.btn.reset", "Reset"), 12, 450, 80, 28)
-    Local $idDlgSaveBtn = GUICtrlCreateButton(i18nGet("ventoy.dialog.btn.save", "Save"), 370, 450, 85, 28, $BS_DEFPUSHBUTTON)
-    Local $idDlgCancelBtn = GUICtrlCreateButton(i18nGet("ventoy.dialog.btn.cancel", "Cancel"), 463, 450, 85, 28)
+    Local $idDlgResetBtn = GUICtrlCreateButton(i18nGet("ventoy.dialog.btn.reset", "Reset"), 12, 452, 80, 28)
+    Local $idDlgSaveBtn = GUICtrlCreateButton(i18nGet("ventoy.dialog.btn.save", "Save"), 370, 452, 85, 28, $BS_DEFPUSHBUTTON)
+    Local $idDlgCancelBtn = GUICtrlCreateButton(i18nGet("ventoy.dialog.btn.cancel", "Cancel"), 463, 452, 85, 28)
 
     ; Keyboard accelerator: Enter key triggers default save button
     Local $aDlgAccel[1][2] = [["{ENTER}", $idDlgSaveBtn]]
@@ -471,8 +569,6 @@ Func _ViewVentoyShowBootDialog($bEdit = False)
     GUICtrlSetBkColor($idIconLbl, themeColor("main.view.bg"))
     GUICtrlSetColor($idAliasLbl, themeColor("text.primary"))
     GUICtrlSetBkColor($idAliasLbl, themeColor("main.view.bg"))
-    GUICtrlSetColor($idAutoselCkbx, themeColor("text.primary"))
-    GUICtrlSetBkColor($idAutoselCkbx, themeColor("main.view.bg"))
     GUICtrlSetColor($idImageLbl, themeColor("text.primary"))
     GUICtrlSetBkColor($idImageLbl, themeColor("main.view.bg"))
     GUICtrlSetColor($idAttachLbl, themeColor("text.primary"))
@@ -481,19 +577,27 @@ Func _ViewVentoyShowBootDialog($bEdit = False)
     GUICtrlSetBkColor($idTipLbl, themeColor("main.view.bg"))
     GUICtrlSetColor($idTplItemLbl, themeColor("text.primary"))
     GUICtrlSetBkColor($idTplItemLbl, themeColor("main.view.bg"))
+    GUICtrlSetColor($idTimeoutLbl, themeColor("text.primary"))
+    GUICtrlSetBkColor($idTimeoutLbl, themeColor("main.view.bg"))
+    GUICtrlSetColor($idTimeoutUnitLbl, themeColor("text.primary"))
+    GUICtrlSetBkColor($idTimeoutUnitLbl, themeColor("main.view.bg"))
 
     GUISetState(@SW_SHOW, $hDlg)
 
-    Local $sLastTplSel = "-1"
+    Local $sLastTplSel = (_GUICtrlListView_GetItemCount($hDlgTplList) > 0) ? "0" : "-1"
 
     While 1
         ; Live tracking of template list selection
         Local $sCurTplSel = _GUICtrlListView_GetSelectedIndices($hDlgTplList)
         If $sCurTplSel <> "" And $sCurTplSel <> $sLastTplSel Then
             $sLastTplSel = $sCurTplSel
-            Local $sTplText = _GUICtrlListView_GetItemText($hDlgTplList, Number($sCurTplSel))
+            Local $sTplText = _GUICtrlListView_GetItemText($hDlgTplList, Number($sCurTplSel), 1)
             GUICtrlSetData($idDlgTplInput, $sTplText)
             _GUICtrlStatusBar_SetText($hStatus, "Selected template: " & $sTplText, 0)
+            _ViewVentoyUpdateSetBtn($idTplSetBtn, Number($sCurTplSel) + 1, $iCurAutosel)
+        ElseIf $sCurTplSel = "" And $sLastTplSel <> "-1" Then
+            $sLastTplSel = "-1"
+            _ViewVentoyUpdateSetBtn($idTplSetBtn, 0, $iCurAutosel)
         EndIf
 
         Local $idMsg = GUIGetMsg()
@@ -515,28 +619,62 @@ Func _ViewVentoyShowBootDialog($bEdit = False)
                 EndIf
 
             ; Template Management
+            Case $idTplSetBtn
+                Local $sTplSel = _GUICtrlListView_GetSelectedIndices($hDlgTplList)
+                If $sTplSel <> "" Then
+                    Local $iSelNum = Number($sTplSel) + 1
+                    If $iCurAutosel = $iSelNum Then
+                        $iCurAutosel = 0
+                        _GUICtrlStatusBar_SetText($hStatus, "Unset template auto-selection", 0)
+                    Else
+                        $iCurAutosel = $iSelNum
+                        _GUICtrlStatusBar_SetText($hStatus, "Set template #" & $iCurAutosel & " as auto-selected", 0)
+                    EndIf
+                    _ViewVentoyRefreshDlgTplList($hDlgTplList, $iCurAutosel)
+                    _ViewVentoyUpdateTimeoutState($idTimeoutInput, $idTimeoutUpDown, $iCurAutosel)
+                    _ViewVentoyUpdateSetBtn($idTplSetBtn, $iSelNum, $iCurAutosel)
+                EndIf
+
             Case $idTplAddBtn
                 Local $sNewTpl = StringStripWS(GUICtrlRead($idDlgTplInput), $STR_STRIPLEADING + $STR_STRIPTRAILING)
+                If StringLeft($sNewTpl, 1) = "*" Then $sNewTpl = StringTrimLeft($sNewTpl, 1)
                 If $sNewTpl = "" Then $sNewTpl = "/AutoInstaller.xml"
-                Local $iNewItem = GUICtrlCreateListViewItem($sNewTpl, $idDlgTplList)
-                #forceref $iNewItem
-                Local $iTplCount = _GUICtrlListView_GetItemCount($hDlgTplList)
-                _GUICtrlListView_SetItemSelected($hDlgTplList, $iTplCount - 1, True, True)
+                Local $iNewCount = _GUICtrlListView_GetItemCount($hDlgTplList) + 1
+                Local $sId = ($iNewCount = $iCurAutosel) ? ("*" & $iNewCount) : String($iNewCount)
+                GUICtrlCreateListViewItem($sId & "|" & $sNewTpl, $idDlgTplList)
+                _GUICtrlListView_SetItemSelected($hDlgTplList, $iNewCount - 1, True, True)
                 GUICtrlSetData($idDlgTplInput, "")
+                _ViewVentoyUpdateSetBtn($idTplSetBtn, $iNewCount, $iCurAutosel)
+                $sLastTplSel = String($iNewCount - 1)
                 _GUICtrlStatusBar_SetText($hStatus, "Added template: " & $sNewTpl, 0)
 
             Case $idTplRemoveBtn
                 Local $sTplSel = _GUICtrlListView_GetSelectedIndices($hDlgTplList)
                 If $sTplSel <> "" Then
                     Local $iDelIdx = Number($sTplSel)
+                    Local $iDelNum = $iDelIdx + 1
                     _GUICtrlListView_DeleteItem($hDlgTplList, $iDelIdx)
                     Local $iRemaining = _GUICtrlListView_GetItemCount($hDlgTplList)
+
+                    If $iCurAutosel = $iDelNum Then
+                        $iCurAutosel = 0
+                    ElseIf $iCurAutosel > $iDelNum Then
+                        $iCurAutosel -= 1
+                    EndIf
+
+                    _ViewVentoyRefreshDlgTplList($hDlgTplList, $iCurAutosel)
+                    _ViewVentoyUpdateTimeoutState($idTimeoutInput, $idTimeoutUpDown, $iCurAutosel)
+
                     If $iRemaining > 0 Then
                         Local $iNewSelect = ($iDelIdx < $iRemaining) ? $iDelIdx : ($iRemaining - 1)
                         _GUICtrlListView_SetItemSelected($hDlgTplList, $iNewSelect, True, True)
-                        GUICtrlSetData($idDlgTplInput, _GUICtrlListView_GetItemText($hDlgTplList, $iNewSelect))
+                        GUICtrlSetData($idDlgTplInput, _GUICtrlListView_GetItemText($hDlgTplList, $iNewSelect, 1))
+                        _ViewVentoyUpdateSetBtn($idTplSetBtn, $iNewSelect + 1, $iCurAutosel)
+                        $sLastTplSel = String($iNewSelect)
                     Else
                         GUICtrlSetData($idDlgTplInput, "")
+                        _ViewVentoyUpdateSetBtn($idTplSetBtn, 0, $iCurAutosel)
+                        $sLastTplSel = "-1"
                     EndIf
                     _GUICtrlStatusBar_SetText($hStatus, "Removed template", 0)
                 EndIf
@@ -545,59 +683,52 @@ Func _ViewVentoyShowBootDialog($bEdit = False)
                 GUICtrlSetData($idDlgTplInput, "")
                 _GUICtrlStatusBar_SetText($hStatus, "Cleared template input", 0)
 
-            Case $idTplSaveBtn
-                Local $sTplSel = _GUICtrlListView_GetSelectedIndices($hDlgTplList)
-                If $sTplSel <> "" Then
-                    _GUICtrlListView_SetItemText($hDlgTplList, Number($sTplSel), GUICtrlRead($idDlgTplInput))
-                    _GUICtrlStatusBar_SetText($hStatus, "Updated template", 0)
-                EndIf
-
-            Case $idTplCancelBtn
-                Local $sTplSel = _GUICtrlListView_GetSelectedIndices($hDlgTplList)
-                If $sTplSel <> "" Then
-                    GUICtrlSetData($idDlgTplInput, _GUICtrlListView_GetItemText($hDlgTplList, Number($sTplSel)))
-                Else
-                    GUICtrlSetData($idDlgTplInput, "")
-                EndIf
-                _GUICtrlStatusBar_SetText($hStatus, "Canceled template edit", 0)
-
             Case $idDlgResetBtn
                 _GUICtrlComboBox_SelectString($idIconCmb, -1, "windows")
                 GUICtrlSetData($idAliasInput, "Windows 11")
-                GUICtrlSetState($idAutoselCkbx, $GUI_CHECKED)
                 GUICtrlSetData($idImageInput, "/Windows/Windows11/w11.iso")
                 GUICtrlSetData($idAttachInput, "")
                 GUICtrlSetData($idTipInput, "Windows 11 Installation")
                 _GUICtrlListView_DeleteAllItems($hDlgTplList)
-                GUICtrlCreateListViewItem("/AutoInstaller.xml", $idDlgTplList)
-                GUICtrlCreateListViewItem("/Manual.xml", $idDlgTplList)
+                $iCurAutosel = 1
+                $iCurTimeout = 10
+                GUICtrlSetData($idTimeoutInput, "10")
+                GUICtrlCreateListViewItem("*1|/AutoInstaller.xml", $idDlgTplList)
+                GUICtrlCreateListViewItem("2|/Manual.xml", $idDlgTplList)
                 _GUICtrlListView_SetItemSelected($hDlgTplList, 0, True, True)
                 GUICtrlSetData($idDlgTplInput, "/AutoInstaller.xml")
+                _ViewVentoyUpdateTimeoutState($idTimeoutInput, $idTimeoutUpDown, $iCurAutosel)
+                _ViewVentoyUpdateSetBtn($idTplSetBtn, 1, $iCurAutosel)
+                $sLastTplSel = "0"
                 _GUICtrlStatusBar_SetText($hStatus, "Reset dialog values to defaults", 0)
 
             Case $idDlgSaveBtn
                 Local $sIcon = GUICtrlRead($idIconCmb)
                 If $sIcon = "" Then $sIcon = "windows"
                 Local $sAlias = StringStripWS(GUICtrlRead($idAliasInput), $STR_STRIPLEADING + $STR_STRIPTRAILING)
-                Local $bAutosel = (GUICtrlRead($idAutoselCkbx) = $GUI_CHECKED)
-                If $bAutosel Then
-                    If StringLeft($sAlias, 1) <> "*" Then $sAlias = "*" & $sAlias
-                Else
-                    If StringLeft($sAlias, 1) = "*" Then $sAlias = StringTrimLeft($sAlias, 1)
-                EndIf
+                If StringLeft($sAlias, 1) = "*" Then $sAlias = StringTrimLeft($sAlias, 1)
 
                 Local $sImage = StringStripWS(GUICtrlRead($idImageInput), $STR_STRIPLEADING + $STR_STRIPTRAILING)
                 If $sImage = "" Then $sImage = "/Windows/Windows11/w11.iso"
                 Local $sTip = StringStripWS(GUICtrlRead($idTipInput), $STR_STRIPLEADING + $STR_STRIPTRAILING)
 
-                ; Build template string
+                Local $iTimeout = Number(GUICtrlRead($idTimeoutInput))
+                If $iTimeout < 3 Then $iTimeout = 10
+                If $iTimeout > 60 Then $iTimeout = 60
+
+                ; Build template string with '*' indicating auto-selected template
                 Local $sTpls = ""
                 Local $iTplCount = _GUICtrlListView_GetItemCount($hDlgTplList)
                 For $t = 0 To $iTplCount - 1
-                    Local $sTText = _GUICtrlListView_GetItemText($hDlgTplList, $t)
+                    Local $sTText = _GUICtrlListView_GetItemText($hDlgTplList, $t, 1)
+                    If StringLeft($sTText, 1) = "*" Then $sTText = StringTrimLeft($sTText, 1)
                     If $sTText <> "" Then
                         If $sTpls <> "" Then $sTpls &= "; "
-                        $sTpls &= $sTText
+                        If ($t + 1) = $iCurAutosel Then
+                            $sTpls &= "*" & $sTText
+                        Else
+                            $sTpls &= $sTText
+                        EndIf
                     EndIf
                 Next
                 If $sTpls = "" Then $sTpls = "/AutoInstaller.xml"
@@ -608,11 +739,13 @@ Func _ViewVentoyShowBootDialog($bEdit = False)
                     _GUICtrlListView_SetItemText($hViewVentoyBootList, $iEditRow, $sImage, 3)
                     _GUICtrlListView_SetItemText($hViewVentoyBootList, $iEditRow, $sTip, 4)
                     _GUICtrlListView_SetItemText($hViewVentoyBootList, $iEditRow, $sTpls, 5)
+                    If $iEditRow < 64 Then $g_aViewVentoyBootTimeouts[$iEditRow] = $iTimeout
                     appSetStatus(i18nGet("status.title", "Status: ") & i18nGet("ventoy.status.boot_updated", "Updated boot entry"))
                 Else
                     Local $iNextID = _GUICtrlListView_GetItemCount($hViewVentoyBootList) + 1
                     Local $idNewRow = GUICtrlCreateListViewItem($iNextID & "|" & $sIcon & "|" & $sAlias & "|" & $sImage & "|" & $sTip & "|" & $sTpls, $idViewVentoyBootList)
                     #forceref $idNewRow
+                    If $iNextID - 1 < 64 Then $g_aViewVentoyBootTimeouts[$iNextID - 1] = $iTimeout
                     _GUICtrlListView_SetItemSelected($hViewVentoyBootList, $iNextID - 1, True, True)
                     appSetStatus(i18nGet("status.title", "Status: ") & i18nGet("ventoy.status.boot_added", "Added new boot entry"))
                 EndIf
@@ -644,6 +777,10 @@ Func viewVentoyLoadData($sCustomFile = "")
     _ViewVentoyLoadVariants()
 
     _GUICtrlListView_DeleteAllItems($hViewVentoyBootList)
+    For $k = 0 To UBound($g_aViewVentoyBootTimeouts) - 1
+        $g_aViewVentoyBootTimeouts[$k] = 10
+    Next
+
     Local $aEntries = $oData.Item("BootEntries")
     Local $iEntryCount = $oData.Item("EntryCount")
 
@@ -651,16 +788,33 @@ Func viewVentoyLoadData($sCustomFile = "")
         For $i = 0 To $iEntryCount - 1
             Local $sIcon = $aEntries[$i][0]
             Local $sAlias = $aEntries[$i][1]
+            If StringLeft($sAlias, 1) = "*" Then $sAlias = StringTrimLeft($sAlias, 1)
             Local $sImage = $aEntries[$i][2]
             Local $sTip = $aEntries[$i][3]
             Local $sTpls = $aEntries[$i][4]
-            Local $iAutosel = $aEntries[$i][5]
+            Local $iAutosel = Number($aEntries[$i][5])
+            Local $iTimeout = (UBound($aEntries, 2) >= 7) ? Number($aEntries[$i][6]) : 10
+            If $iTimeout < 3 Or $iTimeout > 60 Then $iTimeout = 10
 
-            If $iAutosel = 1 And StringLeft($sAlias, 1) <> "*" Then
-                $sAlias = "*" & $sAlias
-            EndIf
+            If $i < 64 Then $g_aViewVentoyBootTimeouts[$i] = $iTimeout
 
-            GUICtrlCreateListViewItem(($i + 1) & "|" & $sIcon & "|" & $sAlias & "|" & $sImage & "|" & $sTip & "|" & $sTpls, $idViewVentoyBootList)
+            ; Mark the auto-selected template with '*' in display string
+            Local $sDisplayTpls = ""
+            Local $aTList = StringSplit($sTpls, ";", $STR_NOCOUNT)
+            For $t = 0 To UBound($aTList) - 1
+                Local $sCleanTpl = StringStripWS($aTList[$t], $STR_STRIPLEADING + $STR_STRIPTRAILING)
+                If StringLeft($sCleanTpl, 1) = "*" Then $sCleanTpl = StringTrimLeft($sCleanTpl, 1)
+                If $sCleanTpl = "" Then ContinueLoop
+                If $sDisplayTpls <> "" Then $sDisplayTpls &= "; "
+                If ($t + 1) = $iAutosel Then
+                    $sDisplayTpls &= "*" & $sCleanTpl
+                Else
+                    $sDisplayTpls &= $sCleanTpl
+                EndIf
+            Next
+            If $sDisplayTpls = "" Then $sDisplayTpls = "/AutoInstaller.xml"
+
+            GUICtrlCreateListViewItem(($i + 1) & "|" & $sIcon & "|" & $sAlias & "|" & $sImage & "|" & $sTip & "|" & $sDisplayTpls, $idViewVentoyBootList)
         Next
         _GUICtrlListView_SetItemSelected($hViewVentoyBootList, 0, True, True)
     Else
@@ -673,24 +827,42 @@ EndFunc
 Func viewVentoySaveData($sCustomFile = "")
     Local $sTheme = GUICtrlRead($idViewVentoyThemeCmb)
     Local $iEntryCount = _GUICtrlListView_GetItemCount($hViewVentoyBootList)
-    Local $aEntries[0][6] ; [Icon, CleanAlias, Image, Tip, Templates, Autosel]
+    Local $aEntries[0][7] ; [Icon, CleanAlias, Image, Tip, Templates, Autosel, Timeout]
 
     For $i = 0 To $iEntryCount - 1
         Local $sIcon = _GUICtrlListView_GetItemText($hViewVentoyBootList, $i, 1)
         Local $sRawAlias = _GUICtrlListView_GetItemText($hViewVentoyBootList, $i, 2)
-        Local $iAutosel = (StringLeft($sRawAlias, 1) = "*") ? 1 : 0
-        Local $sAlias = ($iAutosel = 1) ? StringTrimLeft($sRawAlias, 1) : $sRawAlias
+        Local $sAlias = (StringLeft($sRawAlias, 1) = "*") ? StringTrimLeft($sRawAlias, 1) : $sRawAlias
         Local $sImage = _GUICtrlListView_GetItemText($hViewVentoyBootList, $i, 3)
         Local $sTip = _GUICtrlListView_GetItemText($hViewVentoyBootList, $i, 4)
-        Local $sTpls = _GUICtrlListView_GetItemText($hViewVentoyBootList, $i, 5)
+        Local $sRawTpls = _GUICtrlListView_GetItemText($hViewVentoyBootList, $i, 5)
 
-        ReDim $aEntries[UBound($aEntries, 1) + 1][6]
+        ; Determine Autosel (1-based) from which template has '*' prefix
+        Local $iAutosel = 0
+        Local $sCleanTpls = ""
+        Local $aTList = StringSplit($sRawTpls, ";", $STR_NOCOUNT)
+        For $t = 0 To UBound($aTList) - 1
+            Local $sT = StringStripWS($aTList[$t], $STR_STRIPLEADING + $STR_STRIPTRAILING)
+            If $sT = "" Then ContinueLoop
+            If StringLeft($sT, 1) = "*" Then
+                $iAutosel = $t + 1
+                $sT = StringTrimLeft($sT, 1)
+            EndIf
+            If $sCleanTpls <> "" Then $sCleanTpls &= "; "
+            $sCleanTpls &= $sT
+        Next
+        If $sCleanTpls = "" Then $sCleanTpls = "/AutoInstaller.xml"
+
+        Local $iTimeout = ($i < 64 And $g_aViewVentoyBootTimeouts[$i] > 0) ? $g_aViewVentoyBootTimeouts[$i] : 10
+
+        ReDim $aEntries[UBound($aEntries, 1) + 1][7]
         $aEntries[UBound($aEntries, 1) - 1][0] = $sIcon
         $aEntries[UBound($aEntries, 1) - 1][1] = $sAlias
         $aEntries[UBound($aEntries, 1) - 1][2] = $sImage
         $aEntries[UBound($aEntries, 1) - 1][3] = $sTip
-        $aEntries[UBound($aEntries, 1) - 1][4] = $sTpls
+        $aEntries[UBound($aEntries, 1) - 1][4] = $sCleanTpls
         $aEntries[UBound($aEntries, 1) - 1][5] = $iAutosel
+        $aEntries[UBound($aEntries, 1) - 1][6] = $iTimeout
     Next
 
     Return ventoySaveConfigData($sCustomFile, $sTheme, $g_sViewVentoyActiveVariant, $aEntries)

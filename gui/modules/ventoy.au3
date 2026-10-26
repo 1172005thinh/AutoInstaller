@@ -177,15 +177,24 @@ Func ventoyLoadConfigData($sFilePath = "")
         Next
     EndIf
 
-    Local $aAutoInstall = StringRegExp($sJson, '(?s)\{\s*"image"\s*:\s*"([^"]+)"\s*,\s*"template"\s*:\s*\[([^\]]*)\][^\}]*?"autosel"\s*:\s*(\d+)', 4)
+    Local $aAutoBlocks = StringRegExp($sJson, '(?s)\{\s*"image"\s*:\s*"([^"]+)"\s*,\s*"template"\s*:\s*\[([^\]]*)\](.*?)\}', 4)
     Local $oAutoTplMap = ObjCreate("Scripting.Dictionary")
     Local $oAutoSelMap = ObjCreate("Scripting.Dictionary")
+    Local $oAutoTimeoutMap = ObjCreate("Scripting.Dictionary")
     If Not @error Then
-        For $i = 0 To UBound($aAutoInstall) - 1
-            Local $aP = $aAutoInstall[$i]
+        For $i = 0 To UBound($aAutoBlocks) - 1
+            Local $aP = $aAutoBlocks[$i]
             Local $sImgKey = $aP[1]
             Local $sRawTpls = $aP[2]
-            Local $iAutosel = Number($aP[3])
+            Local $sRest = $aP[3]
+
+            Local $iAutosel = 0
+            Local $aSelMatch = StringRegExp($sRest, '"autosel"\s*:\s*(\d+)', 1)
+            If Not @error And UBound($aSelMatch) > 0 Then $iAutosel = Number($aSelMatch[0])
+
+            Local $iTimeout = 10
+            Local $aTimeMatch = StringRegExp($sRest, '"timeout"\s*:\s*(\d+)', 1)
+            If Not @error And UBound($aTimeMatch) > 0 Then $iTimeout = Number($aTimeMatch[0])
 
             Local $aTplMatches = StringRegExp($sRawTpls, '"([^"]+)"', 3)
             Local $sJoinedTpl = ""
@@ -197,18 +206,22 @@ Func ventoyLoadConfigData($sFilePath = "")
             EndIf
             $oAutoTplMap.Item($sImgKey) = $sJoinedTpl
             $oAutoSelMap.Item($sImgKey) = $iAutosel
+            $oAutoTimeoutMap.Item($sImgKey) = $iTimeout
         Next
     EndIf
 
-    Local $aEntries[0][6] ; [Icon, Alias, Image, Tip, Templates, Autosel]
+    Local $aEntries[0][7] ; [Icon, Alias, Image, Tip, Templates, Autosel, Timeout]
     If $iAliasCount > 0 Then
         For $i = 0 To $iAliasCount - 1
             Local $aPair = $aAliases[$i]
             Local $sImage = $aPair[1]
             Local $sAlias = $aPair[2]
+            If StringLeft($sAlias, 1) = "*" Then $sAlias = StringTrimLeft($sAlias, 1)
+
             Local $sTip = $oTipMap.Exists($sImage) ? $oTipMap.Item($sImage) : ""
             Local $sTpls = $oAutoTplMap.Exists($sImage) ? $oAutoTplMap.Item($sImage) : "/AutoInstaller.xml"
             Local $iAutosel = $oAutoSelMap.Exists($sImage) ? $oAutoSelMap.Item($sImage) : 0
+            Local $iTimeout = $oAutoTimeoutMap.Exists($sImage) ? $oAutoTimeoutMap.Item($sImage) : 10
 
             Local $sIcon = "windows"
             Local $sImageBase = StringLower(StringRegExpReplace($sImage, '^.*[\\/]', ''))
@@ -219,13 +232,14 @@ Func ventoyLoadConfigData($sFilePath = "")
                 $sIcon = $oClassMap.Item("w11")
             EndIf
 
-            ReDim $aEntries[$i + 1][6]
+            ReDim $aEntries[$i + 1][7]
             $aEntries[$i][0] = $sIcon
             $aEntries[$i][1] = $sAlias
             $aEntries[$i][2] = $sImage
             $aEntries[$i][3] = $sTip
             $aEntries[$i][4] = $sTpls
             $aEntries[$i][5] = $iAutosel
+            $aEntries[$i][6] = $iTimeout
         Next
     EndIf
 
@@ -305,9 +319,11 @@ Func ventoySaveConfigData($sFilePath, $sTheme, $sActiveVariant, $aEntries)
     ; menu_alias block
     $sOut &= '    "menu_alias": [' & @CRLF
     For $i = 0 To $iEntryCount - 1
+        Local $sAlias = $aEntries[$i][1]
+        If StringLeft($sAlias, 1) = "*" Then $sAlias = StringTrimLeft($sAlias, 1)
         $sOut &= '        {' & @CRLF
         $sOut &= '            "image": "' & $aEntries[$i][2] & '",' & @CRLF
-        $sOut &= '            "alias": "' & $aEntries[$i][1] & '"' & @CRLF
+        $sOut &= '            "alias": "' & $sAlias & '"' & @CRLF
         $sOut &= '        }'
         If $i < $iEntryCount - 1 Then $sOut &= ','
         $sOut &= @CRLF
@@ -357,6 +373,7 @@ Func ventoySaveConfigData($sFilePath, $sTheme, $sActiveVariant, $aEntries)
         Local $aTList = StringSplit($aEntries[$i][4], ";", $STR_NOCOUNT)
         For $t = 0 To UBound($aTList) - 1
             Local $sTPath = StringStripWS($aTList[$t], $STR_STRIPLEADING + $STR_STRIPTRAILING)
+            If StringLeft($sTPath, 1) = "*" Then $sTPath = StringTrimLeft($sTPath, 1)
             If $sTPath <> "" Then
                 $sOut &= '                "' & $sTPath & '"'
                 If $t < UBound($aTList) - 1 Then $sOut &= ','
@@ -364,9 +381,13 @@ Func ventoySaveConfigData($sFilePath, $sTheme, $sActiveVariant, $aEntries)
             EndIf
         Next
 
+        Local $iTimeout = (UBound($aEntries, 2) >= 7) ? Number($aEntries[$i][6]) : 10
+        If $iTimeout < 3 Then $iTimeout = 10
+        If $iTimeout > 60 Then $iTimeout = 60
+
         $sOut &= '            ],' & @CRLF
-        $sOut &= '            "timeout": 10,' & @CRLF
-        $sOut &= '            "autosel": ' & $aEntries[$i][5] & @CRLF
+        $sOut &= '            "timeout": ' & $iTimeout & ',' & @CRLF
+        $sOut &= '            "autosel": ' & Number($aEntries[$i][5]) & @CRLF
         $sOut &= '        }'
         If $i < $iEntryCount - 1 Then $sOut &= ','
         $sOut &= @CRLF
