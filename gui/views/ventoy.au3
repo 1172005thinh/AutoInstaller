@@ -561,24 +561,24 @@ Func _ViewVentoyShowBootDialog($bEdit = False)
     Next
 
     ; Template Input Row
-    $iItemY += $iTplTableH + $iP * 2
+    $iItemY += $iTplTableH + $iP + $iPx
     Local $idTplItemLbl = GUICtrlCreateLabel(i18nGet("ventoy.dialog.template.label", "Template: "), $iInnerX, $iItemY, $iDlgLblW, $iLblH)
     Local $idDlgTplInput = GUICtrlCreateInput((_GUICtrlListView_GetItemCount($hDlgTplList) > 0) ? _GUICtrlListView_GetItemText($hDlgTplList, 0, 1) : "", $iDlgInputX, $iItemY - $iPx, $iDlgInputW, $iInputH)
     controlSetCueBanner($idDlgTplInput, i18nGet("ventoy.dialog.template.placeholder", "/AutoInstaller.xml"))
 
     ; Template Action Buttons Row (Set, Add, Remove, Clear right-aligned to table width)
-    $iItemY += $iRowH
+    $iItemY += $iRowH - $iPx
     Local $iTplBtnW = Int(($iInnerW - $iDlgLblW - 4 * $iP) / 4)
     Local $iTplBtnRowW = 4 * $iTplBtnW + 3 * $iP
     Local $iTplBtnStartX = ($iInnerX + $iInnerW) - $iTplBtnRowW
-    Local $idTplSetBtn = GUICtrlCreateButton(i18nGet("ventoy.dialog.template.btn.set", "Set"), $iTplBtnStartX, $iItemY, $iTplBtnW, $iInputH)
+    Local $idTplSetBtn = GUICtrlCreateButton(i18nGet("ventoy.dialog.template.btn.set", "Set"), $iTplBtnStartX, $iItemY, $iTplBtnW, $iBottomBtnH)
     GUICtrlSetTip($idTplSetBtn, i18nGet("ventoy.dialog.template.btn.set.tip", "Set or unset selected template as the default auto-selected script"))
-    Local $idTplAddBtn = GUICtrlCreateButton(i18nGet("ventoy.dialog.template.btn.add", "Add"), $iTplBtnStartX + $iTplBtnW + $iP, $iItemY, $iTplBtnW, $iInputH)
-    Local $idTplRemoveBtn = GUICtrlCreateButton(i18nGet("ventoy.dialog.template.btn.remove", "Remove"), $iTplBtnStartX + ($iTplBtnW + $iP) * 2, $iItemY, $iTplBtnW, $iInputH)
-    Local $idTplClearBtn = GUICtrlCreateButton(i18nGet("ventoy.dialog.template.btn.clear", "Clear"), $iTplBtnStartX + ($iTplBtnW + $iP) * 3, $iItemY, $iTplBtnW, $iInputH)
+    Local $idTplAddBtn = GUICtrlCreateButton(i18nGet("ventoy.dialog.template.btn.add", "Add"), $iTplBtnStartX + $iTplBtnW + $iP, $iItemY, $iTplBtnW, $iBottomBtnH)
+    Local $idTplRemoveBtn = GUICtrlCreateButton(i18nGet("ventoy.dialog.template.btn.remove", "Remove"), $iTplBtnStartX + ($iTplBtnW + $iP) * 2, $iItemY, $iTplBtnW, $iBottomBtnH)
+    Local $idTplClearBtn = GUICtrlCreateButton(i18nGet("ventoy.dialog.template.btn.clear", "Clear"), $iTplBtnStartX + ($iTplBtnW + $iP) * 3, $iItemY, $iTplBtnW, $iBottomBtnH)
 
     ; Timeout Row
-    $iItemY += $iRowH + $iP
+    $iItemY += $iRowH + $iP * 2
     Local $idTimeoutLbl = GUICtrlCreateLabel(i18nGet("ventoy.dialog.timeout.label", "Timeout: "), $iInnerX, $iItemY, $iDlgLblW, $iLblH)
     GUICtrlSetTip($idTimeoutLbl, i18nGet("ventoy.dialog.timeout.tip", "Countdown before auto-selecting the template (3-60 seconds)"))
     Local $iTimeoutInputW = Int($iInnerW * 14 / 100)
