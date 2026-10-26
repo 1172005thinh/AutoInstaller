@@ -456,7 +456,31 @@ Func _ViewVentoyShowBootDialog($bEdit = False)
     EndIf
 
     Local $sDlgTitle = $bEdit ? i18nGet("ventoy.dialog.edit.title", "Edit Boot Entry") : i18nGet("ventoy.dialog.add.title", "Add Boot Entry")
-    Local $hDlg = GUICreate($sDlgTitle, 560, 530, -1, -1, BitOR($WS_CAPTION, $WS_SYSMENU), $WS_EX_TOPMOST, $hViewVentoy)
+
+    ; Standard Dialog Layout Metrics
+    Local $iDlgW = 560
+    Local $iPx = $iLblH * 20 / 100
+    Local $iRowH = $iLblH + $iP * 2
+    Local $iInputH = $iLblH + $iPx * 2
+
+    Local $iGroupX = Int($iP * 1.5)
+    Local $iGroupW = $iDlgW - $iGroupX * 2
+    Local $iInnerX = $iGroupX + Int($iP * 1.5)
+    Local $iInnerW = $iGroupW - Int($iP * 3)
+
+    Local $iDlgLblW = Int($iInnerW * 18 / 100)
+    Local $iDlgInputX = $iInnerX + $iDlgLblW + $iP
+    Local $iDlgInputW = $iInnerW - $iDlgLblW - $iP
+
+    Local $iBottomBtnW = Int($iInnerW * 16 / 100)
+    Local $iBottomBtnH = $iBtnH
+
+    Local $iGrpDetailsH = $iRowH * 5 + $iP * 3
+    Local $iTplTableH = $iRowH * 3 + $iP
+    Local $iGrpTplH = $iTplTableH + $iRowH * 3 + $iP * 6
+    Local $iDlgH = $iP + $iGrpDetailsH + $iP + $iGrpTplH + $iP + $iBottomBtnH + $iStatusBarH + $iP * 1
+
+    Local $hDlg = GUICreate($sDlgTitle, $iDlgW, $iDlgH, -1, -1, BitOR($WS_CAPTION, $WS_SYSMENU), $WS_EX_TOPMOST, $hViewVentoy)
     GUISetBkColor(themeColor("main.view.bg"), $hDlg)
 
     ; Status Bar (matching Add Apps dialog style)
@@ -464,53 +488,65 @@ Func _ViewVentoyShowBootDialog($bEdit = False)
     _GUICtrlStatusBar_SetText($hStatus, i18nGet("status.ready", "Ready"), 0)
 
     ; Group 1: Boot Entry Details
-    Local $idGrpDetails = GUICtrlCreateGroup(i18nGet("ventoy.dialog.group.details", "Boot Entry Details"), 12, 10, 536, 195)
+    Local $iY = $iP
+    Local $idGrpDetails = GUICtrlCreateGroup(i18nGet("ventoy.dialog.group.details", "Boot Entry Details"), $iGroupX, $iY, $iGroupW, $iGrpDetailsH)
     #forceref $idGrpDetails
 
     ; Icon Row
-    Local $idIconLbl = GUICtrlCreateLabel(i18nGet("ventoy.dialog.icon.label", "Icon: "), 24, 34, 85, 20)
-    Local $idIconCmb = GUICtrlCreateCombo("", 115, 32, 421, 22, BitOR($CBS_DROPDOWNLIST, $WS_VSCROLL))
+    Local $iItemY = $iY + $iP * 3
+    Local $idIconLbl = GUICtrlCreateLabel(i18nGet("ventoy.dialog.icon.label", "Icon: "), $iInnerX, $iItemY, $iDlgLblW, $iLblH)
+    Local $idIconCmb = GUICtrlCreateCombo("", $iDlgInputX, $iItemY - $iPx, $iDlgInputW, $iInputH, BitOR($CBS_DROPDOWNLIST, $WS_VSCROLL))
     Local $sAvailableIcons = ventoyGetAvailableIcons()
     GUICtrlSetData($idIconCmb, $sAvailableIcons, $sCurIcon)
     GUICtrlSetTip($idIconCmb, i18nGet("ventoy.dialog.icon.tip", "Icon representing this OS boot entry"))
 
     ; Alias Row
-    Local $idAliasLbl = GUICtrlCreateLabel(i18nGet("ventoy.dialog.alias.label", "Alias: "), 24, 64, 85, 20)
-    Local $idAliasInput = GUICtrlCreateInput($sCurAlias, 115, 62, 421, 22)
+    $iItemY += $iRowH
+    Local $idAliasLbl = GUICtrlCreateLabel(i18nGet("ventoy.dialog.alias.label", "Alias: "), $iInnerX, $iItemY, $iDlgLblW, $iLblH)
+    Local $idAliasInput = GUICtrlCreateInput($sCurAlias, $iDlgInputX, $iItemY - $iPx, $iDlgInputW, $iInputH)
     controlSetCueBanner($idAliasInput, i18nGet("ventoy.dialog.alias.placeholder", "(Optional)"))
     GUICtrlSetTip($idAliasInput, i18nGet("ventoy.dialog.alias.tip", "Display name in Ventoy boot menu"))
 
     ; Image Row
-    Local $idImageLbl = GUICtrlCreateLabel(i18nGet("ventoy.dialog.image.label", "Image: "), 24, 94, 85, 20)
-    Local $idImageInput = GUICtrlCreateInput($sCurImage, 115, 92, 421, 22)
+    $iItemY += $iRowH
+    Local $idImageLbl = GUICtrlCreateLabel(i18nGet("ventoy.dialog.image.label", "Image: "), $iInnerX, $iItemY, $iDlgLblW, $iLblH)
+    Local $idImageInput = GUICtrlCreateInput($sCurImage, $iDlgInputX, $iItemY - $iPx, $iDlgInputW, $iInputH)
     controlSetCueBanner($idImageInput, i18nGet("ventoy.dialog.image.placeholder", "/Windows/Windows11/w11.iso"))
     GUICtrlSetTip($idImageInput, i18nGet("ventoy.dialog.image.tip", "Relative path of ISO image file on USB drive"))
 
     ; Attach ISO Row
-    Local $idAttachLbl = GUICtrlCreateLabel(i18nGet("ventoy.dialog.attach_iso.label", "Attach ISO: "), 24, 124, 85, 20)
-    Local $idAttachInput = GUICtrlCreateInput($sCurAttach, 115, 122, 336, 22)
+    $iItemY += $iRowH
+    Local $iBrowseBtnW = Int($iInnerW * 16 / 100)
+    Local $iAttachInputW = $iDlgInputW - $iBrowseBtnW - $iP
+    Local $idAttachLbl = GUICtrlCreateLabel(i18nGet("ventoy.dialog.attach_iso.label", "Attach ISO: "), $iInnerX, $iItemY, $iDlgLblW, $iLblH)
+    Local $idAttachInput = GUICtrlCreateInput($sCurAttach, $iDlgInputX, $iItemY - $iPx, $iAttachInputW, $iInputH)
     controlSetCueBanner($idAttachInput, i18nGet("ventoy.dialog.attach_iso.placeholder", "Select local ISO image..."))
-    Local $idAttachBrowseBtn = GUICtrlCreateButton(i18nGet("ventoy.dialog.btn.browse", "Browse"), 456, 122, 80, 22)
+    Local $idAttachBrowseBtn = GUICtrlCreateButton(i18nGet("ventoy.dialog.btn.browse", "Browse"), $iDlgInputX + $iAttachInputW + $iP, $iItemY - $iPx, $iBrowseBtnW, $iInputH)
     GUICtrlSetTip($idAttachBrowseBtn, i18nGet("ventoy.dialog.btn.browse.tip", "Browse for local ISO image file"))
 
     ; Tip Row
-    Local $idTipLbl = GUICtrlCreateLabel(i18nGet("ventoy.dialog.tip.label", "Tip: "), 24, 154, 85, 20)
-    Local $idTipInput = GUICtrlCreateInput($sCurTip, 115, 152, 421, 22)
+    $iItemY += $iRowH
+    Local $idTipLbl = GUICtrlCreateLabel(i18nGet("ventoy.dialog.tip.label", "Tip: "), $iInnerX, $iItemY, $iDlgLblW, $iLblH)
+    Local $idTipInput = GUICtrlCreateInput($sCurTip, $iDlgInputX, $iItemY - $iPx, $iDlgInputW, $iInputH)
     controlSetCueBanner($idTipInput, i18nGet("ventoy.dialog.tip.placeholder", "Windows 11 Installation"))
     GUICtrlSetTip($idTipInput, i18nGet("ventoy.dialog.tip.tip", "Helpful description shown in Ventoy boot menu"))
     GUICtrlCreateGroup("", -99, -99, 1, 1)
 
     ; Group 2: Unattend Templates
-    Local $idGrpTpl = GUICtrlCreateGroup(i18nGet("ventoy.dialog.group.template", "Unattend Templates"), 12, 212, 536, 228)
+    $iY += $iGrpDetailsH + $iP
+    Local $idGrpTpl = GUICtrlCreateGroup(i18nGet("ventoy.dialog.group.template", "Unattend Templates"), $iGroupX, $iY, $iGroupW, $iGrpTplH)
     #forceref $idGrpTpl
 
     ; Template ListView (2 columns: ID | Template Path)
+    $iItemY = $iY + $iP * 3
     Local $sTplColHeaders = i18nGet("ventoy.dialog.template.col.id", "ID") & "|" & i18nGet("ventoy.dialog.template.col.path", "Template Path")
-    Local $idDlgTplList = GUICtrlCreateListView($sTplColHeaders, 24, 234, 512, 96, BitOR($LVS_REPORT, $LVS_SINGLESEL, $WS_VSCROLL))
+    Local $idDlgTplList = GUICtrlCreateListView($sTplColHeaders, $iInnerX, $iItemY, $iInnerW, $iTplTableH, BitOR($LVS_REPORT, $LVS_SINGLESEL, $WS_VSCROLL))
     Local $hDlgTplList = GUICtrlGetHandle($idDlgTplList)
     _GUICtrlListView_SetExtendedListViewStyle($idDlgTplList, BitOR($LVS_EX_FULLROWSELECT, $LVS_EX_GRIDLINES))
-    _GUICtrlListView_SetColumnWidth($idDlgTplList, 0, 55)
-    _GUICtrlListView_SetColumnWidth($idDlgTplList, 1, 453)
+    Local $iTplCol0W = Int($iInnerW * 12 / 100)
+    Local $iTplCol1W = $iInnerW - $iTplCol0W - 2 * $iP - 2 * $iPx
+    _GUICtrlListView_SetColumnWidth($idDlgTplList, 0, $iTplCol0W)
+    _GUICtrlListView_SetColumnWidth($idDlgTplList, 1, $iTplCol1W)
 
     Local $aInitialTpls = StringSplit($sCurTemplates, ";", $STR_NOCOUNT)
     Local $iAddedCount = 0
@@ -525,25 +561,32 @@ Func _ViewVentoyShowBootDialog($bEdit = False)
     Next
 
     ; Template Input Row
-    Local $idTplItemLbl = GUICtrlCreateLabel(i18nGet("ventoy.dialog.template.label", "Template: "), 24, 338, 85, 20)
-    Local $idDlgTplInput = GUICtrlCreateInput((_GUICtrlListView_GetItemCount($hDlgTplList) > 0) ? _GUICtrlListView_GetItemText($hDlgTplList, 0, 1) : "", 115, 336, 421, 22)
+    $iItemY += $iTplTableH + $iP * 2
+    Local $idTplItemLbl = GUICtrlCreateLabel(i18nGet("ventoy.dialog.template.label", "Template: "), $iInnerX, $iItemY, $iDlgLblW, $iLblH)
+    Local $idDlgTplInput = GUICtrlCreateInput((_GUICtrlListView_GetItemCount($hDlgTplList) > 0) ? _GUICtrlListView_GetItemText($hDlgTplList, 0, 1) : "", $iDlgInputX, $iItemY - $iPx, $iDlgInputW, $iInputH)
     controlSetCueBanner($idDlgTplInput, i18nGet("ventoy.dialog.template.placeholder", "/AutoInstaller.xml"))
 
-    ; Template Action Buttons Row (Set, Add, Remove, Clear right-aligned to table width: 224, 304, 384, 464)
-    Local $idTplSetBtn = GUICtrlCreateButton(i18nGet("ventoy.dialog.template.btn.set", "Set"), 224, 366, 72, 24)
+    ; Template Action Buttons Row (Set, Add, Remove, Clear right-aligned to table width)
+    $iItemY += $iRowH
+    Local $iTplBtnW = Int(($iInnerW - $iDlgLblW - 4 * $iP) / 4)
+    Local $iTplBtnRowW = 4 * $iTplBtnW + 3 * $iP
+    Local $iTplBtnStartX = ($iInnerX + $iInnerW) - $iTplBtnRowW
+    Local $idTplSetBtn = GUICtrlCreateButton(i18nGet("ventoy.dialog.template.btn.set", "Set"), $iTplBtnStartX, $iItemY, $iTplBtnW, $iInputH)
     GUICtrlSetTip($idTplSetBtn, i18nGet("ventoy.dialog.template.btn.set.tip", "Set or unset selected template as the default auto-selected script"))
-    Local $idTplAddBtn = GUICtrlCreateButton(i18nGet("ventoy.dialog.template.btn.add", "Add"), 304, 366, 72, 24)
-    Local $idTplRemoveBtn = GUICtrlCreateButton(i18nGet("ventoy.dialog.template.btn.remove", "Remove"), 384, 366, 72, 24)
-    Local $idTplClearBtn = GUICtrlCreateButton(i18nGet("ventoy.dialog.template.btn.clear", "Clear"), 464, 366, 72, 24)
+    Local $idTplAddBtn = GUICtrlCreateButton(i18nGet("ventoy.dialog.template.btn.add", "Add"), $iTplBtnStartX + $iTplBtnW + $iP, $iItemY, $iTplBtnW, $iInputH)
+    Local $idTplRemoveBtn = GUICtrlCreateButton(i18nGet("ventoy.dialog.template.btn.remove", "Remove"), $iTplBtnStartX + ($iTplBtnW + $iP) * 2, $iItemY, $iTplBtnW, $iInputH)
+    Local $idTplClearBtn = GUICtrlCreateButton(i18nGet("ventoy.dialog.template.btn.clear", "Clear"), $iTplBtnStartX + ($iTplBtnW + $iP) * 3, $iItemY, $iTplBtnW, $iInputH)
 
     ; Timeout Row
-    Local $idTimeoutLbl = GUICtrlCreateLabel(i18nGet("ventoy.dialog.timeout.label", "Timeout: "), 24, 402, 85, 20)
+    $iItemY += $iRowH + $iP
+    Local $idTimeoutLbl = GUICtrlCreateLabel(i18nGet("ventoy.dialog.timeout.label", "Timeout: "), $iInnerX, $iItemY, $iDlgLblW, $iLblH)
     GUICtrlSetTip($idTimeoutLbl, i18nGet("ventoy.dialog.timeout.tip", "Countdown before auto-selecting the template (3-60 seconds)"))
-    Local $idTimeoutInput = GUICtrlCreateInput(String($iCurTimeout), 115, 400, 60, 22, $ES_NUMBER)
+    Local $iTimeoutInputW = Int($iInnerW * 14 / 100)
+    Local $idTimeoutInput = GUICtrlCreateInput(String($iCurTimeout), $iDlgInputX, $iItemY - $iPx, $iTimeoutInputW, $iInputH, $ES_NUMBER)
     Local $idTimeoutUpDown = GUICtrlCreateUpdown($idTimeoutInput)
     GUICtrlSetLimit($idTimeoutUpDown, 60, 3)
     GUICtrlSetTip($idTimeoutUpDown, i18nGet("ventoy.dialog.timeout.updown.tip", "Adjust template auto-selection timeout (3-60 seconds)"))
-    Local $idTimeoutUnitLbl = GUICtrlCreateLabel(i18nGet("ventoy.dialog.timeout.unit", "seconds"), 182, 402, 100, 20)
+    Local $idTimeoutUnitLbl = GUICtrlCreateLabel(i18nGet("ventoy.dialog.timeout.unit", "seconds"), $iDlgInputX + $iTimeoutInputW + $iP, $iItemY, Int($iInnerW * 20 / 100), $iLblH)
     GUICtrlCreateGroup("", -99, -99, 1, 1)
 
     ; Initial state for selection, Set button, and Timeout controls
@@ -556,9 +599,12 @@ Func _ViewVentoyShowBootDialog($bEdit = False)
     _ViewVentoyUpdateTimeoutState($idTimeoutInput, $idTimeoutUpDown, $iCurAutosel)
 
     ; Dialog Bottom Buttons (Reset on bottom-left, Save and Cancel on bottom-right matching Add Apps dialog)
-    Local $idDlgResetBtn = GUICtrlCreateButton(i18nGet("ventoy.dialog.btn.reset", "Reset"), 12, 452, 80, 28)
-    Local $idDlgSaveBtn = GUICtrlCreateButton(i18nGet("ventoy.dialog.btn.save", "Save"), 370, 452, 85, 28, $BS_DEFPUSHBUTTON)
-    Local $idDlgCancelBtn = GUICtrlCreateButton(i18nGet("ventoy.dialog.btn.cancel", "Cancel"), 463, 452, 85, 28)
+    $iY += $iGrpTplH + $iP
+    Local $idDlgResetBtn = GUICtrlCreateButton(i18nGet("ventoy.dialog.btn.reset", "Reset"), $iGroupX, $iY, $iBottomBtnW, $iBottomBtnH)
+    Local $iSaveBtnX = ($iGroupX + $iGroupW) - (2 * $iBottomBtnW + $iP)
+    Local $iCancelBtnX = ($iGroupX + $iGroupW) - $iBottomBtnW
+    Local $idDlgSaveBtn = GUICtrlCreateButton(i18nGet("ventoy.dialog.btn.save", "Save"), $iSaveBtnX, $iY, $iBottomBtnW, $iBottomBtnH, $BS_DEFPUSHBUTTON)
+    Local $idDlgCancelBtn = GUICtrlCreateButton(i18nGet("ventoy.dialog.btn.cancel", "Cancel"), $iCancelBtnX, $iY, $iBottomBtnW, $iBottomBtnH)
 
     ; Keyboard accelerator: Enter key triggers default save button
     Local $aDlgAccel[1][2] = [["{ENTER}", $idDlgSaveBtn]]

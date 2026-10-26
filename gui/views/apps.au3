@@ -936,7 +936,35 @@ EndFunc
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 Func _ViewAppsShowAddDialog()
-    Local $hAddDlg = GUICreate(i18nGet("apps.dialog.add.title", "Add App"), 560, 500, -1, -1, BitOR($WS_CAPTION, $WS_SYSMENU), $WS_EX_TOPMOST, $hViewApps)
+    ; Standard Dialog Layout Metrics
+    Local $iDlgW = 560
+    Local $iPx = $iLblH * 20 / 100
+    Local $iRowH = $iLblH + $iP * 2
+    Local $iInputH = $iLblH + $iPx * 2
+
+    Local $iGroupX = Int($iP * 1.5)
+    Local $iGroupW = $iDlgW - $iGroupX * 2
+    Local $iInnerX = $iGroupX + Int($iP * 1.5)
+    Local $iInnerW = $iGroupW - Int($iP * 3)
+
+    Local $iDlgLblW = Int($iInnerW * 18 / 100)
+    Local $iDlgInputX = $iInnerX + $iDlgLblW + $iP
+    Local $iDlgInputW = $iInnerW - $iDlgLblW - $iP
+
+    Local $iBottomBtnW = Int($iInnerW * 16 / 100)
+    Local $iBottomBtnH = $iBtnH
+
+    ; Group 1 Metrics (Search & Selection)
+    Local $iSearchTableH = $iRowH * 4 + $iP
+    Local $iGrp1H = $iInputH + $iP + $iSearchTableH + $iP * 5
+
+    ; Group 2 Metrics (Package Configuration)
+    Local $iGrp2H = $iRowH * 4 + $iLblH + $iP * 4
+
+    ; Overall Dialog Height
+    Local $iDlgH = $iP + $iGrp1H + $iP + $iGrp2H + $iP + $iBottomBtnH + $iStatusBarH + $iP * 1
+
+    Local $hAddDlg = GUICreate(i18nGet("apps.dialog.add.title", "Add App"), $iDlgW, $iDlgH, -1, -1, BitOR($WS_CAPTION, $WS_SYSMENU), $WS_EX_TOPMOST, $hViewApps)
     GUISetBkColor(themeColor("main.view.bg"), $hAddDlg)
 
     ; Status Bar
@@ -944,79 +972,105 @@ Func _ViewAppsShowAddDialog()
     _GUICtrlStatusBar_SetText($hStatus, i18nGet("apps.dialog.status.ready", "Ready"), 0)
 
     ; Group 1: Search & Selection
-    Local $idSearchGroup = GUICtrlCreateGroup(i18nGet("apps.dialog.group.search", "Search Apps"), 12, 10, 536, 205)
-    Local $idNameInput = GUICtrlCreateInput("", 24, 34, 406, 24)
+    Local $iY = $iP
+    Local $idSearchGroup = GUICtrlCreateGroup(i18nGet("apps.dialog.group.search", "Search Apps"), $iGroupX, $iY, $iGroupW, $iGrp1H)
+
+    Local $iItemY = $iY + $iP * 3
+    Local $iSearchBtnW = Int($iInnerW * 18 / 100)
+    Local $iSearchInputW = $iInnerW - $iSearchBtnW - $iP
+    Local $idNameInput = GUICtrlCreateInput("", $iInnerX, $iItemY - $iPx, $iSearchInputW, $iInputH)
     controlSetCueBanner($idNameInput, i18nGet("apps.dialog.appname.placeholder", "App Name"), True)
     GUICtrlSetTip($idNameInput, i18nGet("apps.dialog.appname.tip", "Enter app name to search in winget repository"))
 
-    Local $idSearchBtn = GUICtrlCreateButton(i18nGet("apps.dialog.btn.search", "Search"), 438, 34, 98, 24, $BS_DEFPUSHBUTTON)
+    Local $idSearchBtn = GUICtrlCreateButton(i18nGet("apps.dialog.btn.search", "Search"), $iInnerX + $iSearchInputW + $iP, $iItemY - $iPx, $iSearchBtnW, $iInputH, $BS_DEFPUSHBUTTON)
     GUICtrlSetTip($idSearchBtn, i18nGet("apps.dialog.btn.search.tip", "Search for application in winget repository"))
 
     ; Keyboard accelerator: Enter key triggers search button
     Local $aAccel[1][2] = [["{ENTER}", $idSearchBtn]]
     GUISetAccelerators($aAccel, $hAddDlg)
 
-    ; Search Results List (Columns: Name, ID, Version)
+    ; Search Results List (Columns: Name, ID, Manager, Version)
+    $iItemY += $iInputH + $iP
     Local $sColHeaders = i18nGet("apps.dialog.col.name", "App name") & "|" & _
         i18nGet("apps.dialog.col.id", "App ID") & "|" & _
         i18nGet("apps.dialog.col.manager", "Manager") & "|" & _
         i18nGet("apps.dialog.col.version", "Version")
-    Local $idResultsList = GUICtrlCreateListView($sColHeaders, 24, 68, 512, 136)
+    Local $idResultsList = GUICtrlCreateListView($sColHeaders, $iInnerX, $iItemY, $iInnerW, $iSearchTableH)
     _GUICtrlListView_SetExtendedListViewStyle($idResultsList, BitOR($LVS_EX_FULLROWSELECT, $LVS_EX_GRIDLINES))
-    _GUICtrlListView_SetColumnWidth($idResultsList, 0, 160)
-    _GUICtrlListView_SetColumnWidth($idResultsList, 1, 165)
-    _GUICtrlListView_SetColumnWidth($idResultsList, 2, 75)
-    _GUICtrlListView_SetColumnWidth($idResultsList, 3, 95)
+    Local $iCol0W = Int($iInnerW * 31 / 100)
+    Local $iCol1W = Int($iInnerW * 32 / 100)
+    Local $iCol2W = Int($iInnerW * 15 / 100)
+    Local $iCol3W = $iInnerW - $iCol0W - $iCol1W - $iCol2W - 2 * $iP - 2 * $iPx
+    _GUICtrlListView_SetColumnWidth($idResultsList, 0, $iCol0W)
+    _GUICtrlListView_SetColumnWidth($idResultsList, 1, $iCol1W)
+    _GUICtrlListView_SetColumnWidth($idResultsList, 2, $iCol2W)
+    _GUICtrlListView_SetColumnWidth($idResultsList, 3, $iCol3W)
     GUICtrlCreateGroup("", -99, -99, 1, 1)
 
     ; Group 2: Package Configuration
-    Local $idConfigGroup = GUICtrlCreateGroup(i18nGet("apps.dialog.group.config", "Package Configuration"), 12, 222, 536, 205)
+    $iY += $iGrp1H + $iP
+    Local $idConfigGroup = GUICtrlCreateGroup(i18nGet("apps.dialog.group.config", "Package Configuration"), $iGroupX, $iY, $iGroupW, $iGrp2H)
 
     ; Name row
-    Local $idNameLbl = GUICtrlCreateLabel(i18nGet("apps.dialog.appname.label", "App Name: "), 24, 246, 85, 20)
-    Local $idAppNameInput = GUICtrlCreateInput("", 115, 244, 421, 22, BitOR($ES_READONLY, $ES_AUTOHSCROLL))
+    $iItemY = $iY + $iP * 3
+    Local $idNameLbl = GUICtrlCreateLabel(i18nGet("apps.dialog.appname.label", "App Name: "), $iInnerX, $iItemY, $iDlgLblW, $iLblH)
+    Local $idAppNameInput = GUICtrlCreateInput("", $iDlgInputX, $iItemY - $iPx, $iDlgInputW, $iInputH, BitOR($ES_READONLY, $ES_AUTOHSCROLL))
     GUICtrlSetState($idAppNameInput, $GUI_DISABLE)
 
     ; Description row
-    Local $idDescLbl = GUICtrlCreateLabel(i18nGet("apps.dialog.desc.label", "Description: "), 24, 276, 85, 20)
-    Local $idDescInput = GUICtrlCreateInput("", 115, 274, 421, 22, BitOR($ES_READONLY, $ES_AUTOHSCROLL))
+    $iItemY += $iRowH
+    Local $idDescLbl = GUICtrlCreateLabel(i18nGet("apps.dialog.desc.label", "Description: "), $iInnerX, $iItemY, $iDlgLblW, $iLblH)
+    Local $idDescInput = GUICtrlCreateInput("", $iDlgInputX, $iItemY - $iPx, $iDlgInputW, $iInputH, BitOR($ES_READONLY, $ES_AUTOHSCROLL))
     GUICtrlSetState($idDescInput, $GUI_DISABLE)
 
     ; Version & Shortcut row
-    Local $idVerLbl = GUICtrlCreateLabel(i18nGet("apps.dialog.version.label", "Version: "), 24, 306, 85, 20)
-    Local $idVerCmb = GUICtrlCreateCombo("", 115, 304, 110, 22, $CBS_DROPDOWNLIST)
+    $iItemY += $iRowH
+    Local $idVerLbl = GUICtrlCreateLabel(i18nGet("apps.dialog.version.label", "Version: "), $iInnerX, $iItemY, $iDlgLblW, $iLblH)
+    Local $iVerCmbW = Int($iDlgInputW * 26 / 100)
+    Local $iLatestCkbxW = Int($iDlgInputW * 18 / 100)
+    Local $iShortcutLblW = Int($iDlgInputW * 18 / 100)
+    Local $iShortcutCmbW = $iDlgInputW - ($iVerCmbW + $iP + $iLatestCkbxW + $iP + $iShortcutLblW + $iP)
+
+    Local $idVerCmb = GUICtrlCreateCombo("", $iDlgInputX, $iItemY - $iPx, $iVerCmbW, $iInputH, $CBS_DROPDOWNLIST)
     _GUICtrlComboBox_AddString(GUICtrlGetHandle($idVerCmb), i18nGet("apps.online.status.latest", "Latest"))
     _GUICtrlComboBox_SetCurSel(GUICtrlGetHandle($idVerCmb), 0)
     GUICtrlSetState($idVerCmb, $GUI_DISABLE)
 
-    Local $idLatestCkbx = GUICtrlCreateCheckbox(i18nGet("apps.dialog.ckbx.latest", "Latest"), 232, 306, 80, 20)
+    Local $idLatestCkbx = GUICtrlCreateCheckbox(i18nGet("apps.dialog.ckbx.latest", "Latest"), $iDlgInputX + $iVerCmbW + $iP, $iItemY, $iLatestCkbxW, $iLblH)
     GUICtrlSetTip($idLatestCkbx, i18nGet("apps.dialog.ckbx.latest.tip", "Automatically select the latest version"))
     GUICtrlSetState($idLatestCkbx, $GUI_CHECKED)
 
-    Local $idShortcutLbl = GUICtrlCreateLabel(i18nGet("apps.dialog.shortcut.label", "Shortcut: "), 322, 306, 65, 20)
-    Local $idShortcutCmb = GUICtrlCreateCombo("", 392, 304, 144, 22, $CBS_DROPDOWNLIST)
+    Local $idShortcutLbl = GUICtrlCreateLabel(i18nGet("apps.dialog.shortcut.label", "Shortcut: "), $iDlgInputX + $iVerCmbW + $iP + $iLatestCkbxW + $iP, $iItemY, $iShortcutLblW, $iLblH)
+    Local $idShortcutCmb = GUICtrlCreateCombo("", $iDlgInputX + $iDlgInputW - $iShortcutCmbW, $iItemY - $iPx, $iShortcutCmbW, $iInputH, $CBS_DROPDOWNLIST)
     Local $sYes = i18nGet("apps.status.yes", "Yes")
     Local $sNo = i18nGet("apps.status.no", "No")
     GUICtrlSetData($idShortcutCmb, $sYes & "|" & $sNo, $sNo)
 
     ; Custom path row
-    Local $idCustomPathCkbx = GUICtrlCreateCheckbox(i18nGet("apps.dialog.ckbx.custom_path", "Custom path"), 24, 338, 105, 20)
+    $iItemY += $iRowH
+    Local $iCustomPathCkbxW = Int($iInnerW * 22 / 100)
+    Local $iLocationInputW = $iInnerW - $iCustomPathCkbxW - $iP
+    Local $idCustomPathCkbx = GUICtrlCreateCheckbox(i18nGet("apps.dialog.ckbx.custom_path", "Custom path"), $iInnerX, $iItemY, $iCustomPathCkbxW, $iLblH)
     GUICtrlSetTip($idCustomPathCkbx, i18nGet("apps.dialog.ckbx.custom_path.tip", "Specify a custom installation directory"))
-    Local $idLocationInput = GUICtrlCreateInput("", 135, 336, 401, 22)
+    Local $idLocationInput = GUICtrlCreateInput("", $iInnerX + $iCustomPathCkbxW + $iP, $iItemY - $iPx, $iLocationInputW, $iInputH)
     GUICtrlSetTip($idLocationInput, i18nGet("apps.dialog.location.tip", "Custom installation directory path"))
     GUICtrlSetState($idLocationInput, $GUI_DISABLE)
 
     ; Requirement info label
-    Local $idReqInfoLbl = GUICtrlCreateLabel(i18nGet("apps.online.info.label", "Requires an active internet connection."), 24, 396, 512, 20)
+    $iItemY += $iRowH
+    Local $idReqInfoLbl = GUICtrlCreateLabel(i18nGet("apps.online.info.label", "Requires an active internet connection."), $iInnerX, $iItemY, $iInnerW, $iLblH)
     GUICtrlSetFont($idReqInfoLbl, $iSmall, 400, 2)
     GUICtrlCreateGroup("", -99, -99, 1, 1)
 
     ; Bottom Buttons: Reset (left), Apply, Cancel (right)
-    Local $idResetBtn = GUICtrlCreateButton(i18nGet("apps.dialog.btn.reset", "Reset"), 12, 438, 80, 28)
+    $iY += $iGrp2H + $iP
+    Local $idResetBtn = GUICtrlCreateButton(i18nGet("apps.dialog.btn.reset", "Reset"), $iGroupX, $iY, $iBottomBtnW, $iBottomBtnH)
     GUICtrlSetTip($idResetBtn, i18nGet("apps.dialog.btn.reset.tip", "Reset dialog input fields to defaults"))
-    Local $idApplyBtn = GUICtrlCreateButton(i18nGet("apps.dialog.btn.apply", "Apply"), 370, 438, 85, 28)
+    Local $iApplyBtnX = ($iGroupX + $iGroupW) - (2 * $iBottomBtnW + $iP)
+    Local $iCancelBtnX = ($iGroupX + $iGroupW) - $iBottomBtnW
+    Local $idApplyBtn = GUICtrlCreateButton(i18nGet("apps.dialog.btn.apply", "Apply"), $iApplyBtnX, $iY, $iBottomBtnW, $iBottomBtnH)
     GUICtrlSetTip($idApplyBtn, i18nGet("apps.dialog.btn.apply.tip", "Save and apply application details"))
-    Local $idCancelBtn = GUICtrlCreateButton(i18nGet("apps.dialog.btn.cancel", "Cancel"), 463, 438, 85, 28)
+    Local $idCancelBtn = GUICtrlCreateButton(i18nGet("apps.dialog.btn.cancel", "Cancel"), $iCancelBtnX, $iY, $iBottomBtnW, $iBottomBtnH)
     GUICtrlSetTip($idCancelBtn, i18nGet("apps.dialog.btn.cancel.tip", "Close dialog without saving"))
 
     GUISetState(@SW_SHOW, $hAddDlg)
@@ -1185,34 +1239,67 @@ Func _ViewAppsShowEditDialog()
     Local $sCurSc = _GUICtrlListView_GetItemText($hViewAppsOnlineTable, $iRow, 4)
     Local $sCurLoc = _GUICtrlListView_GetItemText($hViewAppsOnlineTable, $iRow, 5)
 
-    Local $hEditDlg = GUICreate(i18nGet("apps.dialog.edit.title", "Edit App") & " - " & $sCurName, 560, 420, -1, -1, BitOR($WS_CAPTION, $WS_SYSMENU), $WS_EX_TOPMOST, $hViewApps)
+    ; Standard Dialog Layout Metrics
+    Local $iDlgW = 560
+    Local $iPx = $iLblH * 20 / 100
+    Local $iRowH = $iLblH + $iP * 2
+    Local $iInputH = $iLblH + $iPx * 2
+
+    Local $iGroupX = Int($iP * 1.5)
+    Local $iGroupW = $iDlgW - $iGroupX * 2
+    Local $iInnerX = $iGroupX + Int($iP * 1.5)
+    Local $iInnerW = $iGroupW - Int($iP * 3)
+
+    Local $iDlgLblW = Int($iInnerW * 18 / 100)
+    Local $iDlgInputX = $iInnerX + $iDlgLblW + $iP
+    Local $iDlgInputW = $iInnerW - $iDlgLblW - $iP
+
+    Local $iBottomBtnW = Int($iInnerW * 16 / 100)
+    Local $iBottomBtnH = $iBtnH
+
+    ; Group Metrics (Package Configuration)
+    Local $iGrpConfigH = $iRowH * 4 + $iLblH + $iP * 4
+
+    ; Overall Dialog Height
+    Local $iDlgH = $iP + $iGrpConfigH + $iP + $iBottomBtnH + $iStatusBarH + $iP * 1
+
+    Local $hEditDlg = GUICreate(i18nGet("apps.dialog.edit.title", "Edit App") & " - " & $sCurName, $iDlgW, $iDlgH, -1, -1, BitOR($WS_CAPTION, $WS_SYSMENU), $WS_EX_TOPMOST, $hViewApps)
     GUISetBkColor(themeColor("main.view.bg"), $hEditDlg)
 
     Local $hStatus = _GUICtrlStatusBar_Create($hEditDlg)
     _GUICtrlStatusBar_SetText($hStatus, i18nGet("apps.dialog.status.ready", "Ready"), 0)
 
     ; Group: Package Configuration
-    Local $idConfigGroup = GUICtrlCreateGroup(i18nGet("apps.dialog.group.config", "Package Configuration"), 12, 12, 536, 330)
+    Local $iY = $iP
+    Local $idConfigGroup = GUICtrlCreateGroup(i18nGet("apps.dialog.group.config", "Package Configuration"), $iGroupX, $iY, $iGroupW, $iGrpConfigH)
 
-    Local $idNameLbl = GUICtrlCreateLabel(i18nGet("apps.dialog.appname.label", "App Name: "), 24, 44, 85, 20)
-    Local $idNameInput = GUICtrlCreateInput($sCurName, 115, 42, 421, 22, BitOR($ES_READONLY, $ES_AUTOHSCROLL))
+    Local $iItemY = $iY + $iP * 3
+    Local $idNameLbl = GUICtrlCreateLabel(i18nGet("apps.dialog.appname.label", "App Name: "), $iInnerX, $iItemY, $iDlgLblW, $iLblH)
+    Local $idNameInput = GUICtrlCreateInput($sCurName, $iDlgInputX, $iItemY - $iPx, $iDlgInputW, $iInputH, BitOR($ES_READONLY, $ES_AUTOHSCROLL))
     GUICtrlSetState($idNameInput, $GUI_DISABLE)
 
-    Local $idDescLbl = GUICtrlCreateLabel(i18nGet("apps.dialog.desc.label", "Description: "), 24, 84, 85, 20)
-    Local $idDescInput = GUICtrlCreateInput($sCurDesc, 115, 82, 421, 22, BitOR($ES_READONLY, $ES_AUTOHSCROLL))
+    $iItemY += $iRowH
+    Local $idDescLbl = GUICtrlCreateLabel(i18nGet("apps.dialog.desc.label", "Description: "), $iInnerX, $iItemY, $iDlgLblW, $iLblH)
+    Local $idDescInput = GUICtrlCreateInput($sCurDesc, $iDlgInputX, $iItemY - $iPx, $iDlgInputW, $iInputH, BitOR($ES_READONLY, $ES_AUTOHSCROLL))
     GUICtrlSetState($idDescInput, $GUI_DISABLE)
 
     ; Version & Shortcut
+    $iItemY += $iRowH
     Local $bIsLatest = ($sCurVer = "Latest" Or $sCurVer = i18nGet("apps.online.status.latest", "Latest"))
-    Local $idVerLbl = GUICtrlCreateLabel(i18nGet("apps.dialog.version.label", "Version: "), 24, 124, 85, 20)
-    Local $idVerCmb = GUICtrlCreateCombo("", 115, 122, 110, 22, $CBS_DROPDOWNLIST)
+    Local $idVerLbl = GUICtrlCreateLabel(i18nGet("apps.dialog.version.label", "Version: "), $iInnerX, $iItemY, $iDlgLblW, $iLblH)
+    Local $iVerCmbW = Int($iDlgInputW * 26 / 100)
+    Local $iLatestCkbxW = Int($iDlgInputW * 18 / 100)
+    Local $iShortcutLblW = Int($iDlgInputW * 18 / 100)
+    Local $iShortcutCmbW = $iDlgInputW - ($iVerCmbW + $iP + $iLatestCkbxW + $iP + $iShortcutLblW + $iP)
+
+    Local $idVerCmb = GUICtrlCreateCombo("", $iDlgInputX, $iItemY - $iPx, $iVerCmbW, $iInputH, $CBS_DROPDOWNLIST)
     _GUICtrlComboBox_AddString(GUICtrlGetHandle($idVerCmb), i18nGet("apps.online.status.latest", "Latest"))
     If Not $bIsLatest Then
         _GUICtrlComboBox_AddString(GUICtrlGetHandle($idVerCmb), $sCurVer)
     EndIf
     _GUICtrlComboBox_SetCurSel(GUICtrlGetHandle($idVerCmb), $bIsLatest ? 0 : 1)
 
-    Local $idLatestCkbx = GUICtrlCreateCheckbox(i18nGet("apps.dialog.ckbx.latest", "Latest"), 232, 124, 80, 20)
+    Local $idLatestCkbx = GUICtrlCreateCheckbox(i18nGet("apps.dialog.ckbx.latest", "Latest"), $iDlgInputX + $iVerCmbW + $iP, $iItemY, $iLatestCkbxW, $iLblH)
     GUICtrlSetTip($idLatestCkbx, i18nGet("apps.dialog.ckbx.latest.tip", "Automatically select the latest version"))
     If $bIsLatest Then
         GUICtrlSetState($idLatestCkbx, $GUI_CHECKED)
@@ -1222,17 +1309,20 @@ Func _ViewAppsShowEditDialog()
         GUICtrlSetState($idVerCmb, $GUI_ENABLE)
     EndIf
 
-    Local $idShortcutLbl = GUICtrlCreateLabel(i18nGet("apps.dialog.shortcut.label", "Shortcut: "), 322, 124, 65, 20)
-    Local $idShortcutCmb = GUICtrlCreateCombo("", 392, 122, 144, 22, $CBS_DROPDOWNLIST)
+    Local $idShortcutLbl = GUICtrlCreateLabel(i18nGet("apps.dialog.shortcut.label", "Shortcut: "), $iDlgInputX + $iVerCmbW + $iP + $iLatestCkbxW + $iP, $iItemY, $iShortcutLblW, $iLblH)
+    Local $idShortcutCmb = GUICtrlCreateCombo("", $iDlgInputX + $iDlgInputW - $iShortcutCmbW, $iItemY - $iPx, $iShortcutCmbW, $iInputH, $CBS_DROPDOWNLIST)
     Local $sYes = i18nGet("apps.status.yes", "Yes")
     Local $sNo = i18nGet("apps.status.no", "No")
     GUICtrlSetData($idShortcutCmb, $sYes & "|" & $sNo, ($sCurSc = "Yes" Or $sCurSc = $sYes) ? $sYes : $sNo)
 
     ; Custom path
+    $iItemY += $iRowH
     Local $bIsCustom = ($sCurLoc <> "Default" And $sCurLoc <> i18nGet("apps.online.status.default", "Default") And $sCurLoc <> "")
-    Local $idCustomPathCkbx = GUICtrlCreateCheckbox(i18nGet("apps.dialog.ckbx.custom_path", "Custom path"), 24, 164, 105, 20)
+    Local $iCustomPathCkbxW = Int($iInnerW * 22 / 100)
+    Local $iLocationInputW = $iInnerW - $iCustomPathCkbxW - $iP
+    Local $idCustomPathCkbx = GUICtrlCreateCheckbox(i18nGet("apps.dialog.ckbx.custom_path", "Custom path"), $iInnerX, $iItemY, $iCustomPathCkbxW, $iLblH)
     GUICtrlSetTip($idCustomPathCkbx, i18nGet("apps.dialog.ckbx.custom_path.tip", "Specify a custom installation directory"))
-    Local $idLocationInput = GUICtrlCreateInput($bIsCustom ? $sCurLoc : "", 135, 162, 401, 22)
+    Local $idLocationInput = GUICtrlCreateInput($bIsCustom ? $sCurLoc : "", $iInnerX + $iCustomPathCkbxW + $iP, $iItemY - $iPx, $iLocationInputW, $iInputH)
     GUICtrlSetTip($idLocationInput, i18nGet("apps.dialog.location.tip", "Custom installation directory path"))
     If $bIsCustom Then
         GUICtrlSetState($idCustomPathCkbx, $GUI_CHECKED)
@@ -1242,16 +1332,20 @@ Func _ViewAppsShowEditDialog()
         GUICtrlSetState($idLocationInput, $GUI_DISABLE)
     EndIf
 
-    Local $idReqInfoLbl = GUICtrlCreateLabel(i18nGet("apps.online.info.label", "Requires an active internet connection."), 24, 210, 512, 20)
+    $iItemY += $iRowH
+    Local $idReqInfoLbl = GUICtrlCreateLabel(i18nGet("apps.online.info.label", "Requires an active internet connection."), $iInnerX, $iItemY, $iInnerW, $iLblH)
     GUICtrlSetFont($idReqInfoLbl, $iSmall, 400, 2)
     GUICtrlCreateGroup("", -99, -99, 1, 1)
 
     ; Bottom Buttons: Reset (left), Apply, Cancel (right)
-    Local $idResetBtn = GUICtrlCreateButton(i18nGet("apps.dialog.btn.reset", "Reset"), 12, 354, 80, 28)
+    $iY += $iGrpConfigH + $iP
+    Local $idResetBtn = GUICtrlCreateButton(i18nGet("apps.dialog.btn.reset", "Reset"), $iGroupX, $iY, $iBottomBtnW, $iBottomBtnH)
     GUICtrlSetTip($idResetBtn, i18nGet("apps.dialog.btn.reset.tip", "Reset dialog input fields to defaults"))
-    Local $idApplyBtn = GUICtrlCreateButton(i18nGet("apps.dialog.btn.apply", "Apply"), 370, 354, 85, 28)
+    Local $iApplyBtnX = ($iGroupX + $iGroupW) - (2 * $iBottomBtnW + $iP)
+    Local $iCancelBtnX = ($iGroupX + $iGroupW) - $iBottomBtnW
+    Local $idApplyBtn = GUICtrlCreateButton(i18nGet("apps.dialog.btn.apply", "Apply"), $iApplyBtnX, $iY, $iBottomBtnW, $iBottomBtnH)
     GUICtrlSetTip($idApplyBtn, i18nGet("apps.dialog.btn.apply.tip", "Save and apply application details"))
-    Local $idCancelBtn = GUICtrlCreateButton(i18nGet("apps.dialog.btn.cancel", "Cancel"), 463, 354, 85, 28)
+    Local $idCancelBtn = GUICtrlCreateButton(i18nGet("apps.dialog.btn.cancel", "Cancel"), $iCancelBtnX, $iY, $iBottomBtnW, $iBottomBtnH)
     GUICtrlSetTip($idCancelBtn, i18nGet("apps.dialog.btn.cancel.tip", "Close dialog without saving"))
 
     GUISetState(@SW_SHOW, $hEditDlg)
