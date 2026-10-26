@@ -29,6 +29,9 @@
 #include "../modules/theme.au3"
 #include "../modules/config.au3"
 #include "../modules/scroll.au3"
+#include "../modules/control.au3"
+#include "../modules/dialog.au3"
+#include "../modules/ventoy.au3"
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Global View Controls & State
@@ -66,101 +69,6 @@ Global $hViewVentoyBootList = 0
 ; Keyboard Accelerators for Re-ordering Boot Entries
 Global $idViewVentoyDummyUp = 0
 Global $idViewVentoyDummyDown = 0
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; Helper Functions & Path Resolution
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-Func _GetVentoyJsonPath()
-    If FileExists(@ScriptDir & "\tools\Ventoy\AutoInstaller\ventoy.json") Then Return @ScriptDir & "\tools\Ventoy\AutoInstaller\ventoy.json"
-    If FileExists(@ScriptDir & "\ventoy.json") Then Return @ScriptDir & "\ventoy.json"
-    Return @ScriptDir & "\tools\Ventoy\AutoInstaller\ventoy.json"
-EndFunc
-
-Func _GetVentoyThemeDir()
-    If FileExists(@ScriptDir & "\tools\Ventoy\AutoInstaller\theme\1172005thinh") Then Return @ScriptDir & "\tools\Ventoy\AutoInstaller\theme\1172005thinh"
-    Return @ScriptDir & "\tools\Ventoy\AutoInstaller\theme\1172005thinh"
-EndFunc
-
-Func _GetVentoyIconsDir()
-    Local $sDir = _GetVentoyThemeDir() & "\icons"
-    If FileExists($sDir) Then Return $sDir
-    Return $sDir
-EndFunc
-
-Func _GetVentoyPlugsonPath()
-    If FileExists(@ScriptDir & "\tools\Ventoy\VentoyPlugson.exe") Then Return @ScriptDir & "\tools\Ventoy\VentoyPlugson.exe"
-    If FileExists(@ScriptDir & "\tools\Ventoy\altexe\VentoyPlugson_X64.exe") Then Return @ScriptDir & "\tools\Ventoy\altexe\VentoyPlugson_X64.exe"
-    Return @ScriptDir & "\tools\Ventoy\VentoyPlugson.exe"
-EndFunc
-
-Func _VentoySetCueBanner($hWnd, $sText)
-    If Not IsHWnd($hWnd) Then $hWnd = GUICtrlGetHandle($hWnd)
-    Local $tText = DllStructCreate("wchar[" & (StringLen($sText) + 1) & "]")
-    DllStructSetData($tText, 1, $sText)
-    Return _SendMessage($hWnd, 0x1501, 1, $tText, 0, "wparam", "struct*") = 1 ; $EM_SETCUEBANNER = 0x1501
-EndFunc
-
-Func _VentoyGetAvailableIcons()
-    Local $sIconsDir = _GetVentoyIconsDir()
-    Local $sIcons = "windows|default|linux|ubuntu|arch|debian|fedora|android|macos"
-    If FileExists($sIconsDir) Then
-        Local $hSearch = FileFindFirstFile($sIconsDir & "\*.png")
-        If $hSearch <> -1 Then
-            Local $aIcons[0]
-            While 1
-                Local $sFile = FileFindNextFile($hSearch)
-                If @error Then ExitLoop
-                Local $sName = StringRegExpReplace($sFile, '(?i)\.png$', '')
-                If $sName <> "" Then
-                    ReDim $aIcons[UBound($aIcons) + 1]
-                    $aIcons[UBound($aIcons) - 1] = $sName
-                EndIf
-            WEnd
-            FileClose($hSearch)
-            If UBound($aIcons) > 0 Then
-                _ArraySort($aIcons)
-                $sIcons = _ArrayToString($aIcons, "|")
-            EndIf
-        EndIf
-    EndIf
-    Return $sIcons
-EndFunc
-
-Func _VentoyGetVariantsData()
-    ; Base variants
-    Local $aNames[6] = ["dark_fb", "dark_gh", "dark_htc", "light_fb", "light_gh", "light_htc"]
-    Local $aData[6][2]
-    Local $sThemeDir = _GetVentoyThemeDir()
-
-    For $i = 0 To 5
-        Local $sVar = $aNames[$i]
-        $aData[$i][0] = $sVar
-        Local $sRes = ""
-
-        If FileExists($sThemeDir) Then
-            Local $hSearch = FileFindFirstFile($sThemeDir & "\" & $sVar & "_*.txt")
-            If $hSearch <> -1 Then
-                While 1
-                    Local $sFile = FileFindNextFile($hSearch)
-                    If @error Then ExitLoop
-                    Local $sR = StringRegExpReplace($sFile, '^' & $sVar & '_|\.txt$', '')
-                    If $sR <> "" Then
-                        If $sRes <> "" Then $sRes &= "; "
-                        $sRes &= $sR
-                    EndIf
-                WEnd
-                FileClose($hSearch)
-            EndIf
-        EndIf
-
-        If $sRes = "" Then
-            $sRes = "1024x768; 1152x864; 1280x720; 1366x768; 1600x1200; 1600x900; 1920x1080; 1920x1200; 2560x1080; 2560x1440; 2560x1600; 3440x1440; 3840x2160; 3840x2400"
-        EndIf
-        $aData[$i][1] = $sRes
-    Next
-    Return $aData
-EndFunc
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; View Creation
@@ -326,7 +234,7 @@ EndFunc
 
 Func _ViewVentoyLoadVariants()
     _GUICtrlListView_DeleteAllItems($hViewVentoyVariantList)
-    Local $aVariants = _VentoyGetVariantsData()
+    Local $aVariants = ventoyGetVariantsData()
     Local $iActiveIdx = 0
 
     For $i = 0 To UBound($aVariants, 1) - 1
@@ -367,7 +275,7 @@ Func _ViewVentoyPreviewVariant()
     Local $sName = _GUICtrlListView_GetItemText($hViewVentoyVariantList, $iIdx, 0)
     If StringLeft($sName, 1) = "*" Then $sName = StringTrimLeft($sName, 1)
 
-    Local $sThemeDir = _GetVentoyThemeDir()
+    Local $sThemeDir = ventoyGetThemeDir()
     Local $sTargetImg = $sThemeDir & "\" & $sName & "_1920x1080.jpg"
 
     If Not FileExists($sTargetImg) Then
@@ -429,38 +337,11 @@ Func _ViewVentoyRemoveBootEntries()
 EndFunc
 
 Func _ViewVentoyMoveEntryUp()
-    Local $sSel = _GUICtrlListView_GetSelectedIndices($hViewVentoyBootList)
-    If $sSel = "" Then Return
-    Local $iIdx = Number($sSel)
-    If $iIdx <= 0 Then Return
-
-    _ViewVentoySwapRows($iIdx, $iIdx - 1)
-    _GUICtrlListView_SetItemSelected($hViewVentoyBootList, $iIdx - 1, True, True)
+    controlListViewMoveItemUp($hViewVentoyBootList, 1, 5)
 EndFunc
 
 Func _ViewVentoyMoveEntryDown()
-    Local $sSel = _GUICtrlListView_GetSelectedIndices($hViewVentoyBootList)
-    If $sSel = "" Then Return
-    Local $iIdx = Number($sSel)
-    Local $iCount = _GUICtrlListView_GetItemCount($hViewVentoyBootList)
-    If $iIdx >= $iCount - 1 Then Return
-
-    _ViewVentoySwapRows($iIdx, $iIdx + 1)
-    _GUICtrlListView_SetItemSelected($hViewVentoyBootList, $iIdx + 1, True, True)
-EndFunc
-
-Func _ViewVentoySwapRows($iIdx1, $iIdx2)
-    Local $aRow1[6], $aRow2[6]
-    For $col = 0 To 5
-        $aRow1[$col] = _GUICtrlListView_GetItemText($hViewVentoyBootList, $iIdx1, $col)
-        $aRow2[$col] = _GUICtrlListView_GetItemText($hViewVentoyBootList, $iIdx2, $col)
-    Next
-
-    ; Swap data except ID (column 0 stays strictly positional 1..N)
-    For $col = 1 To 5
-        _GUICtrlListView_SetItemText($hViewVentoyBootList, $iIdx1, $aRow2[$col], $col)
-        _GUICtrlListView_SetItemText($hViewVentoyBootList, $iIdx2, $aRow1[$col], $col)
-    Next
+    controlListViewMoveItemDown($hViewVentoyBootList, 1, 5)
 EndFunc
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -510,14 +391,14 @@ Func _ViewVentoyShowBootDialog($bEdit = False)
     ; Icon Row
     Local $idIconLbl = GUICtrlCreateLabel(i18nGet("ventoy.dialog.icon.label", "Icon: "), 24, 34, 85, 20)
     Local $idIconCmb = GUICtrlCreateCombo("", 115, 32, 421, 22, BitOR($CBS_DROPDOWNLIST, $WS_VSCROLL))
-    Local $sAvailableIcons = _VentoyGetAvailableIcons()
+    Local $sAvailableIcons = ventoyGetAvailableIcons()
     GUICtrlSetData($idIconCmb, $sAvailableIcons, $sCurIcon)
     GUICtrlSetTip($idIconCmb, i18nGet("ventoy.dialog.icon.tip", "Icon representing this OS boot entry"))
 
     ; Alias Row
     Local $idAliasLbl = GUICtrlCreateLabel(i18nGet("ventoy.dialog.alias.label", "Alias: "), 24, 64, 85, 20)
     Local $idAliasInput = GUICtrlCreateInput($sCurAlias, 115, 62, 230, 22)
-    _VentoySetCueBanner($idAliasInput, i18nGet("ventoy.dialog.alias.placeholder", "(Optional)"))
+    controlSetCueBanner($idAliasInput, i18nGet("ventoy.dialog.alias.placeholder", "(Optional)"))
     GUICtrlSetTip($idAliasInput, i18nGet("ventoy.dialog.alias.tip", "Display name in Ventoy boot menu"))
 
     Local $idAutoselCkbx = GUICtrlCreateCheckbox(i18nGet("ventoy.dialog.ckbx.autosel", "Auto-select when booting"), 355, 62, 181, 22)
@@ -527,20 +408,20 @@ Func _ViewVentoyShowBootDialog($bEdit = False)
     ; Image Row
     Local $idImageLbl = GUICtrlCreateLabel(i18nGet("ventoy.dialog.image.label", "Image: "), 24, 94, 85, 20)
     Local $idImageInput = GUICtrlCreateInput($sCurImage, 115, 92, 421, 22)
-    _VentoySetCueBanner($idImageInput, i18nGet("ventoy.dialog.image.placeholder", "/Windows/Windows11/w11.iso"))
+    controlSetCueBanner($idImageInput, i18nGet("ventoy.dialog.image.placeholder", "/Windows/Windows11/w11.iso"))
     GUICtrlSetTip($idImageInput, i18nGet("ventoy.dialog.image.tip", "Relative path of ISO image file on USB drive"))
 
     ; Attach ISO Row
     Local $idAttachLbl = GUICtrlCreateLabel(i18nGet("ventoy.dialog.attach_iso.label", "Attach ISO: "), 24, 124, 85, 20)
     Local $idAttachInput = GUICtrlCreateInput($sCurAttach, 115, 122, 336, 22)
-    _VentoySetCueBanner($idAttachInput, i18nGet("ventoy.dialog.attach_iso.placeholder", "Select local ISO image..."))
+    controlSetCueBanner($idAttachInput, i18nGet("ventoy.dialog.attach_iso.placeholder", "Select local ISO image..."))
     Local $idAttachBrowseBtn = GUICtrlCreateButton(i18nGet("ventoy.dialog.btn.browse", "Browse"), 456, 122, 80, 22)
     GUICtrlSetTip($idAttachBrowseBtn, i18nGet("ventoy.dialog.btn.browse.tip", "Browse for local ISO image file"))
 
     ; Tip Row
     Local $idTipLbl = GUICtrlCreateLabel(i18nGet("ventoy.dialog.tip.label", "Tip: "), 24, 154, 85, 20)
     Local $idTipInput = GUICtrlCreateInput($sCurTip, 115, 152, 421, 22)
-    _VentoySetCueBanner($idTipInput, i18nGet("ventoy.dialog.tip.placeholder", "Windows 11 Installation"))
+    controlSetCueBanner($idTipInput, i18nGet("ventoy.dialog.tip.placeholder", "Windows 11 Installation"))
     GUICtrlSetTip($idTipInput, i18nGet("ventoy.dialog.tip.tip", "Helpful description shown in Ventoy boot menu"))
     GUICtrlCreateGroup("", -99, -99, 1, 1)
 
@@ -566,7 +447,7 @@ Func _ViewVentoyShowBootDialog($bEdit = False)
     ; Template Input Row
     Local $idTplItemLbl = GUICtrlCreateLabel(i18nGet("ventoy.dialog.template.label", "Template: "), 24, 338, 85, 20)
     Local $idDlgTplInput = GUICtrlCreateInput((_GUICtrlListView_GetItemCount($hDlgTplList) > 0) ? _GUICtrlListView_GetItemText($hDlgTplList, 0) : "", 115, 336, 421, 22)
-    _VentoySetCueBanner($idDlgTplInput, i18nGet("ventoy.dialog.template.placeholder", "/AutoInstaller.xml"))
+    controlSetCueBanner($idDlgTplInput, i18nGet("ventoy.dialog.template.placeholder", "/AutoInstaller.xml"))
 
     ; Template Action Buttons Row (5 buttons right-aligned to table width: 152 to 536)
     Local $idTplAddBtn = GUICtrlCreateButton(i18nGet("ventoy.dialog.template.btn.add", "Add"), 152, 366, 72, 24)
@@ -750,119 +631,36 @@ EndFunc
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 Func viewVentoyLoadData($sCustomFile = "")
-    Local $sConfig = ($sCustomFile <> "" And FileExists($sCustomFile)) ? $sCustomFile : _GetVentoyJsonPath()
-    If Not FileExists($sConfig) Then
+    Local $oData = ventoyLoadConfigData($sCustomFile)
+    If Not IsObj($oData) Then
         viewVentoyReset()
         Return False
     EndIf
 
-    Local $hFile = FileOpen($sConfig, BitOR($FO_READ, $FO_UTF8_NOBOM))
-    If $hFile = -1 Then Return False
-    Local $sJson = FileRead($hFile)
-    FileClose($hFile)
-
-    ; 1. Parse Theme
-    Local $sThemeSelection = "1172005thinh (Full)"
-    Local $sDetectedVariant = "dark_fb"
-
-    If StringInStr($sJson, "/ventoy/theme/1172005thinh/") Then
-        Local $aThemeFiles = StringRegExp($sJson, '(?m)"/ventoy/theme/1172005thinh/([^"]+)"', 3)
-        If Not @error And UBound($aThemeFiles) > 0 Then
-            If UBound($aThemeFiles) > 20 Then
-                $sThemeSelection = "1172005thinh (Full)"
-            Else
-                $sThemeSelection = "1172005thinh (Single)"
-                ; Detect variant prefix from first filename (e.g. dark_fb from dark_fb_1024x768.txt)
-                Local $sFirstFile = $aThemeFiles[0]
-                Local $aVarMatch = StringRegExp($sFirstFile, '^([a-zA-Z0-9]+_[a-zA-Z0-9]+)_', 1)
-                If Not @error Then $sDetectedVariant = $aVarMatch[0]
-            EndIf
-        EndIf
-    ElseIf StringInStr($sJson, "/ventoy/theme/") Or StringInStr($sJson, "theme.txt") Then
-        $sThemeSelection = "Ventoy"
-    EndIf
-
-    $g_sViewVentoyActiveVariant = $sDetectedVariant
+    Local $sThemeSelection = $oData.Item("Theme")
+    $g_sViewVentoyActiveVariant = $oData.Item("Variant")
     _GUICtrlComboBox_SelectString($idViewVentoyThemeCmb, -1, $sThemeSelection)
     _ViewVentoyOnThemeChange()
     _ViewVentoyLoadVariants()
 
-    ; 2. Parse Boot Entries from JSON
     _GUICtrlListView_DeleteAllItems($hViewVentoyBootList)
+    Local $aEntries = $oData.Item("BootEntries")
+    Local $iEntryCount = $oData.Item("EntryCount")
 
-    ; Parse menu_alias blocks: {"image": "...", "alias": "..."}
-    Local $aAliases = StringRegExp($sJson, '(?s)\{\s*"image"\s*:\s*"([^"]+)"\s*,\s*"alias"\s*:\s*"([^"]*)"\s*\}', 4)
-    Local $iAliasCount = @error ? 0 : UBound($aAliases)
-
-    ; Parse menu_tip blocks: {"image": "...", "tip": "..."}
-    Local $aTips = StringRegExp($sJson, '(?s)\{\s*"image"\s*:\s*"([^"]+)"\s*,\s*"tip"\s*:\s*"([^"]*)"\s*\}', 4)
-    Local $oTipMap = ObjCreate("Scripting.Dictionary")
-    If Not @error Then
-        For $i = 0 To UBound($aTips) - 1
-            Local $aP = $aTips[$i]
-            $oTipMap.Item($aP[1]) = $aP[2]
-        Next
-    EndIf
-
-    ; Parse menu_class blocks: {"key": "...", "class": "..."}
-    Local $aClasses = StringRegExp($sJson, '(?s)\{\s*"key"\s*:\s*"([^"]+)"\s*,\s*"class"\s*:\s*"([^"]*)"\s*\}', 4)
-    Local $oClassMap = ObjCreate("Scripting.Dictionary")
-    If Not @error Then
-        For $i = 0 To UBound($aClasses) - 1
-            Local $aP = $aClasses[$i]
-            $oClassMap.Item(StringLower($aP[1])) = $aP[2]
-        Next
-    EndIf
-
-    ; Parse auto_install blocks: {"image": "...", "template": [...], ... "autosel": (\d+)}
-    Local $aAutoInstall = StringRegExp($sJson, '(?s)\{\s*"image"\s*:\s*"([^"]+)"\s*,\s*"template"\s*:\s*\[([^\]]*)\][^\}]*?"autosel"\s*:\s*(\d+)', 4)
-    Local $oAutoTplMap = ObjCreate("Scripting.Dictionary")
-    Local $oAutoSelMap = ObjCreate("Scripting.Dictionary")
-    If Not @error Then
-        For $i = 0 To UBound($aAutoInstall) - 1
-            Local $aP = $aAutoInstall[$i]
-            Local $sImgKey = $aP[1]
-            Local $sRawTpls = $aP[2]
-            Local $iAutosel = Number($aP[3])
-
-            Local $aTplMatches = StringRegExp($sRawTpls, '"([^"]+)"', 3)
-            Local $sJoinedTpl = ""
-            If Not @error Then
-                For $t = 0 To UBound($aTplMatches) - 1
-                    If $sJoinedTpl <> "" Then $sJoinedTpl &= "; "
-                    $sJoinedTpl &= $aTplMatches[$t]
-                Next
-            EndIf
-            $oAutoTplMap.Item($sImgKey) = $sJoinedTpl
-            $oAutoSelMap.Item($sImgKey) = $iAutosel
-        Next
-    EndIf
-
-    If $iAliasCount > 0 Then
-        For $i = 0 To $iAliasCount - 1
-            Local $aPair = $aAliases[$i]
-            Local $sImage = $aPair[1]
-            Local $sAlias = $aPair[2]
-
-            Local $sTip = $oTipMap.Exists($sImage) ? $oTipMap.Item($sImage) : ""
-            Local $sTpls = $oAutoTplMap.Exists($sImage) ? $oAutoTplMap.Item($sImage) : "/AutoInstaller.xml"
-            Local $iAutosel = $oAutoSelMap.Exists($sImage) ? $oAutoSelMap.Item($sImage) : 0
-
-            Local $sIcon = "windows"
-            Local $sImageBase = StringLower(StringRegExpReplace($sImage, '^.*[\\/]', ''))
-            $sImageBase = StringRegExpReplace($sImageBase, '\.iso$', '')
-            If $oClassMap.Exists($sImageBase) Then
-                $sIcon = $oClassMap.Item($sImageBase)
-            ElseIf $oClassMap.Exists("w11") Then
-                $sIcon = $oClassMap.Item("w11")
-            EndIf
+    If $iEntryCount > 0 Then
+        For $i = 0 To $iEntryCount - 1
+            Local $sIcon = $aEntries[$i][0]
+            Local $sAlias = $aEntries[$i][1]
+            Local $sImage = $aEntries[$i][2]
+            Local $sTip = $aEntries[$i][3]
+            Local $sTpls = $aEntries[$i][4]
+            Local $iAutosel = $aEntries[$i][5]
 
             If $iAutosel = 1 And StringLeft($sAlias, 1) <> "*" Then
                 $sAlias = "*" & $sAlias
             EndIf
 
-            Local $idRow = GUICtrlCreateListViewItem(($i + 1) & "|" & $sIcon & "|" & $sAlias & "|" & $sImage & "|" & $sTip & "|" & $sTpls, $idViewVentoyBootList)
-            #forceref $idRow
+            GUICtrlCreateListViewItem(($i + 1) & "|" & $sIcon & "|" & $sAlias & "|" & $sImage & "|" & $sTip & "|" & $sTpls, $idViewVentoyBootList)
         Next
         _GUICtrlListView_SetItemSelected($hViewVentoyBootList, 0, True, True)
     Else
@@ -873,72 +671,7 @@ Func viewVentoyLoadData($sCustomFile = "")
 EndFunc
 
 Func viewVentoySaveData($sCustomFile = "")
-    Local $sConfig = ($sCustomFile <> "") ? $sCustomFile : _GetVentoyJsonPath()
-    Local $sDir = StringLeft($sConfig, StringInStr($sConfig, "\", 0, -1) - 1)
-    If $sDir <> "" And Not FileExists($sDir) Then DirCreate($sDir)
-
     Local $sTheme = GUICtrlRead($idViewVentoyThemeCmb)
-    Local $sThemeDir = _GetVentoyThemeDir()
-
-    ; Build JSON string
-    Local $sOut = "{" & @CRLF
-    $sOut &= '    "control": [' & @CRLF
-    $sOut &= '        {' & @CRLF
-    $sOut &= '            "VTOY_DEFAULT_SEARCH_ROOT": "/"' & @CRLF
-    $sOut &= '        }' & @CRLF
-    $sOut &= '    ],' & @CRLF
-
-    ; Theme block
-    $sOut &= '    "theme": {' & @CRLF
-    If $sTheme = "Ventoy" Then
-        $sOut &= '        "file": "/ventoy/theme/theme.txt",' & @CRLF
-        $sOut &= '        "gfxmode": "max"' & @CRLF
-    Else
-        $sOut &= '        "file": [' & @CRLF
-        Local $aThemeFiles[0]
-        Local $hSearch = FileFindFirstFile($sThemeDir & "\*.txt")
-        If $hSearch <> -1 Then
-            While 1
-                Local $sF = FileFindNextFile($hSearch)
-                If @error Then ExitLoop
-                If $sTheme = "1172005thinh (Single)" Then
-                    If Not StringInStr($sF, $g_sViewVentoyActiveVariant & "_") Then ContinueLoop
-                EndIf
-                ReDim $aThemeFiles[UBound($aThemeFiles) + 1]
-                $aThemeFiles[UBound($aThemeFiles) - 1] = "/ventoy/theme/1172005thinh/" & $sF
-            WEnd
-            FileClose($hSearch)
-        EndIf
-
-        If UBound($aThemeFiles) = 0 Then
-            ReDim $aThemeFiles[1]
-            $aThemeFiles[0] = "/ventoy/theme/1172005thinh/" & $g_sViewVentoyActiveVariant & "_1920x1080.txt"
-        EndIf
-
-        For $f = 0 To UBound($aThemeFiles) - 1
-            $sOut &= '            "' & $aThemeFiles[$f] & '"'
-            If $f < UBound($aThemeFiles) - 1 Then $sOut &= ','
-            $sOut &= @CRLF
-        Next
-
-        $sOut &= '        ],' & @CRLF
-        $sOut &= '        "gfxmode": "max",' & @CRLF
-        $sOut &= '        "resolution_fit": 1,' & @CRLF
-        $sOut &= '        "ventoy_left": "72%",' & @CRLF
-        $sOut &= '        "ventoy_top": "95%",' & @CRLF
-        $sOut &= '        "ventoy_color": "#6F6F6F",' & @CRLF
-        $sOut &= '        "fonts": [' & @CRLF
-        $sOut &= '            "/ventoy/font/cascadia-code/cascadia-code_12.pf2",' & @CRLF
-        $sOut &= '            "/ventoy/font/cascadia-code/cascadia-code_16.pf2",' & @CRLF
-        $sOut &= '            "/ventoy/font/cascadia-code/cascadia-code_20.pf2",' & @CRLF
-        $sOut &= '            "/ventoy/font/cascadia-code/cascadia-code_24.pf2",' & @CRLF
-        $sOut &= '            "/ventoy/font/cascadia-code/cascadia-code_28.pf2",' & @CRLF
-        $sOut &= '            "/ventoy/font/cascadia-code/cascadia-code_32.pf2"' & @CRLF
-        $sOut &= '        ]' & @CRLF
-    EndIf
-    $sOut &= '    },' & @CRLF
-
-    ; Boot Entries Collection
     Local $iEntryCount = _GUICtrlListView_GetItemCount($hViewVentoyBootList)
     Local $aEntries[0][6] ; [Icon, CleanAlias, Image, Tip, Templates, Autosel]
 
@@ -960,83 +693,7 @@ Func viewVentoySaveData($sCustomFile = "")
         $aEntries[UBound($aEntries, 1) - 1][5] = $iAutosel
     Next
 
-    ; menu_alias block
-    $sOut &= '    "menu_alias": [' & @CRLF
-    For $i = 0 To UBound($aEntries, 1) - 1
-        $sOut &= '        {' & @CRLF
-        $sOut &= '            "image": "' & $aEntries[$i][2] & '",' & @CRLF
-        $sOut &= '            "alias": "' & $aEntries[$i][1] & '"' & @CRLF
-        $sOut &= '        }'
-        If $i < UBound($aEntries, 1) - 1 Then $sOut &= ','
-        $sOut &= @CRLF
-    Next
-    $sOut &= '    ],' & @CRLF
-
-    ; menu_tip block
-    $sOut &= '    "menu_tip": {' & @CRLF
-    $sOut &= '        "left": "30%",' & @CRLF
-    $sOut &= '        "top": "11%",' & @CRLF
-    $sOut &= '        "color": "#CDCDCD",' & @CRLF
-    $sOut &= '        "tips": [' & @CRLF
-    For $i = 0 To UBound($aEntries, 1) - 1
-        $sOut &= '            {' & @CRLF
-        $sOut &= '                "image": "' & $aEntries[$i][2] & '",' & @CRLF
-        $sOut &= '                "tip": "' & $aEntries[$i][3] & '"' & @CRLF
-        $sOut &= '            }'
-        If $i < UBound($aEntries, 1) - 1 Then $sOut &= ','
-        $sOut &= @CRLF
-    Next
-    $sOut &= '        ]' & @CRLF
-    $sOut &= '    },' & @CRLF
-
-    ; menu_class block
-    $sOut &= '    "menu_class": [' & @CRLF
-    For $i = 0 To UBound($aEntries, 1) - 1
-        Local $sKeyName = StringLower(StringRegExpReplace($aEntries[$i][2], '^.*[\\/]', ''))
-        $sKeyName = StringRegExpReplace($sKeyName, '\.iso$', '')
-        If $sKeyName = "" Then $sKeyName = "entry" & ($i + 1)
-
-        $sOut &= '        {' & @CRLF
-        $sOut &= '            "key": "' & $sKeyName & '",' & @CRLF
-        $sOut &= '            "class": "' & $aEntries[$i][0] & '"' & @CRLF
-        $sOut &= '        }'
-        If $i < UBound($aEntries, 1) - 1 Then $sOut &= ','
-        $sOut &= @CRLF
-    Next
-    $sOut &= '    ],' & @CRLF
-
-    ; auto_install block
-    $sOut &= '    "auto_install": [' & @CRLF
-    For $i = 0 To UBound($aEntries, 1) - 1
-        $sOut &= '        {' & @CRLF
-        $sOut &= '            "image": "' & $aEntries[$i][2] & '",' & @CRLF
-        $sOut &= '            "template": [' & @CRLF
-
-        Local $aTList = StringSplit($aEntries[$i][4], ";", $STR_NOCOUNT)
-        For $t = 0 To UBound($aTList) - 1
-            Local $sTPath = StringStripWS($aTList[$t], $STR_STRIPLEADING + $STR_STRIPTRAILING)
-            If $sTPath <> "" Then
-                $sOut &= '                "' & $sTPath & '"'
-                If $t < UBound($aTList) - 1 Then $sOut &= ','
-                $sOut &= @CRLF
-            EndIf
-        Next
-
-        $sOut &= '            ],' & @CRLF
-        $sOut &= '            "timeout": 10,' & @CRLF
-        $sOut &= '            "autosel": ' & $aEntries[$i][5] & @CRLF
-        $sOut &= '        }'
-        If $i < UBound($aEntries, 1) - 1 Then $sOut &= ','
-        $sOut &= @CRLF
-    Next
-    $sOut &= '    ]' & @CRLF
-    $sOut &= '}' & @CRLF
-
-    Local $hFile = FileOpen($sConfig, BitOR($FO_OVERWRITE, $FO_UTF8_NOBOM))
-    If $hFile = -1 Then Return False
-    FileWrite($hFile, $sOut)
-    FileClose($hFile)
-    Return True
+    Return ventoySaveConfigData($sCustomFile, $sTheme, $g_sViewVentoyActiveVariant, $aEntries)
 EndFunc
 
 Func viewVentoyReset()
@@ -1048,8 +705,8 @@ Func viewVentoyReset()
 EndFunc
 
 Func _ViewVentoyImportConfig()
-    Local $sImportFile = FileOpenDialog(i18nGet("ventoy.dialog.import.title", "Select Ventoy configuration to import"), @ScriptDir, i18nGet("ventoy.dialog.import.filter", "JSON files (*.json)|All files (*.*)"), BitOR($FD_FILEMUSTEXIST, $FD_PATHMUSTEXIST))
-    If Not @error And $sImportFile <> "" Then
+    Local $sImportFile = dialogImportConfig(@ScriptDir, i18nGet("ventoy.dialog.import.filter", "JSON files (*.json)|All files (*.*)"), "ventoy.dialog.import.title", "Select Ventoy configuration to import")
+    If $sImportFile <> "" Then
         If viewVentoyLoadData($sImportFile) Then
             appSetStatus(i18nGet("status.title", "Status: ") & i18nGet("ventoy.status.imported", "Imported Ventoy configuration successfully"))
         Else
@@ -1059,9 +716,8 @@ Func _ViewVentoyImportConfig()
 EndFunc
 
 Func _ViewVentoyExportConfig()
-    Local $sExportFile = FileSaveDialog(i18nGet("ventoy.dialog.export.title", "Export Ventoy configuration"), @ScriptDir, i18nGet("ventoy.dialog.export.filter", "JSON files (*.json)|All files (*.*)"), $FD_PROMPTOVERWRITE, "ventoy.json")
-    If Not @error And $sExportFile <> "" Then
-        If Not StringRegExp($sExportFile, '(?i)\.json$') Then $sExportFile &= ".json"
+    Local $sExportFile = dialogExportConfig(@ScriptDir, i18nGet("ventoy.dialog.export.filter", "JSON files (*.json)|All files (*.*)"), "ventoy.json", ".json", "ventoy.dialog.export.title", "Export Ventoy configuration")
+    If $sExportFile <> "" Then
         If viewVentoySaveData($sExportFile) Then
             appSetStatus(i18nGet("status.title", "Status: ") & i18nGet("ventoy.status.exported", "Exported Ventoy configuration successfully"))
         Else
@@ -1071,20 +727,14 @@ Func _ViewVentoyExportConfig()
 EndFunc
 
 Func _ViewVentoyOpenConfigFile()
-    Local $sConfig = _GetVentoyJsonPath()
-    If FileExists($sConfig) Then
-        ShellExecute($sConfig)
-        appSetStatus(i18nGet("status.title", "Status: ") & i18nGet("ventoy.status.opened", "Opened ventoy.json in editor"))
-    EndIf
+    dialogOpenFileInEditor(ventoyGetJsonPath())
 EndFunc
 
 Func _ViewVentoyRunPlugson()
-    Local $sPlugson = _GetVentoyPlugsonPath()
-    If FileExists($sPlugson) Then
-        ShellExecute($sPlugson)
+    If ventoyRunPlugson() Then
         appSetStatus(i18nGet("status.title", "Status: ") & i18nGet("ventoy.status.plugson_launched", "Launched VentoyPlugson configuration tool"))
     Else
-        MsgBox(BitOR($MB_ICONINFORMATION, $MB_OK), i18nGet("info.dialog.title", "Information"), "VentoyPlugson executable not found: " & $sPlugson)
+        MsgBox(BitOR($MB_ICONINFORMATION, $MB_OK), i18nGet("info.dialog.title", "Information"), "VentoyPlugson executable not found: " & ventoyGetPlugsonPath())
     EndIf
 EndFunc
 

@@ -31,6 +31,9 @@
 #include "../modules/config.au3"
 #include "../modules/data.au3"
 #include "../modules/scroll.au3"
+#include "../modules/control.au3"
+#include "../modules/dialog.au3"
+#include "../modules/apps.au3"
 #include "../../apps/download.au3"
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -474,77 +477,6 @@ Func _ViewAppsUpdateFontsState($iState)
     EndIf
 EndFunc
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; Application Description Localization
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-Func _AppsGetAppDesc($sAppId, $sDefault)
-    Switch $sAppId
-        Case "7z"
-            Return i18nGet("apps.desc.7z", "High compression ratio file archiver")
-        Case "Brave"
-            Return i18nGet("apps.desc.Brave", "Privacy-focused Chromium web browser")
-        Case "Discord"
-            Return i18nGet("apps.desc.Discord", "Voice, video, and text communication platform")
-        Case "Docker"
-            Return i18nGet("apps.desc.Docker", "Container runtime and development platform")
-        Case "Git"
-            Return i18nGet("apps.desc.Git", "Distributed version control system")
-        Case "GoogleChrome"
-            Return i18nGet("apps.desc.GoogleChrome", "Fast and secure web browser by Google")
-        Case "Java"
-            Return i18nGet("apps.desc.Java", "Java Platform Standard Edition runtime environment")
-        Case "Kaspersky"
-            Return i18nGet("apps.desc.Kaspersky", "Antivirus and internet security suite")
-        Case "LibreOffice"
-            Return i18nGet("apps.desc.LibreOffice", "Free and open source office suite")
-        Case "MicrosoftOffice"
-            Return i18nGet("apps.desc.MicrosoftOffice", "Microsoft Office deployment package")
-        Case "MPC-HC"
-            Return i18nGet("apps.desc.MPC-HC", "Lightweight open source media player")
-        Case "MSYS2"
-            Return i18nGet("apps.desc.MSYS2", "Software distribution and building platform for Windows")
-        Case "Notepad++"
-            Return i18nGet("apps.desc.Notepad++", "Extensible source code editor and text replacement tool")
-        Case "OBS"
-            Return i18nGet("apps.desc.OBS", "Free and open source software for video recording and live streaming")
-        Case "PotPlayer"
-            Return i18nGet("apps.desc.PotPlayer", "Feature-rich multimedia player with hardware acceleration")
-        Case "Python"
-            Return i18nGet("apps.desc.Python", "Python programming language runtime and environment")
-        Case "qBittorrent"
-            Return i18nGet("apps.desc.qBittorrent", "Free and reliable BitTorrent client")
-        Case "Shell"
-            Return i18nGet("apps.desc.Shell", "Context menu customizer for Windows File Explorer")
-        Case "Tailscale"
-            Return i18nGet("apps.desc.Tailscale", "Zero config VPN built on WireGuard")
-        Case "TeamViewer"
-            Return i18nGet("apps.desc.TeamViewer", "Remote desktop access and support tool")
-        Case "UltraViewer"
-            Return i18nGet("apps.desc.UltraViewer", "Remote support software for Windows")
-        Case "Unikey"
-            Return i18nGet("apps.desc.Unikey", "Vietnamese keyboard input method editor")
-        Case "VCRedist"
-            Return i18nGet("apps.desc.VCRedist", "All-in-one package for Microsoft Visual C++ Runtimes (2005-2022)")
-        Case "VisualStudio"
-            Return i18nGet("apps.desc.VisualStudio", "Integrated development environment by Microsoft")
-        Case "VLC"
-            Return i18nGet("apps.desc.VLC", "Cross-platform multimedia player and framework")
-        Case "VSCode"
-            Return i18nGet("apps.desc.VSCode", "Source-code editor made by Microsoft")
-        Case "WinRAR"
-            Return i18nGet("apps.desc.WinRAR", "Powerful archiver and archive manager")
-        Case "WireGuard"
-            Return i18nGet("apps.desc.WireGuard", "Fast, modern, and secure VPN tunnel")
-        Case "yt-dlp"
-            Return i18nGet("apps.desc.yt-dlp", "Command-line audio and video download tool")
-        Case "Zalo"
-            Return i18nGet("apps.desc.Zalo", "Instant messaging and social networking app")
-        Case Else
-            Return $sDefault
-    EndSwitch
-EndFunc
-
 Func _ViewAppsSetDownloadStatus($sStatusKey)
     $g_sViewAppsCurStatusKey = $sStatusKey
     Local $sStatusText = ""
@@ -574,12 +506,19 @@ Func viewAppsLoadData($sCustomFile = "")
 
     Local $sConfig = ($sCustomFile <> "" And FileExists($sCustomFile)) ? $sCustomFile : downloadGetConfigPath()
 
-    ; Read mode and fonts_state from [Configuration]
-    Local $iMode = Int(IniRead($sConfig, "Configuration", "mode", "3"))
-    _ViewAppsUpdateModeState($iMode)
-
-    Local $iFontsState = Int(IniRead($sConfig, "Configuration", "fonts_state", "1"))
-    _ViewAppsUpdateFontsState($iFontsState)
+    ; Read configuration values
+    Local $oCfg = appsLoadConfigData($sConfig)
+    If IsObj($oCfg) Then
+        _ViewAppsUpdateModeState($oCfg.Item("mode"))
+        _ViewAppsUpdateFontsState($oCfg.Item("fonts_state"))
+        GUICtrlSetData($idViewAppsMaxIterInput, String($oCfg.Item("max_iteration")))
+        GUICtrlSetData($idViewAppsLogPathInput, $oCfg.Item("log_path"))
+    Else
+        _ViewAppsUpdateModeState(3)
+        _ViewAppsUpdateFontsState(1)
+        GUICtrlSetData($idViewAppsMaxIterInput, "2")
+        GUICtrlSetData($idViewAppsLogPathInput, "C:\AutoInstaller\apps.log")
+    EndIf
 
     ; Load Offline Apps
     Local $aApps = dataLoadCsv("apps.csv")
@@ -589,7 +528,7 @@ Func viewAppsLoadData($sCustomFile = "")
             If $sApp = "Fonts" Then ContinueLoop ; Fonts handled separately
 
             Local $sName = $aApps[$i][1]
-            Local $sDesc = _AppsGetAppDesc($sApp, $aApps[$i][2])
+            Local $sDesc = appsGetAppDesc($sApp, $aApps[$i][2])
             Local $sVer = downloadGetAppVersion($sApp)
             If $sVer = "Unknown" Then $sVer = i18nGet("apps.status.unknown", "Unknown")
 
@@ -656,13 +595,6 @@ Func viewAppsLoadData($sCustomFile = "")
         Next
     EndIf
 
-    ; Read max_iteration and log_path
-    Local $sMaxIter = IniRead($sConfig, "Configuration", "max_iteration", "2")
-    GUICtrlSetData($idViewAppsMaxIterInput, $sMaxIter)
-
-    Local $sLogPath = IniRead($sConfig, "Configuration", "log_path", "C:\AutoInstaller\apps.log")
-    GUICtrlSetData($idViewAppsLogPathInput, $sLogPath)
-
     If $g_iViewAppsAppCount > 0 Then
         _GUICtrlListView_SetItemSelected($hViewAppsTable, 0, True, True)
         _ViewAppsOnSelectRow(0)
@@ -680,9 +612,16 @@ Func viewAppsSaveData($sCustomFile = "")
     EndIf
     If Not FileExists($sConfig) And Not FileExists($sBaseConfig) Then Return False
 
-    ; Save mode and fonts_state
-    IniWrite($sConfig, "Configuration", "mode", String($g_iViewAppsCurMode))
-    IniWrite($sConfig, "Configuration", "fonts_state", String($g_iViewAppsFontsState))
+    ; Save configuration settings
+    Local $sMaxIter = GUICtrlRead($idViewAppsMaxIterInput)
+    Local $iMaxIter = Int($sMaxIter)
+    If $iMaxIter < 1 Then $iMaxIter = 1
+    If $iMaxIter > 5 Then $iMaxIter = 5
+
+    Local $sLogPath = GUICtrlRead($idViewAppsLogPathInput)
+    If $sLogPath = "" Then $sLogPath = "C:\AutoInstaller\apps.log"
+
+    appsSaveConfigData($sConfig, $g_iViewAppsCurMode, $g_iViewAppsFontsState, $iMaxIter, $sLogPath)
 
     ; Save Offline Apps
     For $i = 0 To $g_iViewAppsAppCount - 1
@@ -728,16 +667,6 @@ Func viewAppsSaveData($sCustomFile = "")
         IniWrite($sConfig, $sSection, "location", $sLoc)
         IniWrite($sConfig, $sSection, "install", $bInstall ? "true" : "false")
     Next
-
-    ; Save max_iteration and log_path
-    Local $sMaxIter = GUICtrlRead($idViewAppsMaxIterInput)
-    Local $iMaxIter = Int($sMaxIter)
-    If $iMaxIter < 1 Then $iMaxIter = 1
-    If $iMaxIter > 5 Then $iMaxIter = 5
-    IniWrite($sConfig, "Configuration", "max_iteration", String($iMaxIter))
-
-    Local $sLogPath = GUICtrlRead($idViewAppsLogPathInput)
-    If $sLogPath <> "" Then IniWrite($sConfig, "Configuration", "log_path", $sLogPath)
 
     Return True
 EndFunc
@@ -853,21 +782,12 @@ Func _ViewAppsOnCancel()
 EndFunc
 
 Func _ViewAppsBrowseLogPath()
-    Local $sCurPath = GUICtrlRead($idViewAppsLogPathInput)
-    Local $sInitDir = $sCurPath
-    If StringInStr($sInitDir, "\") Then
-        $sInitDir = StringLeft($sInitDir, StringInStr($sInitDir, "\", 0, -1))
-    EndIf
-    Local $sSelected = FileSelectFolder(i18nGet("apps.dialog.browse.title", "Select Log Folder"), $sInitDir)
-    If Not @error And $sSelected <> "" Then
-        If StringRight($sSelected, 1) <> "\" Then $sSelected &= "\"
-        GUICtrlSetData($idViewAppsLogPathInput, $sSelected & "apps.log")
-    EndIf
+    dialogBrowseLogPath($idViewAppsLogPathInput, "apps.log", "apps.dialog.browse.title", "Select Log Folder")
 EndFunc
 
 Func _ViewAppsImportConfig()
-    Local $sImportFile = FileOpenDialog(i18nGet("apps.dialog.import.title", "Select configuration to import"), @ScriptDir, i18nGet("apps.dialog.import.filter", "Configuration files (*.ini)|All files (*.*)"), BitOR($FD_FILEMUSTEXIST, $FD_PATHMUSTEXIST))
-    If Not @error And $sImportFile <> "" Then
+    Local $sImportFile = dialogImportConfig(@ScriptDir, i18nGet("apps.dialog.import.filter", "Configuration files (*.ini)|All files (*.*)"), "apps.dialog.import.title", "Select configuration to import")
+    If $sImportFile <> "" Then
         If viewAppsLoadData($sImportFile) Then
             appSetStatus(i18nGet("status.title", "Status: ") & i18nGet("apps.status.imported", "Imported application configuration successfully"))
         Else
@@ -877,9 +797,8 @@ Func _ViewAppsImportConfig()
 EndFunc
 
 Func _ViewAppsExportConfig()
-    Local $sExportFile = FileSaveDialog(i18nGet("apps.dialog.export.title", "Export application configuration"), @ScriptDir, i18nGet("apps.dialog.export.filter", "Configuration files (*.ini)|All files (*.*)"), $FD_PROMPTOVERWRITE, "config.ini")
-    If Not @error And $sExportFile <> "" Then
-        If Not StringRegExp($sExportFile, '(?i)\.ini$') Then $sExportFile &= ".ini"
+    Local $sExportFile = dialogExportConfig(@ScriptDir, i18nGet("apps.dialog.export.filter", "Configuration files (*.ini)|All files (*.*)"), "config.ini", ".ini", "apps.dialog.export.title", "Export application configuration")
+    If $sExportFile <> "" Then
         If viewAppsSaveData($sExportFile) Then
             appSetStatus(i18nGet("status.title", "Status: ") & i18nGet("apps.status.exported", "Exported application configuration successfully"))
         Else
@@ -889,11 +808,7 @@ Func _ViewAppsExportConfig()
 EndFunc
 
 Func _ViewAppsOpenConfigFile()
-    Local $sConfig = downloadGetConfigPath()
-    If FileExists($sConfig) Then
-        ShellExecute($sConfig)
-        appSetStatus(i18nGet("status.title", "Status: ") & i18nGet("apps.status.opened", "Opened application configuration in editor"))
-    EndIf
+    dialogOpenFileInEditor(downloadGetConfigPath())
 EndFunc
 
 Func _ViewAppsDownloadCallback($iPercent, $iBytes, $iTotal)
@@ -1017,215 +932,6 @@ Func _ViewAppsOnlineOnSelect()
 EndFunc
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; Winget Search Engine & Fallback Catalog
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-Func _GetChocoPath()
-    If FileExists(@ScriptDir & "\tools\Chocolatey\choco.exe") Then Return @ScriptDir & "\tools\Chocolatey\choco.exe"
-    If FileExists(@ScriptDir & "\..\tools\Chocolatey\choco.exe") Then Return @ScriptDir & "\..\tools\Chocolatey\choco.exe"
-    Local $sSysChoco = @SystemDir & "\choco.exe"
-    If FileExists($sSysChoco) Then Return $sSysChoco
-    Return "choco.exe"
-EndFunc
-
-Func _ViewAppsSearchPackages($sQuery)
-    Local $aResults[0][5] ; [Name, Id, Manager, Desc, Versions]
-    If StringStripWS($sQuery, 3) = "" Then Return $aResults
-
-    ; Curated Catalog with rich descriptions and version options
-    Local $aCatalog[11][5] = [ _
-        ["Git", "Git.Git", "winget", "Fast, scalable, distributed revision control system", "Latest|2.55.0|2.54.0|2.53.0"], _
-        ["Google Chrome", "Google.Chrome", "winget", "Fast and secure web browser by Google", "Latest"], _
-        ["Visual Studio Code", "Microsoft.VisualStudioCode", "winget", "Code editing redefined by Microsoft", "Latest|1.94.0|1.93.0"], _
-        ["7-Zip", "7zip.7zip", "winget", "High compression ratio file archiver", "Latest|24.08|23.01"], _
-        ["Discord", "Discord.Discord", "winget", "Voice, video and text communication service", "Latest"], _
-        ["VLC media player", "VideoLAN.VLC", "winget", "Free and open source cross-platform multimedia player", "Latest|3.0.21|3.0.20"], _
-        ["Notepad++", "Notepad++.Notepad++", "winget", "Free source code editor and Notepad replacement", "Latest|8.7.0|8.6.9"], _
-        ["Python 3.12", "Python.Python.3.12", "winget", "High-level programming language with dynamic semantics", "Latest|3.12.7|3.12.6"], _
-        ["Docker Desktop", "Docker.DockerDesktop", "winget", "Container application development platform", "Latest|4.35.0|4.34.0"], _
-        ["Brave Browser", "Brave.Brave", "winget", "Privacy-oriented browser blocking trackers and ads", "Latest"], _
-        ["Zalo", "VNGCorp.Zalo", "winget", "Instant messaging and social networking app", "Latest|26.10.20"] _
-    ]
-
-    ; ----------------------------------------------------
-    ; 1. Query WinGet Repository
-    ; ----------------------------------------------------
-    Local $sWingetOut = @TempDir & "\winget_search_" & @AutoItPID & ".txt"
-    If FileExists($sWingetOut) Then FileDelete($sWingetOut)
-
-    Local $iExit = RunWait(@ComSpec & ' /c chcp 65001 >nul & winget search "' & $sQuery & '" --accept-source-agreements > "' & $sWingetOut & '"', @SystemDir, @SW_HIDE)
-    If $iExit = 0 And FileExists($sWingetOut) Then
-        Local $hFile = FileOpen($sWingetOut, BitOR($FO_READ, $FO_UTF8_NOBOM))
-        If $hFile <> -1 Then
-            Local $sText = FileRead($hFile)
-            FileClose($hFile)
-            FileDelete($sWingetOut)
-
-            Local $aLines = StringSplit(StringStripCR($sText), @LF)
-            Local $iHeaderLine = -1
-            Local $iSepLine = -1
-
-            For $i = 1 To $aLines[0]
-                If StringInStr($aLines[$i], "---") Then
-                    $iSepLine = $i
-                    $iHeaderLine = $i - 1
-                    ExitLoop
-                EndIf
-            Next
-
-            If $iHeaderLine > 0 Then
-                Local $sHeader = $aLines[$iHeaderLine]
-                Local $iIdPos = StringInStr($sHeader, "Id")
-                Local $iVerPos = StringInStr($sHeader, "Version")
-                Local $iMatchPos = StringInStr($sHeader, "Match")
-                Local $iSourcePos = StringInStr($sHeader, "Source")
-
-                Local $iNextPos = -1
-                If $iMatchPos > $iVerPos Then $iNextPos = $iMatchPos
-                If $iSourcePos > $iVerPos And ($iNextPos = -1 Or $iSourcePos < $iNextPos) Then $iNextPos = $iSourcePos
-
-                For $j = $iSepLine + 1 To $aLines[0]
-                    Local $sLine = $aLines[$j]
-                    If StringStripWS($sLine, 3) = "" Then ContinueLoop
-
-                    Local $sName = "", $sId = "", $sVer = ""
-                    If $iIdPos > 1 Then
-                        $sName = StringStripWS(StringMid($sLine, 1, $iIdPos - 1), 3)
-                        If $iVerPos > $iIdPos Then
-                            $sId = StringStripWS(StringMid($sLine, $iIdPos, $iVerPos - $iIdPos), 3)
-                        Else
-                            $sId = StringStripWS(StringMid($sLine, $iIdPos), 3)
-                        EndIf
-
-                        If $iNextPos > $iVerPos Then
-                            $sVer = StringStripWS(StringMid($sLine, $iVerPos, $iNextPos - $iVerPos), 3)
-                        ElseIf $iVerPos > 0 Then
-                            $sVer = StringStripWS(StringMid($sLine, $iVerPos), 3)
-                        EndIf
-                    EndIf
-
-                    If $sId = "" Then
-                        Local $aParts = StringRegExp($sLine, '^(.+?)\s+([^\s]+)\s+([^\s]+)', 1)
-                        If Not @error And UBound($aParts) >= 3 Then
-                            $sName = StringStripWS($aParts[0], 3)
-                            $sId = StringStripWS($aParts[1], 3)
-                            $sVer = StringStripWS($aParts[2], 3)
-                        EndIf
-                    EndIf
-
-                    If $sId <> "" And $sName <> "" Then
-                        Local $sDesc = ""
-                        Local $sVersions = "Latest"
-                        If $sVer <> "" And $sVer <> "Unknown" Then $sVersions &= "|" & $sVer
-
-                        For $c = 0 To UBound($aCatalog, 1) - 1
-                            If StringCompare($aCatalog[$c][1], $sId, 1) = 0 Or StringCompare($aCatalog[$c][0], $sName, 1) = 0 Then
-                                $sDesc = $aCatalog[$c][3]
-                                $sVersions = $aCatalog[$c][4]
-                                ExitLoop
-                            EndIf
-                        Next
-
-                        If $sDesc = "" Then
-                            $sDesc = StringFormat(i18nGet("apps.online.desc.winget", "%s package from winget repository"), $sName)
-                        EndIf
-
-                        Local $iNewIdx = UBound($aResults, 1)
-                        ReDim $aResults[$iNewIdx + 1][5]
-                        $aResults[$iNewIdx][0] = $sName
-                        $aResults[$iNewIdx][1] = $sId
-                        $aResults[$iNewIdx][2] = "winget"
-                        $aResults[$iNewIdx][3] = $sDesc
-                        $aResults[$iNewIdx][4] = $sVersions
-                    EndIf
-                Next
-            EndIf
-        EndIf
-    EndIf
-    If FileExists($sWingetOut) Then FileDelete($sWingetOut)
-
-    ; ----------------------------------------------------
-    ; 2. Query Chocolatey Repository (tools/Chocolatey/choco.exe)
-    ; ----------------------------------------------------
-    Local $sChocoExe = _GetChocoPath()
-    If FileExists($sChocoExe) Then
-        Local $sChocoDir = StringLeft($sChocoExe, StringInStr($sChocoExe, "\", 0, -1) - 1)
-        EnvSet("ChocolateyInstall", $sChocoDir)
-
-        Local $sChocoOut = @TempDir & "\choco_search_" & @AutoItPID & ".txt"
-        If FileExists($sChocoOut) Then FileDelete($sChocoOut)
-
-        Local $iChocoExit = RunWait(@ComSpec & ' /c chcp 65001 >nul & "' & $sChocoExe & '" search "' & $sQuery & '" --limit-output > "' & $sChocoOut & '"', $sChocoDir, @SW_HIDE)
-        If $iChocoExit = 0 And FileExists($sChocoOut) Then
-            Local $hChocoFile = FileOpen($sChocoOut, BitOR($FO_READ, $FO_UTF8_NOBOM))
-            If $hChocoFile <> -1 Then
-                Local $sChocoText = FileRead($hChocoFile)
-                FileClose($hChocoFile)
-                FileDelete($sChocoOut)
-
-                Local $aChocoLines = StringSplit(StringStripCR($sChocoText), @LF)
-                For $c = 1 To $aChocoLines[0]
-                    Local $sCLine = StringStripWS($aChocoLines[$c], 3)
-                    If $sCLine = "" Or StringInStr($sCLine, "Directory '") Or StringInStr($sCLine, "Chocolatey v") Then ContinueLoop
-
-                    If StringInStr($sCLine, "|") Then
-                        Local $aCParts = StringSplit($sCLine, "|")
-                        If $aCParts[0] >= 2 Then
-                            Local $sCId = StringStripWS($aCParts[1], 3)
-                            Local $sCVer = StringStripWS($aCParts[2], 3)
-                            Local $sCName = $sCId
-
-                            Local $sCDesc = ""
-                            Local $sCVers = "Latest|" & $sCVer
-
-                            For $cat = 0 To UBound($aCatalog, 1) - 1
-                                If StringCompare($aCatalog[$cat][1], $sCId, 1) = 0 Then
-                                    $sCName = $aCatalog[$cat][0]
-                                    $sCDesc = $aCatalog[$cat][3]
-                                    $sCVers = $aCatalog[$cat][4]
-                                    ExitLoop
-                                EndIf
-                            Next
-
-                            If $sCDesc = "" Then
-                                $sCDesc = StringFormat(i18nGet("apps.online.desc.choco", "%s package from Chocolatey repository"), $sCName)
-                            EndIf
-
-                            Local $iCIdx = UBound($aResults, 1)
-                            ReDim $aResults[$iCIdx + 1][5]
-                            $aResults[$iCIdx][0] = $sCName
-                            $aResults[$iCIdx][1] = $sCId
-                            $aResults[$iCIdx][2] = "choco"
-                            $aResults[$iCIdx][3] = $sCDesc
-                            $aResults[$iCIdx][4] = $sCVers
-                        EndIf
-                    EndIf
-                Next
-            EndIf
-        EndIf
-        If FileExists($sChocoOut) Then FileDelete($sChocoOut)
-    EndIf
-
-    ; If search gave results, return them
-    If UBound($aResults, 1) > 0 Then Return $aResults
-
-    ; Fallback Catalog matching
-    For $k = 0 To UBound($aCatalog, 1) - 1
-        If StringInStr($aCatalog[$k][0], $sQuery) > 0 Or StringInStr($aCatalog[$k][1], $sQuery) > 0 Then
-            Local $iCur = UBound($aResults, 1)
-            ReDim $aResults[$iCur + 1][5]
-            $aResults[$iCur][0] = $aCatalog[$k][0]
-            $aResults[$iCur][1] = $aCatalog[$k][1]
-            $aResults[$iCur][2] = $aCatalog[$k][2]
-            $aResults[$iCur][3] = $aCatalog[$k][3]
-            $aResults[$iCur][4] = $aCatalog[$k][4]
-        EndIf
-    Next
-
-    Return $aResults
-EndFunc
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Add App Dialog (Modal, 400x300)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -1240,7 +946,7 @@ Func _ViewAppsShowAddDialog()
     ; Group 1: Search & Selection
     Local $idSearchGroup = GUICtrlCreateGroup(i18nGet("apps.dialog.group.search", "Search Apps"), 12, 10, 536, 205)
     Local $idNameInput = GUICtrlCreateInput("", 24, 34, 406, 24)
-    _SetCueBannerW($idNameInput, i18nGet("apps.dialog.appname.placeholder", "App Name"), True)
+    controlSetCueBanner($idNameInput, i18nGet("apps.dialog.appname.placeholder", "App Name"), True)
     GUICtrlSetTip($idNameInput, i18nGet("apps.dialog.appname.tip", "Enter app name to search in winget repository"))
 
     Local $idSearchBtn = GUICtrlCreateButton(i18nGet("apps.dialog.btn.search", "Search"), 438, 34, 98, 24, $BS_DEFPUSHBUTTON)
@@ -1369,7 +1075,7 @@ Func _ViewAppsShowAddDialog()
                 _GUICtrlListView_DeleteAllItems(GUICtrlGetHandle($idResultsList))
                 $sLastSelIndices = "-1"
                 $sCurSelectedId = ""
-                $aCurSearchResults = _ViewAppsSearchPackages($sQ)
+                $aCurSearchResults = appsSearchPackages($sQ)
                 If UBound($aCurSearchResults, 1) > 0 Then
                     For $k = 0 To UBound($aCurSearchResults, 1) - 1
                         Local $iRow = _GUICtrlListView_AddItem(GUICtrlGetHandle($idResultsList), $aCurSearchResults[$k][0])
@@ -1827,7 +1533,7 @@ Func viewAppsApplyLang()
         Local $iRowCounter = 0
         For $j = 1 To UBound($aApps, 1) - 1
             If $aApps[$j][0] = "Fonts" Then ContinueLoop
-            Local $sDesc = _AppsGetAppDesc($aApps[$j][0], $aApps[$j][2])
+            Local $sDesc = appsGetAppDesc($aApps[$j][0], $aApps[$j][2])
             _GUICtrlListView_SetItemText($hViewAppsTable, $iRowCounter, $sDesc, 1)
             $iRowCounter += 1
         Next

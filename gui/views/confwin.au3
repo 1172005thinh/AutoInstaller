@@ -25,6 +25,8 @@
 #include "../modules/theme.au3"
 #include "../modules/config.au3"
 #include "../modules/scroll.au3"
+#include "../modules/dialog.au3"
+#include "../modules/confwin.au3"
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Global View Controls & State
@@ -108,26 +110,11 @@ Global $idViewConfwinLogPathInput = 0
 Global $idViewConfwinLogBrowseBtn = 0
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; Helper Functions & Path Resolution
+; Helper Functions
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-Func _GetConfwinConfigPath()
-    If FileExists(@ScriptDir & "\confwin\config.ini") Then Return @ScriptDir & "\confwin\config.ini"
-    If FileExists(@ScriptDir & "\config.ini") Then Return @ScriptDir & "\config.ini"
-    Return @ScriptDir & "\confwin\config.ini"
-EndFunc
-
 Func _ViewConfwinBrowseLogPath()
-    Local $sCurPath = GUICtrlRead($idViewConfwinLogPathInput)
-    Local $sInitDir = $sCurPath
-    If StringInStr($sInitDir, "\") Then
-        $sInitDir = StringLeft($sInitDir, StringInStr($sInitDir, "\", 0, -1))
-    EndIf
-    Local $sSelected = FileSelectFolder(i18nGet("confwin.dialog.browse.title", "Select Log Folder"), $sInitDir)
-    If Not @error And $sSelected <> "" Then
-        If StringRight($sSelected, 1) <> "\" Then $sSelected &= "\"
-        GUICtrlSetData($idViewConfwinLogPathInput, $sSelected & "confwin.log")
-    EndIf
+    dialogBrowseLogPath($idViewConfwinLogPathInput, "confwin.log", "confwin.dialog.browse.title", "Select Log Folder")
 EndFunc
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -386,111 +373,57 @@ Func _ViewConfwinApplyPreset($iMode)
     GUICtrlSetData($idViewConfwinModeSlider, $iMode)
 
     Local $iState = ($iMode = 0) ? $GUI_DISABLE : $GUI_ENABLE
-
-    ; Enable/disable all controls based on mode
     _ViewConfwinSetControlsState($iState)
 
+    Local $oD = confwinGetPresetValues($iMode)
+    If IsObj($oD) And $oD.Count > 0 Then
+        ; Explorer
+        GUICtrlSetState($idViewConfwinShowExtCkbx, $oD.Item("show_extensions") ? $GUI_CHECKED : $GUI_UNCHECKED)
+        GUICtrlSetData($idViewConfwinLaunchToCmb, $oD.Item("launch_to"))
+        GUICtrlSetData($idViewConfwinHiddenItemsCmb, $oD.Item("hidden_items"))
+
+        ; Taskbar
+        GUICtrlSetData($idViewConfwinAlignCmb, $oD.Item("alignment"))
+        GUICtrlSetState($idViewConfwinEndTaskCkbx, $oD.Item("end_task") ? $GUI_CHECKED : $GUI_UNCHECKED)
+        GUICtrlSetData($idViewConfwinSearchModeCmb, $oD.Item("search_mode"))
+        GUICtrlSetState($idViewConfwinWidgetsCkbx, $oD.Item("widgets") ? $GUI_CHECKED : $GUI_UNCHECKED)
+        GUICtrlSetState($idViewConfwinTaskviewCkbx, $oD.Item("taskview") ? $GUI_CHECKED : $GUI_UNCHECKED)
+        GUICtrlSetState($idViewConfwinUnpinDefaultsCkbx, $oD.Item("unpin_defaults") ? $GUI_CHECKED : $GUI_UNCHECKED)
+
+        ; Start Menu
+        GUICtrlSetState($idViewConfwinDisableBingCkbx, $oD.Item("disable_bing_search") ? $GUI_CHECKED : $GUI_UNCHECKED)
+        GUICtrlSetState($idViewConfwinRemoveStartPinsCkbx, $oD.Item("remove_default_pins") ? $GUI_CHECKED : $GUI_UNCHECKED)
+        GUICtrlSetData($idViewConfwinFoldersInput, $oD.Item("folders"))
+
+        ; Desktop & Control Panel
+        GUICtrlSetData($idViewConfwinDeskIconsInput, $oD.Item("icons"))
+        GUICtrlSetData($idViewConfwinDeskSortCmb, $oD.Item("sort"))
+        GUICtrlSetData($idViewConfwinCPanelViewCmb, $oD.Item("view"))
+
+        ; System
+        GUICtrlSetState($idViewConfwinClipboardCkbx, $oD.Item("clipboard_history") ? $GUI_CHECKED : $GUI_UNCHECKED)
+        GUICtrlSetState($idViewConfwinStickyKeysCkbx, $oD.Item("sticky_keys") ? $GUI_CHECKED : $GUI_UNCHECKED)
+        GUICtrlSetState($idViewConfwinEdgeFirstRunCkbx, $oD.Item("hide_edge_first_run") ? $GUI_CHECKED : $GUI_UNCHECKED)
+        GUICtrlSetState($idViewConfwinLongPathsCkbx, $oD.Item("enable_long_paths") ? $GUI_CHECKED : $GUI_UNCHECKED)
+        GUICtrlSetData($idViewConfwinSudoModeCmb, $oD.Item("sudo_mode"))
+        GUICtrlSetState($idViewConfwinPsScriptsCkbx, $oD.Item("allow_powershell_scripts") ? $GUI_CHECKED : $GUI_UNCHECKED)
+        GUICtrlSetState($idViewConfwinRdpCkbx, $oD.Item("enable_rdp") ? $GUI_CHECKED : $GUI_UNCHECKED)
+        GUICtrlSetState($idViewConfwinSmartScreenCkbx, $oD.Item("disable_smart_app_control") ? $GUI_CHECKED : $GUI_UNCHECKED)
+        GUICtrlSetState($idViewConfwinWinOldCkbx, $oD.Item("delete_windows_old") ? $GUI_CHECKED : $GUI_UNCHECKED)
+
+        ; Wallpapers
+        GUICtrlSetData($idViewConfwinWallDeskInput, $oD.Item("wallpaper_desktop"))
+        GUICtrlSetData($idViewConfwinWallLockInput, $oD.Item("wallpaper_lockscreen"))
+    EndIf
+
     Switch $iMode
-        Case 0 ; Disabled
+        Case 0
             appSetStatus(i18nGet("status.title", "Status: ") & i18nGet("confwin.mode.status.disabled", "Personalization mode: Disabled"))
-            ; Clear/uncheck all
-            GUICtrlSetState($idViewConfwinShowExtCkbx, $GUI_UNCHECKED)
-            GUICtrlSetState($idViewConfwinEndTaskCkbx, $GUI_UNCHECKED)
-            GUICtrlSetState($idViewConfwinWidgetsCkbx, $GUI_UNCHECKED)
-            GUICtrlSetState($idViewConfwinTaskviewCkbx, $GUI_UNCHECKED)
-            GUICtrlSetState($idViewConfwinUnpinDefaultsCkbx, $GUI_UNCHECKED)
-            GUICtrlSetState($idViewConfwinDisableBingCkbx, $GUI_UNCHECKED)
-            GUICtrlSetState($idViewConfwinRemoveStartPinsCkbx, $GUI_UNCHECKED)
-            GUICtrlSetState($idViewConfwinClipboardCkbx, $GUI_UNCHECKED)
-            GUICtrlSetState($idViewConfwinStickyKeysCkbx, $GUI_UNCHECKED)
-            GUICtrlSetState($idViewConfwinEdgeFirstRunCkbx, $GUI_UNCHECKED)
-            GUICtrlSetState($idViewConfwinLongPathsCkbx, $GUI_UNCHECKED)
-            GUICtrlSetState($idViewConfwinPsScriptsCkbx, $GUI_UNCHECKED)
-            GUICtrlSetState($idViewConfwinRdpCkbx, $GUI_UNCHECKED)
-            GUICtrlSetState($idViewConfwinSmartScreenCkbx, $GUI_UNCHECKED)
-            GUICtrlSetState($idViewConfwinWinOldCkbx, $GUI_UNCHECKED)
-
-        Case 1 ; Basic Mode (Standard daily-driver quality of life)
+        Case 1
             appSetStatus(i18nGet("status.title", "Status: ") & i18nGet("confwin.mode.status.basic", "Personalization mode: Basic (standard daily-driver tweaks)"))
-            ; Explorer
-            GUICtrlSetState($idViewConfwinShowExtCkbx, $GUI_CHECKED)
-            GUICtrlSetData($idViewConfwinLaunchToCmb, "ThisPC")
-            GUICtrlSetData($idViewConfwinHiddenItemsCmb, "HideAll")
-
-            ; Taskbar
-            GUICtrlSetData($idViewConfwinAlignCmb, "Left")
-            GUICtrlSetState($idViewConfwinEndTaskCkbx, $GUI_CHECKED)
-            GUICtrlSetData($idViewConfwinSearchModeCmb, "Icon")
-            GUICtrlSetState($idViewConfwinWidgetsCkbx, $GUI_UNCHECKED)
-            GUICtrlSetState($idViewConfwinTaskviewCkbx, $GUI_UNCHECKED)
-            GUICtrlSetState($idViewConfwinUnpinDefaultsCkbx, $GUI_UNCHECKED)
-
-            ; Start Menu
-            GUICtrlSetState($idViewConfwinDisableBingCkbx, $GUI_CHECKED)
-            GUICtrlSetState($idViewConfwinRemoveStartPinsCkbx, $GUI_UNCHECKED)
-            GUICtrlSetData($idViewConfwinFoldersInput, "Settings, File Explorer")
-
-            ; Desktop & Control Panel
-            GUICtrlSetData($idViewConfwinDeskIconsInput, "This PC, Recycle Bin")
-            GUICtrlSetData($idViewConfwinDeskSortCmb, "None")
-            GUICtrlSetData($idViewConfwinCPanelViewCmb, "Large")
-
-            ; System
-            GUICtrlSetState($idViewConfwinClipboardCkbx, $GUI_CHECKED)
-            GUICtrlSetState($idViewConfwinStickyKeysCkbx, $GUI_UNCHECKED)
-            GUICtrlSetState($idViewConfwinEdgeFirstRunCkbx, $GUI_CHECKED)
-            GUICtrlSetState($idViewConfwinLongPathsCkbx, $GUI_UNCHECKED)
-            GUICtrlSetData($idViewConfwinSudoModeCmb, "Inline")
-            GUICtrlSetState($idViewConfwinPsScriptsCkbx, $GUI_UNCHECKED)
-            GUICtrlSetState($idViewConfwinRdpCkbx, $GUI_UNCHECKED)
-            GUICtrlSetState($idViewConfwinSmartScreenCkbx, $GUI_UNCHECKED)
-            GUICtrlSetState($idViewConfwinWinOldCkbx, $GUI_UNCHECKED)
-
-            ; Wallpapers
-            GUICtrlSetData($idViewConfwinWallDeskInput, "Default")
-            GUICtrlSetData($idViewConfwinWallLockInput, "Default")
-
-        Case 2 ; Advanced Mode (Full developer and power-user optimizations)
+        Case 2
             appSetStatus(i18nGet("status.title", "Status: ") & i18nGet("confwin.mode.status.advanced", "Personalization mode: Advanced (power-user & developer tweaks)"))
-            ; Explorer
-            GUICtrlSetState($idViewConfwinShowExtCkbx, $GUI_CHECKED)
-            GUICtrlSetData($idViewConfwinLaunchToCmb, "ThisPC")
-            GUICtrlSetData($idViewConfwinHiddenItemsCmb, "Show")
-
-            ; Taskbar
-            GUICtrlSetData($idViewConfwinAlignCmb, "Left")
-            GUICtrlSetState($idViewConfwinEndTaskCkbx, $GUI_CHECKED)
-            GUICtrlSetData($idViewConfwinSearchModeCmb, "Hide")
-            GUICtrlSetState($idViewConfwinWidgetsCkbx, $GUI_UNCHECKED)
-            GUICtrlSetState($idViewConfwinTaskviewCkbx, $GUI_UNCHECKED)
-            GUICtrlSetState($idViewConfwinUnpinDefaultsCkbx, $GUI_CHECKED)
-
-            ; Start Menu
-            GUICtrlSetState($idViewConfwinDisableBingCkbx, $GUI_CHECKED)
-            GUICtrlSetState($idViewConfwinRemoveStartPinsCkbx, $GUI_CHECKED)
-            GUICtrlSetData($idViewConfwinFoldersInput, "Settings, File Explorer, Downloads")
-
-            ; Desktop & Control Panel
-            GUICtrlSetData($idViewConfwinDeskIconsInput, "This PC, Recycle Bin, Control Panel")
-            GUICtrlSetData($idViewConfwinDeskSortCmb, "ItemType")
-            GUICtrlSetData($idViewConfwinCPanelViewCmb, "Large")
-
-            ; System
-            GUICtrlSetState($idViewConfwinClipboardCkbx, $GUI_CHECKED)
-            GUICtrlSetState($idViewConfwinStickyKeysCkbx, $GUI_UNCHECKED)
-            GUICtrlSetState($idViewConfwinEdgeFirstRunCkbx, $GUI_CHECKED)
-            GUICtrlSetState($idViewConfwinLongPathsCkbx, $GUI_CHECKED)
-            GUICtrlSetData($idViewConfwinSudoModeCmb, "Inline")
-            GUICtrlSetState($idViewConfwinPsScriptsCkbx, $GUI_CHECKED)
-            GUICtrlSetState($idViewConfwinRdpCkbx, $GUI_CHECKED)
-            GUICtrlSetState($idViewConfwinSmartScreenCkbx, $GUI_CHECKED)
-            GUICtrlSetState($idViewConfwinWinOldCkbx, $GUI_CHECKED)
-
-            ; Wallpapers
-            GUICtrlSetData($idViewConfwinWallDeskInput, "Default")
-            GUICtrlSetData($idViewConfwinWallLockInput, "Default")
-
-        Case 3 ; Custom
+        Case 3
             appSetStatus(i18nGet("status.title", "Status: ") & i18nGet("confwin.mode.status.custom", "Personalization mode: Custom (user customized settings)"))
     EndSwitch
 
@@ -566,119 +499,107 @@ EndFunc
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 Func viewConfwinLoadData($sCustomFile = "")
-    Local $sConfig = ($sCustomFile <> "" And FileExists($sCustomFile)) ? $sCustomFile : _GetConfwinConfigPath()
-    If Not FileExists($sConfig) Then
+    Local $oD = confwinLoadConfigData($sCustomFile)
+    If Not IsObj($oD) Then
         _ViewConfwinApplyPreset(1)
         Return False
     EndIf
 
     $g_bViewConfwinInitializing = True
-    Local $iMode = Int(IniRead($sConfig, "Configuration", "mode", "1"))
+    Local $iMode = $oD.Item("mode")
     $g_iViewConfwinCurMode = $iMode
     GUICtrlSetData($idViewConfwinModeSlider, $iMode)
-
-    Local $sLogPath = IniRead($sConfig, "Configuration", "log_path", "C:\AutoInstaller\confwin.log")
-    GUICtrlSetData($idViewConfwinLogPathInput, $sLogPath)
+    GUICtrlSetData($idViewConfwinLogPathInput, $oD.Item("log_path"))
 
     Local $iState = ($iMode = 0) ? $GUI_DISABLE : $GUI_ENABLE
     _ViewConfwinSetControlsState($iState)
 
     ; Explorer
-    GUICtrlSetState($idViewConfwinShowExtCkbx, (StringLower(IniRead($sConfig, "explorer", "show_extensions", "true")) = "true") ? $GUI_CHECKED : $GUI_UNCHECKED)
-    GUICtrlSetData($idViewConfwinLaunchToCmb, IniRead($sConfig, "explorer", "launch_to", "ThisPC"))
-    GUICtrlSetData($idViewConfwinHiddenItemsCmb, IniRead($sConfig, "explorer", "hidden_items", "HideAll"))
+    GUICtrlSetState($idViewConfwinShowExtCkbx, $oD.Item("show_extensions") ? $GUI_CHECKED : $GUI_UNCHECKED)
+    GUICtrlSetData($idViewConfwinLaunchToCmb, $oD.Item("launch_to"))
+    GUICtrlSetData($idViewConfwinHiddenItemsCmb, $oD.Item("hidden_items"))
 
     ; Taskbar
-    GUICtrlSetData($idViewConfwinAlignCmb, IniRead($sConfig, "taskbar", "alignment", "Left"))
-    GUICtrlSetState($idViewConfwinEndTaskCkbx, (StringLower(IniRead($sConfig, "taskbar", "end_task", "true")) = "true") ? $GUI_CHECKED : $GUI_UNCHECKED)
-    GUICtrlSetData($idViewConfwinSearchModeCmb, IniRead($sConfig, "taskbar", "search_mode", "Icon"))
-    GUICtrlSetState($idViewConfwinWidgetsCkbx, (StringLower(IniRead($sConfig, "taskbar", "widgets", "false")) = "true") ? $GUI_CHECKED : $GUI_UNCHECKED)
-    GUICtrlSetState($idViewConfwinTaskviewCkbx, (StringLower(IniRead($sConfig, "taskbar", "taskview", "Hide")) = "show") ? $GUI_CHECKED : $GUI_UNCHECKED)
-    GUICtrlSetState($idViewConfwinUnpinDefaultsCkbx, (StringLower(IniRead($sConfig, "taskbar", "unpin_defaults", "false")) = "true") ? $GUI_CHECKED : $GUI_UNCHECKED)
+    GUICtrlSetData($idViewConfwinAlignCmb, $oD.Item("alignment"))
+    GUICtrlSetState($idViewConfwinEndTaskCkbx, $oD.Item("end_task") ? $GUI_CHECKED : $GUI_UNCHECKED)
+    GUICtrlSetData($idViewConfwinSearchModeCmb, $oD.Item("search_mode"))
+    GUICtrlSetState($idViewConfwinWidgetsCkbx, $oD.Item("widgets") ? $GUI_CHECKED : $GUI_UNCHECKED)
+    GUICtrlSetState($idViewConfwinTaskviewCkbx, $oD.Item("taskview") ? $GUI_CHECKED : $GUI_UNCHECKED)
+    GUICtrlSetState($idViewConfwinUnpinDefaultsCkbx, $oD.Item("unpin_defaults") ? $GUI_CHECKED : $GUI_UNCHECKED)
 
     ; Start Menu
-    GUICtrlSetState($idViewConfwinDisableBingCkbx, (StringLower(IniRead($sConfig, "start_menu", "disable_bing_search", "true")) = "true") ? $GUI_CHECKED : $GUI_UNCHECKED)
-    GUICtrlSetState($idViewConfwinRemoveStartPinsCkbx, (StringLower(IniRead($sConfig, "start_menu", "remove_default_pins", "false")) = "true") ? $GUI_CHECKED : $GUI_UNCHECKED)
-    GUICtrlSetData($idViewConfwinFoldersInput, IniRead($sConfig, "start_menu", "folders", "Settings, File Explorer"))
+    GUICtrlSetState($idViewConfwinDisableBingCkbx, $oD.Item("disable_bing_search") ? $GUI_CHECKED : $GUI_UNCHECKED)
+    GUICtrlSetState($idViewConfwinRemoveStartPinsCkbx, $oD.Item("remove_default_pins") ? $GUI_CHECKED : $GUI_UNCHECKED)
+    GUICtrlSetData($idViewConfwinFoldersInput, $oD.Item("folders"))
 
     ; Desktop & Control Panel
-    GUICtrlSetData($idViewConfwinDeskIconsInput, IniRead($sConfig, "desktop", "icons", "This PC, Recycle Bin"))
-    GUICtrlSetData($idViewConfwinDeskSortCmb, IniRead($sConfig, "desktop", "sort", "None"))
-    GUICtrlSetData($idViewConfwinCPanelViewCmb, IniRead($sConfig, "control_panel", "view", "Large"))
+    GUICtrlSetData($idViewConfwinDeskIconsInput, $oD.Item("icons"))
+    GUICtrlSetData($idViewConfwinDeskSortCmb, $oD.Item("sort"))
+    GUICtrlSetData($idViewConfwinCPanelViewCmb, $oD.Item("view"))
 
     ; System
-    GUICtrlSetState($idViewConfwinClipboardCkbx, (StringLower(IniRead($sConfig, "system", "clipboard_history", "true")) = "true") ? $GUI_CHECKED : $GUI_UNCHECKED)
-    GUICtrlSetState($idViewConfwinStickyKeysCkbx, (StringLower(IniRead($sConfig, "system", "sticky_keys", "false")) = "true") ? $GUI_CHECKED : $GUI_UNCHECKED)
-    GUICtrlSetState($idViewConfwinEdgeFirstRunCkbx, (StringLower(IniRead($sConfig, "system", "hide_edge_first_run", "true")) = "true") ? $GUI_CHECKED : $GUI_UNCHECKED)
-    GUICtrlSetState($idViewConfwinLongPathsCkbx, (StringLower(IniRead($sConfig, "system", "enable_long_paths", "false")) = "true") ? $GUI_CHECKED : $GUI_UNCHECKED)
-    GUICtrlSetData($idViewConfwinSudoModeCmb, IniRead($sConfig, "system", "sudo_mode", "Inline"))
-    GUICtrlSetState($idViewConfwinPsScriptsCkbx, (StringLower(IniRead($sConfig, "system", "allow_powershell_scripts", "false")) = "true") ? $GUI_CHECKED : $GUI_UNCHECKED)
-    GUICtrlSetState($idViewConfwinRdpCkbx, (StringLower(IniRead($sConfig, "system", "enable_rdp", "false")) = "true") ? $GUI_CHECKED : $GUI_UNCHECKED)
-    GUICtrlSetState($idViewConfwinSmartScreenCkbx, (StringLower(IniRead($sConfig, "system", "disable_smart_app_control", "false")) = "true") ? $GUI_CHECKED : $GUI_UNCHECKED)
-    GUICtrlSetState($idViewConfwinWinOldCkbx, (StringLower(IniRead($sConfig, "system", "delete_windows_old", "false")) = "true") ? $GUI_CHECKED : $GUI_UNCHECKED)
+    GUICtrlSetState($idViewConfwinClipboardCkbx, $oD.Item("clipboard_history") ? $GUI_CHECKED : $GUI_UNCHECKED)
+    GUICtrlSetState($idViewConfwinStickyKeysCkbx, $oD.Item("sticky_keys") ? $GUI_CHECKED : $GUI_UNCHECKED)
+    GUICtrlSetState($idViewConfwinEdgeFirstRunCkbx, $oD.Item("hide_edge_first_run") ? $GUI_CHECKED : $GUI_UNCHECKED)
+    GUICtrlSetState($idViewConfwinLongPathsCkbx, $oD.Item("enable_long_paths") ? $GUI_CHECKED : $GUI_UNCHECKED)
+    GUICtrlSetData($idViewConfwinSudoModeCmb, $oD.Item("sudo_mode"))
+    GUICtrlSetState($idViewConfwinPsScriptsCkbx, $oD.Item("allow_powershell_scripts") ? $GUI_CHECKED : $GUI_UNCHECKED)
+    GUICtrlSetState($idViewConfwinRdpCkbx, $oD.Item("enable_rdp") ? $GUI_CHECKED : $GUI_UNCHECKED)
+    GUICtrlSetState($idViewConfwinSmartScreenCkbx, $oD.Item("disable_smart_app_control") ? $GUI_CHECKED : $GUI_UNCHECKED)
+    GUICtrlSetState($idViewConfwinWinOldCkbx, $oD.Item("delete_windows_old") ? $GUI_CHECKED : $GUI_UNCHECKED)
 
     ; Wallpapers
-    GUICtrlSetData($idViewConfwinWallDeskInput, IniRead($sConfig, "wallpaper", "desktop", "Default"))
-    GUICtrlSetData($idViewConfwinWallLockInput, IniRead($sConfig, "wallpaper", "lockscreen", "Default"))
+    GUICtrlSetData($idViewConfwinWallDeskInput, $oD.Item("wallpaper_desktop"))
+    GUICtrlSetData($idViewConfwinWallLockInput, $oD.Item("wallpaper_lockscreen"))
 
     $g_bViewConfwinInitializing = False
     Return True
 EndFunc
 
 Func viewConfwinSaveData($sCustomFile = "")
-    Local $sBaseConfig = _GetConfwinConfigPath()
-    Local $sConfig = $sBaseConfig
-    If $sCustomFile <> "" Then
-        $sConfig = $sCustomFile
-        If Not FileExists($sConfig) And FileExists($sBaseConfig) Then
-            FileCopy($sBaseConfig, $sConfig, $FC_OVERWRITE)
-        EndIf
-    EndIf
-
-    Local $sDir = StringLeft($sConfig, StringInStr($sConfig, "\", 0, -1) - 1)
-    If $sDir <> "" And Not FileExists($sDir) Then DirCreate($sDir)
-
-    IniWrite($sConfig, "Configuration", "mode", String($g_iViewConfwinCurMode))
-    IniWrite($sConfig, "Configuration", "log_path", GUICtrlRead($idViewConfwinLogPathInput))
+    Local $oD = ObjCreate("Scripting.Dictionary")
+    $oD.Item("mode") = $g_iViewConfwinCurMode
+    $oD.Item("log_path") = GUICtrlRead($idViewConfwinLogPathInput)
 
     ; Explorer
-    IniWrite($sConfig, "explorer", "show_extensions", (GUICtrlRead($idViewConfwinShowExtCkbx) = $GUI_CHECKED) ? "true" : "false")
-    IniWrite($sConfig, "explorer", "launch_to", GUICtrlRead($idViewConfwinLaunchToCmb))
-    IniWrite($sConfig, "explorer", "hidden_items", GUICtrlRead($idViewConfwinHiddenItemsCmb))
+    $oD.Item("show_extensions") = (GUICtrlRead($idViewConfwinShowExtCkbx) = $GUI_CHECKED)
+    $oD.Item("launch_to") = GUICtrlRead($idViewConfwinLaunchToCmb)
+    $oD.Item("hidden_items") = GUICtrlRead($idViewConfwinHiddenItemsCmb)
 
     ; Taskbar
-    IniWrite($sConfig, "taskbar", "alignment", GUICtrlRead($idViewConfwinAlignCmb))
-    IniWrite($sConfig, "taskbar", "end_task", (GUICtrlRead($idViewConfwinEndTaskCkbx) = $GUI_CHECKED) ? "true" : "false")
-    IniWrite($sConfig, "taskbar", "search_mode", GUICtrlRead($idViewConfwinSearchModeCmb))
-    IniWrite($sConfig, "taskbar", "widgets", (GUICtrlRead($idViewConfwinWidgetsCkbx) = $GUI_CHECKED) ? "true" : "false")
-    IniWrite($sConfig, "taskbar", "taskview", (GUICtrlRead($idViewConfwinTaskviewCkbx) = $GUI_CHECKED) ? "Show" : "Hide")
-    IniWrite($sConfig, "taskbar", "unpin_defaults", (GUICtrlRead($idViewConfwinUnpinDefaultsCkbx) = $GUI_CHECKED) ? "true" : "false")
+    $oD.Item("alignment") = GUICtrlRead($idViewConfwinAlignCmb)
+    $oD.Item("end_task") = (GUICtrlRead($idViewConfwinEndTaskCkbx) = $GUI_CHECKED)
+    $oD.Item("search_mode") = GUICtrlRead($idViewConfwinSearchModeCmb)
+    $oD.Item("widgets") = (GUICtrlRead($idViewConfwinWidgetsCkbx) = $GUI_CHECKED)
+    $oD.Item("taskview") = (GUICtrlRead($idViewConfwinTaskviewCkbx) = $GUI_CHECKED)
+    $oD.Item("unpin_defaults") = (GUICtrlRead($idViewConfwinUnpinDefaultsCkbx) = $GUI_CHECKED)
 
     ; Start Menu
-    IniWrite($sConfig, "start_menu", "disable_bing_search", (GUICtrlRead($idViewConfwinDisableBingCkbx) = $GUI_CHECKED) ? "true" : "false")
-    IniWrite($sConfig, "start_menu", "remove_default_pins", (GUICtrlRead($idViewConfwinRemoveStartPinsCkbx) = $GUI_CHECKED) ? "true" : "false")
-    IniWrite($sConfig, "start_menu", "folders", GUICtrlRead($idViewConfwinFoldersInput))
+    $oD.Item("disable_bing_search") = (GUICtrlRead($idViewConfwinDisableBingCkbx) = $GUI_CHECKED)
+    $oD.Item("remove_default_pins") = (GUICtrlRead($idViewConfwinRemoveStartPinsCkbx) = $GUI_CHECKED)
+    $oD.Item("folders") = GUICtrlRead($idViewConfwinFoldersInput)
 
     ; Desktop & Control Panel
-    IniWrite($sConfig, "desktop", "icons", GUICtrlRead($idViewConfwinDeskIconsInput))
-    IniWrite($sConfig, "desktop", "sort", GUICtrlRead($idViewConfwinDeskSortCmb))
-    IniWrite($sConfig, "control_panel", "view", GUICtrlRead($idViewConfwinCPanelViewCmb))
+    $oD.Item("icons") = GUICtrlRead($idViewConfwinDeskIconsInput)
+    $oD.Item("sort") = GUICtrlRead($idViewConfwinDeskSortCmb)
+    $oD.Item("view") = GUICtrlRead($idViewConfwinCPanelViewCmb)
 
     ; System
-    IniWrite($sConfig, "system", "clipboard_history", (GUICtrlRead($idViewConfwinClipboardCkbx) = $GUI_CHECKED) ? "true" : "false")
-    IniWrite($sConfig, "system", "sticky_keys", (GUICtrlRead($idViewConfwinStickyKeysCkbx) = $GUI_CHECKED) ? "true" : "false")
-    IniWrite($sConfig, "system", "hide_edge_first_run", (GUICtrlRead($idViewConfwinEdgeFirstRunCkbx) = $GUI_CHECKED) ? "true" : "false")
-    IniWrite($sConfig, "system", "enable_long_paths", (GUICtrlRead($idViewConfwinLongPathsCkbx) = $GUI_CHECKED) ? "true" : "false")
-    IniWrite($sConfig, "system", "sudo_mode", GUICtrlRead($idViewConfwinSudoModeCmb))
-    IniWrite($sConfig, "system", "allow_powershell_scripts", (GUICtrlRead($idViewConfwinPsScriptsCkbx) = $GUI_CHECKED) ? "true" : "false")
-    IniWrite($sConfig, "system", "enable_rdp", (GUICtrlRead($idViewConfwinRdpCkbx) = $GUI_CHECKED) ? "true" : "false")
-    IniWrite($sConfig, "system", "disable_smart_app_control", (GUICtrlRead($idViewConfwinSmartScreenCkbx) = $GUI_CHECKED) ? "true" : "false")
-    IniWrite($sConfig, "system", "delete_windows_old", (GUICtrlRead($idViewConfwinWinOldCkbx) = $GUI_CHECKED) ? "true" : "false")
+    $oD.Item("clipboard_history") = (GUICtrlRead($idViewConfwinClipboardCkbx) = $GUI_CHECKED)
+    $oD.Item("sticky_keys") = (GUICtrlRead($idViewConfwinStickyKeysCkbx) = $GUI_CHECKED)
+    $oD.Item("hide_edge_first_run") = (GUICtrlRead($idViewConfwinEdgeFirstRunCkbx) = $GUI_CHECKED)
+    $oD.Item("enable_long_paths") = (GUICtrlRead($idViewConfwinLongPathsCkbx) = $GUI_CHECKED)
+    $oD.Item("sudo_mode") = GUICtrlRead($idViewConfwinSudoModeCmb)
+    $oD.Item("allow_powershell_scripts") = (GUICtrlRead($idViewConfwinPsScriptsCkbx) = $GUI_CHECKED)
+    $oD.Item("enable_rdp") = (GUICtrlRead($idViewConfwinRdpCkbx) = $GUI_CHECKED)
+    $oD.Item("disable_smart_app_control") = (GUICtrlRead($idViewConfwinSmartScreenCkbx) = $GUI_CHECKED)
+    $oD.Item("delete_windows_old") = (GUICtrlRead($idViewConfwinWinOldCkbx) = $GUI_CHECKED)
 
     ; Wallpapers
-    IniWrite($sConfig, "wallpaper", "desktop", GUICtrlRead($idViewConfwinWallDeskInput))
-    IniWrite($sConfig, "wallpaper", "lockscreen", GUICtrlRead($idViewConfwinWallLockInput))
-    Return True
+    $oD.Item("wallpaper_desktop") = GUICtrlRead($idViewConfwinWallDeskInput)
+    $oD.Item("wallpaper_lockscreen") = GUICtrlRead($idViewConfwinWallLockInput)
+
+    Return confwinSaveConfigData($sCustomFile, $oD)
 EndFunc
 
 Func viewConfwinReset()
@@ -687,8 +608,8 @@ Func viewConfwinReset()
 EndFunc
 
 Func _ViewConfwinImportConfig()
-    Local $sImportFile = FileOpenDialog(i18nGet("confwin.dialog.import.title", "Select Windows configuration to import"), @ScriptDir, i18nGet("confwin.dialog.import.filter", "Configuration files (*.ini)|All files (*.*)"), BitOR($FD_FILEMUSTEXIST, $FD_PATHMUSTEXIST))
-    If Not @error And $sImportFile <> "" Then
+    Local $sImportFile = dialogImportConfig(@ScriptDir, i18nGet("confwin.dialog.import.filter", "Configuration files (*.ini)|All files (*.*)"), "confwin.dialog.import.title", "Select Windows configuration to import")
+    If $sImportFile <> "" Then
         If viewConfwinLoadData($sImportFile) Then
             appSetStatus(i18nGet("status.title", "Status: ") & i18nGet("confwin.status.imported", "Imported Windows configuration successfully"))
         Else
@@ -698,9 +619,8 @@ Func _ViewConfwinImportConfig()
 EndFunc
 
 Func _ViewConfwinExportConfig()
-    Local $sExportFile = FileSaveDialog(i18nGet("confwin.dialog.export.title", "Export Windows configuration"), @ScriptDir, i18nGet("confwin.dialog.export.filter", "Configuration files (*.ini)|All files (*.*)"), $FD_PROMPTOVERWRITE, "config.ini")
-    If Not @error And $sExportFile <> "" Then
-        If Not StringRegExp($sExportFile, '(?i)\.ini$') Then $sExportFile &= ".ini"
+    Local $sExportFile = dialogExportConfig(@ScriptDir, i18nGet("confwin.dialog.export.filter", "Configuration files (*.ini)|All files (*.*)"), "config.ini", ".ini", "confwin.dialog.export.title", "Export Windows configuration")
+    If $sExportFile <> "" Then
         If viewConfwinSaveData($sExportFile) Then
             appSetStatus(i18nGet("status.title", "Status: ") & i18nGet("confwin.status.exported", "Exported Windows configuration successfully"))
         Else
@@ -710,11 +630,7 @@ Func _ViewConfwinExportConfig()
 EndFunc
 
 Func _ViewConfwinOpenConfigFile()
-    Local $sConfig = _GetConfwinConfigPath()
-    If FileExists($sConfig) Then
-        ShellExecute($sConfig)
-        appSetStatus(i18nGet("status.title", "Status: ") & i18nGet("confwin.status.opened", "Opened Windows configuration in editor"))
-    EndIf
+    dialogOpenFileInEditor(confwinGetConfigPath())
 EndFunc
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

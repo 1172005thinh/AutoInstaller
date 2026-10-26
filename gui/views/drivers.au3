@@ -25,6 +25,8 @@
 #include "../modules/theme.au3"
 #include "../modules/config.au3"
 #include "../modules/scroll.au3"
+#include "../modules/dialog.au3"
+#include "../modules/drivers.au3"
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Global View Controls & State
@@ -76,26 +78,11 @@ Global $idViewDriversLogPathInput = 0
 Global $idViewDriversLogBrowseBtn = 0
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; Helper Functions & Path Resolution
+; Helper Functions
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-Func _GetDriversConfigPath()
-    If FileExists(@ScriptDir & "\drivers\config.ini") Then Return @ScriptDir & "\drivers\config.ini"
-    If FileExists(@ScriptDir & "\config.ini") Then Return @ScriptDir & "\config.ini"
-    Return @ScriptDir & "\drivers\config.ini"
-EndFunc
-
 Func _ViewDriversBrowseLogPath()
-    Local $sCurPath = GUICtrlRead($idViewDriversLogPathInput)
-    Local $sInitDir = $sCurPath
-    If StringInStr($sInitDir, "\") Then
-        $sInitDir = StringLeft($sInitDir, StringInStr($sInitDir, "\", 0, -1))
-    EndIf
-    Local $sSelected = FileSelectFolder(i18nGet("drivers.dialog.browse.title", "Select Log Folder"), $sInitDir)
-    If Not @error And $sSelected <> "" Then
-        If StringRight($sSelected, 1) <> "\" Then $sSelected &= "\"
-        GUICtrlSetData($idViewDriversLogPathInput, $sSelected & "drivers.log")
-    EndIf
+    dialogBrowseLogPath($idViewDriversLogPathInput, "drivers.log", "drivers.dialog.browse.title", "Select Log Folder")
 EndFunc
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -356,48 +343,25 @@ EndFunc
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 Func viewDriversLoadData($sCustomFile = "")
-    Local $sConfig = ($sCustomFile <> "" And FileExists($sCustomFile)) ? $sCustomFile : _GetDriversConfigPath()
-    If Not FileExists($sConfig) Then Return False
+    Local $oData = driversLoadConfigData($sCustomFile)
+    If Not IsObj($oData) Then Return False
 
-    Local $iMode = Int(IniRead($sConfig, "Configuration", "mode", "2"))
-    Local $sSource = IniRead($sConfig, "Configuration", "source", "sdio")
-    Local $iWuLevel = Int(IniRead($sConfig, "Configuration", "winupdate_level", "1"))
-    Local $iSdioLevel = Int(IniRead($sConfig, "Configuration", "sdio_level", "1"))
-    Local $sLogPath = IniRead($sConfig, "Configuration", "log_path", "C:\AutoInstaller\drivers.log")
+    $g_iViewDriversCurMode = $oData.Item("mode")
+    $g_sViewDriversCurSource = $oData.Item("source")
+    $g_iViewDriversWinUpdateLevel = $oData.Item("winupdate_level")
+    $g_iViewDriversSDIOLevel = $oData.Item("sdio_level")
 
-    $g_iViewDriversWinUpdateLevel = $iWuLevel
-    GUICtrlSetData($idViewDriversWinUpdateSlider, $iWuLevel)
+    GUICtrlSetData($idViewDriversWinUpdateSlider, $g_iViewDriversWinUpdateLevel)
+    GUICtrlSetData($idViewDriversSDIOSlider, $g_iViewDriversSDIOLevel)
+    GUICtrlSetData($idViewDriversLogPathInput, $oData.Item("log_path"))
 
-    $g_iViewDriversSDIOLevel = $iSdioLevel
-    GUICtrlSetData($idViewDriversSDIOSlider, $iSdioLevel)
-
-    GUICtrlSetData($idViewDriversLogPathInput, $sLogPath)
-
-    $g_sViewDriversCurSource = $sSource
-    _ViewDriversUpdateSourceState($sSource)
-    _ViewDriversUpdateModeState($iMode)
+    _ViewDriversUpdateSourceState($g_sViewDriversCurSource)
+    _ViewDriversUpdateModeState($g_iViewDriversCurMode)
     Return True
 EndFunc
 
 Func viewDriversSaveData($sCustomFile = "")
-    Local $sBaseConfig = _GetDriversConfigPath()
-    Local $sConfig = $sBaseConfig
-    If $sCustomFile <> "" Then
-        $sConfig = $sCustomFile
-        If Not FileExists($sConfig) And FileExists($sBaseConfig) Then
-            FileCopy($sBaseConfig, $sConfig, $FC_OVERWRITE)
-        EndIf
-    EndIf
-
-    Local $sDir = StringLeft($sConfig, StringInStr($sConfig, "\", 0, -1) - 1)
-    If $sDir <> "" And Not FileExists($sDir) Then DirCreate($sDir)
-
-    IniWrite($sConfig, "Configuration", "mode", String($g_iViewDriversCurMode))
-    IniWrite($sConfig, "Configuration", "source", $g_sViewDriversCurSource)
-    IniWrite($sConfig, "Configuration", "winupdate_level", String($g_iViewDriversWinUpdateLevel))
-    IniWrite($sConfig, "Configuration", "sdio_level", String($g_iViewDriversSDIOLevel))
-    IniWrite($sConfig, "Configuration", "log_path", GUICtrlRead($idViewDriversLogPathInput))
-    Return True
+    Return driversSaveConfigData($sCustomFile, $g_iViewDriversCurMode, $g_sViewDriversCurSource, $g_iViewDriversWinUpdateLevel, $g_iViewDriversSDIOLevel, GUICtrlRead($idViewDriversLogPathInput))
 EndFunc
 
 Func viewDriversReset()
@@ -414,8 +378,8 @@ Func viewDriversReset()
 EndFunc
 
 Func _ViewDriversImportConfig()
-    Local $sImportFile = FileOpenDialog(i18nGet("drivers.dialog.import.title", "Select driver configuration to import"), @ScriptDir, i18nGet("drivers.dialog.import.filter", "Configuration files (*.ini)|All files (*.*)"), BitOR($FD_FILEMUSTEXIST, $FD_PATHMUSTEXIST))
-    If Not @error And $sImportFile <> "" Then
+    Local $sImportFile = dialogImportConfig(@ScriptDir, i18nGet("drivers.dialog.import.filter", "Configuration files (*.ini)|All files (*.*)"), "drivers.dialog.import.title", "Select driver configuration to import")
+    If $sImportFile <> "" Then
         If viewDriversLoadData($sImportFile) Then
             appSetStatus(i18nGet("status.title", "Status: ") & i18nGet("drivers.status.imported", "Imported driver configuration successfully"))
         Else
@@ -425,9 +389,8 @@ Func _ViewDriversImportConfig()
 EndFunc
 
 Func _ViewDriversExportConfig()
-    Local $sExportFile = FileSaveDialog(i18nGet("drivers.dialog.export.title", "Export driver configuration"), @ScriptDir, i18nGet("drivers.dialog.export.filter", "Configuration files (*.ini)|All files (*.*)"), $FD_PROMPTOVERWRITE, "config.ini")
-    If Not @error And $sExportFile <> "" Then
-        If Not StringRegExp($sExportFile, '(?i)\.ini$') Then $sExportFile &= ".ini"
+    Local $sExportFile = dialogExportConfig(@ScriptDir, i18nGet("drivers.dialog.export.filter", "Configuration files (*.ini)|All files (*.*)"), "config.ini", ".ini", "drivers.dialog.export.title", "Export driver configuration")
+    If $sExportFile <> "" Then
         If viewDriversSaveData($sExportFile) Then
             appSetStatus(i18nGet("status.title", "Status: ") & i18nGet("drivers.status.exported", "Exported driver configuration successfully"))
         Else
@@ -437,9 +400,8 @@ Func _ViewDriversExportConfig()
 EndFunc
 
 Func _ViewDriversOpenConfigFile()
-    Local $sConfig = _GetDriversConfigPath()
-    If FileExists($sConfig) Then
-        ShellExecute($sConfig)
+    Local $sConfig = driversGetConfigPath()
+    If dialogOpenFileInEditor($sConfig) Then
         appSetStatus(i18nGet("status.title", "Status: ") & i18nGet("drivers.status.opened", "Opened driver configuration in editor"))
     EndIf
 EndFunc

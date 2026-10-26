@@ -34,6 +34,7 @@
 #include "../modules/data.au3"
 #include "../modules/import.au3"
 #include "../modules/export.au3"
+#include "../modules/control.au3"
 #include <Array.au3>
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -113,15 +114,8 @@ Global $hViewUnattendScriptsGroup = 0
 Global $idViewUnattendScriptsEditLbl = 0, $idViewUnattendScriptsEditEdit = 0
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; Helper Functions
+; View Creation
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-Func _SetCueBannerW($hWnd, $sText, $bOnFocus = True)
-    If Not IsHWnd($hWnd) Then $hWnd = GUICtrlGetHandle($hWnd)
-    Local $tText = DllStructCreate("wchar[" & (StringLen($sText) + 1) & "]")
-    DllStructSetData($tText, 1, $sText)
-    Return _SendMessage($hWnd, $EM_SETCUEBANNER, $bOnFocus, $tText, 0, "wparam", "struct*") = 1
-EndFunc
 
 Func viewUnattendCreate($hViewPort, $iW, $iH)
     #forceref $iW, $iH
@@ -832,7 +826,7 @@ Func viewUnattendApplyLang()
     GUICtrlSetData($idViewUnattendProductKeyLbl, i18nGet("unattend.windows.productkey.label", "Product Key: "))
     GUICtrlSetTip($idViewUnattendProductKeyLbl, i18nGet("unattend.windows.productkey.tip", "Enter 25-character Windows product key (auto-formatted)"))
     GUICtrlSetTip($idViewUnattendProductKeyInput, i18nGet("unattend.windows.productkey.tip", "Enter 25-character Windows product key (auto-formatted)"))
-    _SetCueBannerW($idViewUnattendProductKeyInput, i18nGet("unattend.windows.productkey.placeholder", "XXXXX-XXXXX-XXXXX-XXXXX-XXXXX"), True)
+    controlSetCueBanner($idViewUnattendProductKeyInput, i18nGet("unattend.windows.productkey.placeholder", "XXXXX-XXXXX-XXXXX-XXXXX-XXXXX"), True)
 
     GUICtrlSetData($idViewUnattendArchLbl, i18nGet("unattend.windows.arch.label", "Architecture: "))
     GUICtrlSetTip($idViewUnattendArchLbl, i18nGet("unattend.windows.arch.tip", "Select system CPU architecture"))
@@ -844,7 +838,7 @@ Func viewUnattendApplyLang()
     GUICtrlSetData($idViewUnattendPCNameLbl, i18nGet("unattend.windows.pcname.label", "PC Name: "))
     GUICtrlSetTip($idViewUnattendPCNameLbl, i18nGet("unattend.windows.pcname.tip", "Specify computer NetBIOS name (max 15 characters)"))
     GUICtrlSetTip($idViewUnattendPCNameInput, i18nGet("unattend.windows.pcname.tip", "Specify computer NetBIOS name (max 15 characters)"))
-    _SetCueBannerW($idViewUnattendPCNameInput, i18nGet("unattend.windows.pcname.placeholder", "e.g. DESKTOP-PC"), True)
+    controlSetCueBanner($idViewUnattendPCNameInput, i18nGet("unattend.windows.pcname.placeholder", "e.g. DESKTOP-PC"), True)
     
     ; Language - Region
     GUICtrlSetData($hViewUnattendRegionGroup, i18nGet("unattend.region.title", "Language - Region"))
@@ -887,7 +881,7 @@ Func viewUnattendApplyLang()
     GUICtrlSetData($idViewUnattendPartitionDiskIDLbl, i18nGet("unattend.partition.diskid.label", "Disk ID: "))
     GUICtrlSetTip($idViewUnattendPartitionDiskIDLbl, i18nGet("unattend.partition.diskid.tip", "Target disk index (0, 1, ...) or Ventoy disk variable"))
     GUICtrlSetTip($idViewUnattendPartitionDiskIDInput, i18nGet("unattend.partition.diskid.tip", "Target disk index (0, 1, ...) or Ventoy disk variable"))
-    _SetCueBannerW($idViewUnattendPartitionDiskIDInput, i18nGet("unattend.partition.diskid.placeholder", "0 or $$VT_WINDOWS_DISK_1ST_NONVTOY$$"), True)
+    controlSetCueBanner($idViewUnattendPartitionDiskIDInput, i18nGet("unattend.partition.diskid.placeholder", "0 or $$VT_WINDOWS_DISK_1ST_NONVTOY$$"), True)
 
     GUICtrlSetData($idViewUnattendPartitionTypeLbl, i18nGet("unattend.partition.type.label", "Partition Type: "))
     GUICtrlSetTip($idViewUnattendPartitionTypeLbl, i18nGet("unattend.partition.type.tip", "Disk partition scheme: GPT (UEFI) or MBR (Legacy BIOS)"))
@@ -909,9 +903,9 @@ Func viewUnattendApplyLang()
     _GUICtrlListView_SetColumn($idViewUnattendPartitionTblList, 4, i18nGet("unattend.partition.col.letter", "Letter"))
     _GUICtrlListView_SetColumn($idViewUnattendPartitionTblList, 5, i18nGet("unattend.partition.col.format", "Format"))
 
-    _SetCueBannerW($idViewUnattendPartLabelInput, i18nGet("unattend.partition.placeholder.label", "Label"), True)
-    _SetCueBannerW($idViewUnattendPartSizeInput, i18nGet("unattend.partition.placeholder.size", "Size MB"), True)
-    _SetCueBannerW($idViewUnattendPartLetterInput, i18nGet("unattend.partition.placeholder.letter", "Letter"), True)
+    controlSetCueBanner($idViewUnattendPartLabelInput, i18nGet("unattend.partition.placeholder.label", "Label"), True)
+    controlSetCueBanner($idViewUnattendPartSizeInput, i18nGet("unattend.partition.placeholder.size", "Size MB"), True)
+    controlSetCueBanner($idViewUnattendPartLetterInput, i18nGet("unattend.partition.placeholder.letter", "Letter"), True)
 
     GUICtrlSetTip($idViewUnattendPartTypeCmb, i18nGet("unattend.partition.parttype.tip", "Select partition type"))
     GUICtrlSetTip($idViewUnattendPartLabelInput, i18nGet("unattend.partition.label.tip", "Enter volume label"))
@@ -934,7 +928,7 @@ Func viewUnattendApplyLang()
     GUICtrlSetTip($idViewUnattendPartitionOSPartIDLbl, i18nGet("unattend.partition.ospartid.tip", "Partition ID where Windows will be installed (default: 3)"))
     GUICtrlSetTip($idViewUnattendPartitionOSPartIDInput, i18nGet("unattend.partition.ospartid.tip", "Partition ID where Windows will be installed (default: 3)"))
     GUICtrlSetTip($idViewUnattendPartitionOSPartIDUpDown, i18nGet("unattend.partition.ospartid.updown.tip", "Adjust partition ID where Windows will be installed"))
-    _SetCueBannerW($idViewUnattendPartitionOSPartIDInput, "3", True)
+    controlSetCueBanner($idViewUnattendPartitionOSPartIDInput, "3", True)
 
     ; Bypass Hardware Checks
     GUICtrlSetData($hViewUnattendBypassGroup, i18nGet("unattend.bypass.title", "Bypass Hardware Checks"))
@@ -999,9 +993,9 @@ Func viewUnattendApplyLang()
     _GUICtrlListView_SetColumn($idViewUnattendLocalAccTblList, 3, i18nGet("unattend.localacc.col.displayname", "DisplayName"))
     _GUICtrlListView_SetColumn($idViewUnattendLocalAccTblList, 4, i18nGet("unattend.localacc.col.password", "Password"))
 
-    _SetCueBannerW($idViewUnattendAccNameInput, i18nGet("unattend.localacc.placeholder.name", "Username"), True)
-    _SetCueBannerW($idViewUnattendAccDispNameInput, i18nGet("unattend.localacc.placeholder.displayname", "Display Name"), True)
-    _SetCueBannerW($idViewUnattendAccPassInput, i18nGet("unattend.localacc.placeholder.password", "Password (unhidden)"), True)
+    controlSetCueBanner($idViewUnattendAccNameInput, i18nGet("unattend.localacc.placeholder.name", "Username"), True)
+    controlSetCueBanner($idViewUnattendAccDispNameInput, i18nGet("unattend.localacc.placeholder.displayname", "Display Name"), True)
+    controlSetCueBanner($idViewUnattendAccPassInput, i18nGet("unattend.localacc.placeholder.password", "Password (unhidden)"), True)
 
     GUICtrlSetTip($idViewUnattendAccTypeCmb, i18nGet("unattend.localacc.type.tip", "Select account type"))
     GUICtrlSetTip($idViewUnattendAccNameInput, i18nGet("unattend.localacc.name.tip", "Enter account username"))
@@ -1023,7 +1017,7 @@ Func viewUnattendApplyLang()
     GUICtrlSetTip($idViewUnattendLocalAccAutoLogonLbl, i18nGet("unattend.localacc.autologon.tip", "Account ID to automatically log into on boot (default: 1)"))
     GUICtrlSetTip($idViewUnattendLocalAccAutoLogonInput, i18nGet("unattend.localacc.autologon.tip", "Account ID to automatically log into on boot (default: 1)"))
     GUICtrlSetTip($idViewUnattendLocalAccAutoLogonUpDown, i18nGet("unattend.localacc.autologon.updown.tip", "Adjust account ID to automatically log on"))
-    _SetCueBannerW($idViewUnattendLocalAccAutoLogonInput, i18nGet("unattend.localacc.autologon.placeholder", "1"), True)
+    controlSetCueBanner($idViewUnattendLocalAccAutoLogonInput, i18nGet("unattend.localacc.autologon.placeholder", "1"), True)
 
     ; Bloatware Removal
     GUICtrlSetData($hViewUnattendBloatwareGroup, i18nGet("unattend.bloatware.title", "Bloatware Removal"))
